@@ -1,0 +1,6 @@
+debug
+release
+*.autosave
+*.obj
+*.user
+moc_*.cpp
