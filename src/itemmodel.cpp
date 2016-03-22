@@ -141,6 +141,10 @@ ItemModel::Item_ ItemModel::readItem_(QXmlStreamReader* reader)
       {
          link.link = QUrl::fromUserInput(reader->readElementText());
       }
+      else if (reader->name() == "tag")
+      {
+         link.tags.push_back(reader->readElementText());
+      }
       else
       {
          reader->skipCurrentElement();
@@ -166,7 +170,7 @@ ItemModel::Items_ ItemModel::readGroup_(QXmlStreamReader* reader)
       else if (reader->name() == "item")
       {
          links.append(readItem_(reader));
-         links.back().tags = tags;
+         links.back().tags.append(tags);
 
          qInfo() << "source item read:" << links.back().name << links.back().link.toString() << links.back().tags;
       }
