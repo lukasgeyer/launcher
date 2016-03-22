@@ -8,6 +8,7 @@
  */
 
 #include <QAbstractEventDispatcher>
+#include <QDebug>
 
 #if defined(Q_OS_LINUX)
    #include <QX11Info>
@@ -31,13 +32,39 @@ void ItemHotkey::registerKeySequence()
 {
    QAbstractEventDispatcher::instance()->installNativeEventFilter(this);
 
+   auto error = 0;
+   auto errorString = QStringLiteral("Unknown error");
+
 #if defined(Q_OS_LINUX)
-   xcb_grab_key(QX11Info::connection(), false, QX11Info::appRootWindow(),
-                XCB_MOD_MASK_CONTROL | XCB_MOD_MASK_SHIFT, 65 /* Space */,
-                XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+   auto result = xcb_request_check(QX11Info::connection(), xcb_grab_key_checked(QX11Info::connection(), false, QX11Info::appRootWindow(),
+                                                                                XCB_MOD_MASK_CONTROL | XCB_MOD_MASK_SHIFT, 65 /* Space */,
+                                                                                XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC));
+   if (result != nullptr)
+   {
+      error = result->error_code;
+   }
+
 #elif defined(Q_OS_WIN)
-   RegisterHotKey(NULL, 0, MOD_CONTROL | MOD_SHIFT, VK_SPACE);
+   if (RegisterHotKey(NULL, 0, MOD_CONTROL | MOD_SHIFT, VK_SPACE) == 0)
+   {
+      error = GetLastError();
+
+      auto lastErrorString = static_cast<LPSTR>(nullptr);
+      auto lastErrorStringSize = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                                                FORMAT_MESSAGE_FROM_SYSTEM |
+                                                FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error,
+                                                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), &lastErrorString, 0, nullptr);
+
+      errorString = QString(lastErrorString, lastErrorStringSize);
+
+      LocalFree(lastErrorString);
+   }
 #endif // defined(Q_OS_LINUX)
+
+   if (error != 0)
+   {
+      qCritical() << "register hotkey failed:" << error << errorString;
+   }
 }
 
 void ItemHotkey::unregisterKeySequence()
