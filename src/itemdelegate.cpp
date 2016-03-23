@@ -7,6 +7,7 @@
  *          published by the Free Software Foundation.
  */
 
+#include <QApplication>
 #include <QPainter>
 
 #include "itemdelegate.h"
@@ -48,6 +49,11 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
       painter->fillRect(option.rect.adjusted(1, 0, -1, 0), option.palette.highlight());
       painter->setPen(QPen(Qt::white));
    }
+
+   ///
+   /// Set the font (the application default font).
+   ///
+   painter->setFont(option.font);
 
    ///
    /// Draw item name.

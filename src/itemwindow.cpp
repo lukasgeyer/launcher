@@ -11,9 +11,11 @@
 #include <QDebug>
 #include <QDesktopServices>
 #include <QDesktopWidget>
+#include <QFontDialog>
 #include <QGraphicsDropShadowEffect>
 #include <QIcon>
 #include <QKeyEvent>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QSettings>
 #include <QUrl>
@@ -133,6 +135,42 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
       hide();
    });
 
+   ///
+   /// Decorate the standard context menu with the additional font selection action.
+   ///
+   auto itemEditContextMenu = itemEdit->createStandardContextMenu();
+   itemEditContextMenu->addSeparator();
+   itemEditContextMenu->addAction(tr("Select font..."), [itemEdit, itemView](){
+      QSettings settings;
+
+      auto fontSelected = false;
+      auto font = QFontDialog::getFont(&fontSelected, QFont(settings.value(QStringLiteral("font/family")).toString(),
+                                                            settings.value(QStringLiteral("font/size")).toInt(),
+                                                            settings.value(QStringLiteral("font/weight")).toInt(),
+                                                            settings.value(QStringLiteral("font/italic")).toBool()), itemEdit);
+      if (fontSelected == true)
+      {
+         settings.setValue(QStringLiteral("font/family"), font.family());
+         settings.setValue(QStringLiteral("font/size"), font.pointSize());
+         settings.setValue(QStringLiteral("font/weight"), font.family());
+         settings.setValue(QStringLiteral("font/italic"), font.italic());
+
+         itemEdit->setFont(font);
+         itemView->setFont(font);
+      }
+   });
+
+   ///
+   /// Show the decorated context menu instead of the standard context menu.
+   ///
+   itemEdit->setContextMenuPolicy(Qt::CustomContextMenu);
+   itemEdit->connect(itemEdit, &ItemEdit::customContextMenuRequested, [itemEdit, itemEditContextMenu](const QPoint& position){
+      itemEditContextMenu->popup(itemEdit->mapToGlobal(position));
+   });
+
+   ///
+   /// Set layout.
+   ///
    auto itemLayout = new QVBoxLayout;
    itemLayout->addWidget(itemEdit);
    itemLayout->addWidget(itemView);
@@ -151,9 +189,14 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    });
 
    ///
+   /// Restore settings.
+   ///
+   QSettings settings;
+
+   ///
    /// Restore the geometry or resize and move the window to the default value if no geometry is stored.
    ///
-   auto geometry = QSettings().value("itemWindow/geometry");
+   auto geometry = settings.value("itemWindow/geometry");
    if (geometry.isValid() == true)
    {
       restoreGeometry(geometry.toByteArray());
@@ -165,6 +208,18 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
       resize(screenGeometry.width() * 0.3, screenGeometry.height() * 0.6);
       move(screenGeometry.right() - width(), 0);
    }
+
+   ///
+   /// Restore the font or use the default font is no font is stored.
+   ///
+   auto defaultFont = QApplication::font();
+   auto font = QFont(settings.value(QStringLiteral("font/family"), defaultFont.family()).toString(),
+                     settings.value(QStringLiteral("font/size"), defaultFont.pointSize()).toInt(),
+                     settings.value(QStringLiteral("font/weight"), defaultFont.weight()).toInt(),
+                     settings.value(QStringLiteral("font/italic"), defaultFont.italic()).toBool());
+
+   itemEdit->setFont(font);
+   itemView->setFont(font);
 }
 
 ItemWindow::~ItemWindow()
