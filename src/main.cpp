@@ -17,25 +17,32 @@
 namespace {
 
 /*!
+ * The default log message handler.
+ */
+QtMessageHandler logMessageHandler_ = nullptr;
+/*!
  * The log file stream.
  */
 QTextStream logFileStream_;
 /*!
  * The log file handler.
  */
-void logFileHandler(QtMsgType type, const QMessageLogContext & /* context */, const QString &msg)
+void logFileHandler(QtMsgType type, const QMessageLogContext& context, const QString& message)
 {
    static const char* typeString[] = { "DEBUG", "WARNING", "CRITICAL", "FATAL", "INFO", "SYSTEM" };
 
-   logFileStream_ << QDateTime::currentDateTime().toString(Qt::ISODate) << " " << typeString[type] << " " << msg.toLocal8Bit() << endl;
+   logFileStream_ << QDateTime::currentDateTime().toString(Qt::ISODate) << " " << typeString[type] << " " << message.toLocal8Bit() << endl;
+
+   if (logMessageHandler_ != nullptr)
+   {
+      (*logMessageHandler_)(type, context, message);
+   }
 }
 
 } // namespace
 
 int main(int argc, char *argv[])
 {
-   QtMessageHandler currentMessageHandler = nullptr;
-
    ///
    /// Set up logging. If the log file cannot be openend the default message handler is used.
    ///
@@ -44,7 +51,7 @@ int main(int argc, char *argv[])
    {
       logFileStream_.setDevice(&logFile);
 
-      currentMessageHandler = qInstallMessageHandler(logFileHandler);
+      logMessageHandler_ = qInstallMessageHandler(logFileHandler);
    }
 
    ///
