@@ -69,10 +69,5 @@ int main(int argc, char *argv[])
    ItemWindow itemWindow;
    itemWindow.show();
 
-   ///
-   /// Restore the default message handler (a null message handler sets the default).
-   ///
-   qInstallMessageHandler(currentMessageHandler);
-
    return application.exec();
 }
