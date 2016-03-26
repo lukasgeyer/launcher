@@ -33,7 +33,7 @@ public:
    /*!
     * Registers the predefined key sequence.
     */
-   void registerKeySequence();
+   bool registerKeySequence();
    /*!
     * Unregisters the predefined key sequence.
     */

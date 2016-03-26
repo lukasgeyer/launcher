@@ -28,43 +28,47 @@ ItemHotkey::~ItemHotkey()
    unregisterKeySequence();
 }
 
-void ItemHotkey::registerKeySequence()
+bool ItemHotkey::registerKeySequence()
 {
-   QAbstractEventDispatcher::instance()->installNativeEventFilter(this);
-
-   auto error = 0;
-   auto errorString = QStringLiteral("Unknown error");
+   bool keySequenceRegistered = false;
 
 #if defined(Q_OS_LINUX)
    auto result = xcb_request_check(QX11Info::connection(), xcb_grab_key_checked(QX11Info::connection(), false, QX11Info::appRootWindow(),
                                                                                 XCB_MOD_MASK_CONTROL | XCB_MOD_MASK_SHIFT, 65 /* Space */,
                                                                                 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC));
-   if (result != nullptr)
+
+   keySequenceRegistered = ((result == nullptr) || (result->error_code == 0));
+   if (keySequenceRegistered == true)
    {
-      error = result->error_code;
+      QAbstractEventDispatcher::instance()->installNativeEventFilter(this);
+   }
+   else
+   {
+      qCritical() << "register hotkey failed:" << result->error_code;
    }
 
 #elif defined(Q_OS_WIN)
-   if (RegisterHotKey(NULL, 0, MOD_CONTROL | MOD_SHIFT, VK_SPACE) == 0)
+   keySequenceRegistered = (RegisterHotKey(NULL, 0, MOD_CONTROL | MOD_SHIFT, VK_SPACE) == TRUE);
+   if (keySequenceRegistered == true)
    {
-      error = GetLastError();
-
+      QAbstractEventDispatcher::instance()->installNativeEventFilter(this);
+   }
+   else
+   {
+      auto lastError = GetLastError();
       auto lastErrorString = static_cast<LPSTR>(nullptr);
       auto lastErrorStringSize = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
                                                 FORMAT_MESSAGE_FROM_SYSTEM |
-                                                FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error,
+                                                FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, lastError,
                                                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), &lastErrorString, 0, nullptr);
 
-      errorString = QString(lastErrorString, lastErrorStringSize);
+      qCritical() << "register hotkey failed:" << lastError << QString(lastErrorString, lastErrorStringSize);
 
       LocalFree(lastErrorString);
    }
 #endif // defined(Q_OS_LINUX)
 
-   if (error != 0)
-   {
-      qCritical() << "register hotkey failed:" << error << errorString;
-   }
+   return keySequenceRegistered;
 }
 
 void ItemHotkey::unregisterKeySequence()
@@ -90,7 +94,9 @@ bool ItemHotkey::nativeEventFilter(const QByteArray& /* eventType */, void *mess
           (keyPressedEventMessage->state & XCB_MOD_MASK_SHIFT) &&
           (keyPressedEventMessage->detail == 65 /* Space */))
       {
-         hotkeyPressed();
+         qDebug() << "hotkey pressed";
+
+         emit hotkeyPressed();
       }
    }
 #elif defined(Q_OS_WIN)
@@ -99,6 +105,8 @@ bool ItemHotkey::nativeEventFilter(const QByteArray& /* eventType */, void *mess
    {
       if ((LOWORD(eventMessage->lParam) == (MOD_CONTROL | MOD_SHIFT)) && (HIWORD(eventMessage->lParam) == VK_SPACE))
       {
+         qDebug() << "hotkey pressed";
+
          emit hotkeyPressed();
       }
    }
