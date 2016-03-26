@@ -147,7 +147,15 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    /// but this leads to unpleasent flickering, so the application is simply hidden.
    ///
    connect(qApp, &QApplication::applicationStateChanged, [this, itemEdit](Qt::ApplicationState applicationState){
-      if (applicationState == Qt::ApplicationInactive) {
+      if (applicationState == Qt::ApplicationActive)
+      {
+         itemEdit->clear();
+         itemEdit->setFocus();
+
+         activateWindow();
+      }
+      else if (applicationState == Qt::ApplicationInactive)
+      {
          hide();
       }
    });
@@ -200,9 +208,11 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    ///
    auto itemHotkey = new ItemHotkey(this);
    itemHotkey->registerKeySequence();
-   itemHotkey->connect(itemHotkey, &ItemHotkey::hotkeyPressed, [this](){
-      show();
-      raise();
+   itemHotkey->connect(itemHotkey, &ItemHotkey::hotkeyPressed, [this, itemEdit](){
+      ///
+      /// Show the window.
+      ///
+      showNormal();
    });
 
    ///
