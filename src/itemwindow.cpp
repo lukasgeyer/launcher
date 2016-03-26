@@ -58,7 +58,6 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    /// Create UI.
    ///
    auto itemModel = new ItemModel(this);
-   itemModel->setSource(QStringLiteral("launcher.xml"));
 
    auto itemFilterModel = new ItemFilterModel(this);
    itemFilterModel->setSourceModel(itemModel);
@@ -134,6 +133,13 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
       ///
       hide();
    });
+   itemEdit->connect(itemModel, &ItemModel::modelUpdateSucceeded, [itemEdit](){
+      itemEdit->removeError(QStringLiteral("modelError"));
+   });
+   itemEdit->connect(itemModel, &ItemModel::modelUpdateFailed, [itemEdit](const QString& reason) {
+      itemEdit->addError(QStringLiteral("modelError"), reason);
+   });
+
    ///
    /// Hide the application if it loses focus, as it cannot be activated programatically for
    /// instance on Windows if another application is activated. The application will simply
@@ -231,6 +237,12 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
 
    itemEdit->setFont(font);
    itemView->setFont(font);
+
+   ///
+   /// Update the source model. Be aware that this must be done after creating the UI, so that
+   /// possible errors during the model update are properly indicated.
+   ///
+   itemModel->setSource(settings.value("sourceFile", QStringLiteral("launcher.xml")).toString());
 }
 
 ItemWindow::~ItemWindow()
