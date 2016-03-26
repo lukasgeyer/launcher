@@ -207,13 +207,20 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    /// Create the hotkey.
    ///
    auto itemHotkey = new ItemHotkey(this);
-   itemHotkey->registerKeySequence();
    itemHotkey->connect(itemHotkey, &ItemHotkey::hotkeyPressed, [this, itemEdit](){
       ///
       /// Show the window.
       ///
       showNormal();
    });
+
+   ///
+   /// Register the hotkey sequence.
+   ///
+   if (itemHotkey->registerKeySequence() == false)
+   {
+      itemEdit->addError(QStringLiteral("hotkeyError"), tr("The hotkey could not be registered."));
+   }
 
    ///
    /// Restore settings.
