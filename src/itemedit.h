@@ -10,8 +10,11 @@
 #ifndef ITEMEDIT_H
 #define ITEMEDIT_H
 
+#include <QAction>
 #include <QEvent>
 #include <QLineEdit>
+#include <QString>
+#include <QHash>
 
 /*!
  * \brief A line edit providing additional up-key, down-key or escape-key pressed signals.
@@ -25,6 +28,17 @@ public:
     * Constructs an ItemEdit with the parent \a parent.
     */
    ItemEdit(QWidget* parent = nullptr);
+
+public slots:
+   /*!
+    * Adds the error \a error with the error ID \a errorId to the list of errors. If an error
+    * with such an ID already exists it is replaced.
+    */
+   void addError(const QString& errorId, const QString& error);
+   /*!
+    * Removes the error with the ID \a errorId.
+    */
+   void removeError(const QString& errorId);
 
 signals:
    /*!
@@ -41,6 +55,24 @@ signals:
    void escapePressed();
 
 private:
+   /*!
+    * A list of errors.
+    */
+   typedef QHash<QString, QString> Errors_;
+   /*!
+    * The list of errors.
+    */
+   Errors_ errors_;
+   /*!
+    * The error indication.
+    */
+   QAction* errorIndication_ = nullptr;
+
+   /*!
+    * Updates the error indication.
+    */
+   void updateErrorIndication_();
+
    /*!
     * \reimp
     */
