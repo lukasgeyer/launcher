@@ -24,6 +24,8 @@
  */
 class ItemModel : public QAbstractListModel
 {
+   Q_OBJECT
+
 public:
    /*!
     * The custom roles provided by this model.
@@ -56,6 +58,17 @@ public:
     * \reimp
     */
    int rowCount(const QModelIndex& /* parent */) const override;
+
+signals:
+   /*!
+    * Is emitted when the model has been successfully updated.
+    */
+   void modelUpdateSucceeded();
+   /*!
+    * Is emitted when the model has been unsuccessfully updated. The reason why updating the
+    * model has failed is indicated in \a reason.
+    */
+   void modelUpdateFailed(const QString& reason);
 
 private:
    /*!

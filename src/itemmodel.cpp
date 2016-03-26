@@ -76,21 +76,29 @@ bool ItemModel::readSource_(const QString& sourceFile)
       qInfo() << "parse source:" << sourceFile;
 
       QXmlStreamReader reader(&sourceFileDevice);
-
       if ((reader.readNextStartElement() == true) && (reader.name() == "items"))
       {
          items_ = readItems_(&reader);
       }
 
-      result = reader.hasError();
+      result = (reader.hasError() == false);
       if (result == true)
       {
-         qCritical() << "parse source failed:" << sourceFile << "-" << reader.errorString() << "at" << reader.lineNumber() << reader.columnNumber();
+         emit modelUpdateSucceeded();
+      }
+      else
+      {
+         qCritical() << "parse source failed:" << sourceFile << reader.lineNumber() << reader.columnNumber() << reader.errorString();
+
+         emit modelUpdateFailed(QStringLiteral("In %1 at %2:%3 %4").arg(sourceFile)
+                                                                   .arg(reader.lineNumber()).arg(reader.columnNumber()).arg(reader.errorString()));
       }
    }
    else
    {
-      qCritical() << "open source failed:" << sourceFile << "-" << sourceFileDevice.errorString();
+      qCritical() << "open source failed:" << sourceFile << sourceFileDevice.errorString();
+
+      emit modelUpdateFailed(QStringLiteral("%1: %2").arg(sourceFile).arg(sourceFileDevice.errorString()));
    }
 
    endResetModel();
@@ -110,7 +118,7 @@ ItemModel::Items_ ItemModel::readItems_(QXmlStreamReader* reader)
       {
          links.append(readItem_(reader));
 
-         qInfo() << "source item read:" << links.back().name << links.back().link.toString() << links.back().tags;
+         qInfo() << "append item:" << links.back().name << links.back().link.toString() << links.back().tags;
       }
       else if (reader->name() == "group")
       {
@@ -172,7 +180,7 @@ ItemModel::Items_ ItemModel::readGroup_(QXmlStreamReader* reader)
          links.append(readItem_(reader));
          links.back().tags.append(tags);
 
-         qInfo() << "source item read:" << links.back().name << links.back().link.toString() << links.back().tags;
+         qInfo() << "append item:" << links.back().name << links.back().link.toString() << links.back().tags;
       }
       else
       {
