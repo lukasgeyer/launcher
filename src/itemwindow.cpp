@@ -134,6 +134,17 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
       ///
       hide();
    });
+   ///
+   /// Hide the application if it loses focus, as it cannot be activated programatically for
+   /// instance on Windows if another application is activated. The application will simply
+   /// flash in the taskbar instead. Another option would be hiding and showing the window,
+   /// but this leads to unpleasent flickering, so the application is simply hidden.
+   ///
+   connect(qApp, &QApplication::applicationStateChanged, [this, itemEdit](Qt::ApplicationState applicationState){
+      if (applicationState == Qt::ApplicationInactive) {
+         hide();
+      }
+   });
 
    ///
    /// Decorate the standard context menu with the additional font selection action.
