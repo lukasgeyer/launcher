@@ -13,7 +13,7 @@
    #include <fcntl.h>
    #include <sys/file.h>
    #include <unistd.h>
-#elif defined(Q_OS_WINDOWS)
+#elif defined(Q_OS_WIN)
    #include <qt_windows.h>
 #endif // defined(Q_OS_LINUX)
 
@@ -28,10 +28,10 @@ bool ItemLock::tryLock()
 {
    bool isLocked = false;
 
+#if defined(Q_OS_LINUX)
    isLocked = (lockFileDescriptor_ >= 0);
    if (isLocked == false)
    {
-#if defined(Q_OS_LINUX)
       lockFileDescriptor_ = open(qApp->applicationFilePath().toLocal8Bit().data(), O_RDONLY, 0);
       if (lockFileDescriptor_ >= 0)
       {
@@ -43,9 +43,13 @@ bool ItemLock::tryLock()
             lockFileDescriptor_ = -1;
          }
       }
+   }
 #elif defined(Q_OS_WIN)
-      lockFileDescriptor_ = CreateFile(qApp->applicationFilePath().toLocal8Bit().data(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-      if (lockFileDescriptor_ >= 0)
+   isLocked = (lockFileHandle_ != nullptr);
+   if (isLocked == false)
+   {
+      lockFileHandle_ = CreateFileA(qApp->applicationFilePath().toLocal8Bit().data(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+      if (lockFileHandle_ >= 0)
       {
          isLocked = true;
       }
@@ -57,14 +61,19 @@ bool ItemLock::tryLock()
 
 void ItemLock::unlock()
 {
+#if defined(Q_OS_LINUX)
    if (lockFileDescriptor_ >= 0)
    {
-#if defined(Q_OS_LINUX)
       close(lockFileDescriptor_);
-#elif defined(Q_OS_WIN)
-      CloseHandle(lockFileDescriptor_);
-#endif
 
       lockFileDescriptor_ = -1;
    }
+#elif defined(Q_OS_WIN)
+   if (lockFileHandle_)
+   {
+      CloseHandle(lockFileHandle_);
+
+      lockFileHandle_ = nullptr;
+   }
+#endif // defined(Q_OS_LINUX)
 }

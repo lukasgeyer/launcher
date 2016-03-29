@@ -33,10 +33,17 @@ public:
    void unlock();
 
 private:
+#if defined(Q_OS_LINUX)
    /*!
     * The file descriptor of the lock file.
     */
    int lockFileDescriptor_ = -1;
+#elif defined(Q_OS_WIN)
+   /*!
+    * The file handle of the lock file.
+    */
+   void* lockFileHandle_ = nullptr;
+#endif // defined(Q_OS_LINUX)
 };
 
 #endif // ITEMLOCK_H

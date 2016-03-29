@@ -60,9 +60,9 @@ bool ItemHotkey::registerKeySequence()
       auto lastErrorStringSize = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
                                                 FORMAT_MESSAGE_FROM_SYSTEM |
                                                 FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, lastError,
-                                                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), &lastErrorString, 0, nullptr);
+                                                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), lastErrorString, 0, nullptr);
 
-      qCritical() << "register hotkey failed:" << lastError << QString(lastErrorString, lastErrorStringSize);
+      qCritical() << "register hotkey failed:" << lastError << QString::fromLocal8Bit(lastErrorString, lastErrorStringSize);
 
       LocalFree(lastErrorString);
    }
