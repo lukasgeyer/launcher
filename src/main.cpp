@@ -12,6 +12,7 @@
 #include <QFile>
 #include <QTextStream>
 
+#include "itemlock.h"
 #include "itemwindow.h"
 
 namespace {
@@ -43,16 +44,7 @@ void logFileHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 
 int main(int argc, char *argv[])
 {
-   ///
-   /// Set up logging. If the log file cannot be openend the default message handler is used.
-   ///
-   QFile logFile(QStringLiteral("launcher.log"));
-   if (logFile.open(QIODevice::Text | QIODevice::Truncate | QIODevice::WriteOnly) == true)
-   {
-      logFileStream_.setDevice(&logFile);
-
-      logMessageHandler_ = qInstallMessageHandler(logFileHandler);
-   }
+   int result = EXIT_FAILURE;
 
    ///
    /// Set up the application.
@@ -64,10 +56,34 @@ int main(int argc, char *argv[])
    application.setOrganizationDomain(QStringLiteral("https://github.com/lukasgeyer"));
 
    ///
-   /// Set up the item window.
+   /// Try to acquire the application lock and exit immediately if it cannot be acquired (so that
+   /// just a single instance of the application is running at a time).
    ///
-   ItemWindow itemWindow;
-   itemWindow.show();
+   ItemLock lock;
+   if (lock.tryLock() == true)
+   {
+      ///
+      /// Set up logging. If the log file cannot be openend (just) the default message handler is used.
+      ///
+      QFile logFile(QStringLiteral("launcher.log"));
+      if (logFile.open(QIODevice::Text | QIODevice::Truncate | QIODevice::WriteOnly) == true)
+      {
+         logFileStream_.setDevice(&logFile);
 
-   return application.exec();
+         logMessageHandler_ = qInstallMessageHandler(logFileHandler);
+      }
+
+      ///
+      /// Set up the item window.
+      ///
+      ItemWindow itemWindow;
+      itemWindow.show();
+
+      ///
+      /// Execute the application.
+      ///
+      result = application.exec();
+   }
+
+   return result;
 }

@@ -22,7 +22,8 @@ SOURCES += \
    src/itemfiltermodel.cpp \
    src/itemedit.cpp \
    src/itemhotkey.cpp \
-   src/itemwindow.cpp
+   src/itemwindow.cpp \
+   src/itemlock.cpp
 
 HEADERS += \
    src/itemmodel.h \
@@ -31,7 +32,8 @@ HEADERS += \
    src/itemfiltermodel.h \
    src/itemedit.h \
    src/itemhotkey.h \
-   src/itemwindow.h
+   src/itemwindow.h \
+   src/itemlock.h
 
 RESOURCES += \
     resources/resources.qrc
