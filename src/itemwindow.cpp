@@ -149,7 +149,7 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    connect(qApp, &QApplication::applicationStateChanged, [this, itemEdit](Qt::ApplicationState applicationState){
       if (applicationState == Qt::ApplicationActive)
       {
-         itemEdit->clear();
+         itemEdit->selectAll();
          itemEdit->setFocus();
 
          activateWindow();
