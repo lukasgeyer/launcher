@@ -76,13 +76,6 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    itemView->setModel(itemFilterModel);
    itemView->setModelColumn(0);
    itemView->setSelectionMode(QAbstractItemView::SingleSelection);
-   itemView->connect(itemView, &ItemView::clicked, [this](const QModelIndex& index)
-   {
-      ///
-      /// If an item is clicked open the link and remain shown (so multiple items can be clicked).
-      ///
-      openUrl_(index.data(ItemModel::LinkRole).toUrl());
-   });
 
    auto itemEditShadowEffect = new QGraphicsDropShadowEffect;
    itemEditShadowEffect->setBlurRadius(16.0);
@@ -103,25 +96,38 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
       if (currentIndex.isValid() == true)
       {
          ///
-         /// If enter is pressed and an item is selected open the link and hide.
+         /// If enter is pressed and an item is selected open the link and hide if the link
+         /// could be opened. In addition, the last URL open error is cleared. Remain shown
+         /// otherwise so the error can be seen.
          ///
-         hide();
-         openUrl_(currentIndex.data(ItemModel::LinkRole).toUrl());
+         if (openUrl_(currentIndex.data(ItemModel::LinkRole).toUrl(), itemEdit) == true)
+         {
+            itemEdit->removeError(QStringLiteral("openUrlError"));
+            hide();
+         }
       }
       else
       {
          ///
          /// If enter is pressed and no item is selected open all links if either a filter is
-         /// provided (and a non-tagged item might be matched) or the item is tagged and hide.
+         /// provided (and a non-tagged item might be matched) or the item is tagged and hide
+         /// if all links could be opened. In addition, the last URL open error is cleared.
+         /// Remain shown otherwise so the error can be seen.
          ///
-         hide();
+         bool urlOpened = true;
          for (int row = 0; row < itemView->model()->rowCount(); ++row)
          {
             const auto &rowIndex = itemView->model()->index(row, 0);
             if ((itemEdit->text().isEmpty() == false) || (rowIndex.data(ItemModel::TagsRole).toStringList().empty() == false))
             {
-               openUrl_(rowIndex.data(ItemModel::LinkRole).toUrl());
+               urlOpened &= openUrl_(rowIndex.data(ItemModel::LinkRole).toUrl(), itemEdit);
             }
+         }
+
+         if (urlOpened == true)
+         {
+            itemEdit->removeError(QStringLiteral("openUrlError"));
+            hide();
          }
       }
    });
@@ -145,6 +151,16 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    });
    itemEdit->connect(itemModel, &ItemModel::modelUpdateFailed, [itemEdit](const QString& reason) {
       itemEdit->addError(QStringLiteral("modelError"), reason);
+   });
+   itemView->connect(itemView, &ItemView::clicked, [this, itemEdit](const QModelIndex& index)
+   {
+      ///
+      /// If an item is clicked open the link and remain shown (so multiple items can be clicked).
+      ///
+      if (openUrl_(index.data(ItemModel::LinkRole).toUrl(), itemEdit) == true)
+      {
+         itemEdit->removeError(QStringLiteral("openUrlError"));
+      }
    });
 
    ///
@@ -413,12 +429,20 @@ bool ItemWindow::eventFilter(QObject* object, QEvent* event)
    return consumeEvent;
 }
 
-void ItemWindow::openUrl_(const QUrl& url)
+bool ItemWindow::openUrl_(const QUrl& url, ItemEdit* errorIndication)
 {
-   qInfo() << "url opened:" << url;
+   Q_ASSERT(errorIndication);
+
+   qInfo() << "open url:" << url.toString();
 
    ///
    /// Open the URL with the registered default application.
    ///
-   QDesktopServices::openUrl(url);
+   bool result = QDesktopServices::openUrl(url);
+   if (result == false)
+   {
+      errorIndication->addError(QStringLiteral("openUrlError"), tr("Failed to open URL ").append(url.toString()));
+   }
+
+   return result;
 }

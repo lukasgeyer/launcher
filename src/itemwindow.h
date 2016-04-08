@@ -72,9 +72,11 @@ private:
    bool eventFilter(QObject* object, QEvent* event) override;
 
    /*!
-    * Opens the url \a url with the default application.
+    * Tries to open the URL \a url with the default application and returns \a true if the URL
+    * can be opened; \a false otherwise and the error will be indicated at the error indication
+    * \a errorIndication.
     */
-   void openUrl_(const QUrl& url);
+   bool openUrl_(const QUrl& url, ItemEdit *errorIndication);
 };
 
 #endif // ITEMWINDOW_H
