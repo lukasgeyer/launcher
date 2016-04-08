@@ -1,5 +1,5 @@
 /*!
- * \file launchwindow.cpp
+ * \file itemwindow.cpp
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -29,6 +29,13 @@
 #include "itemwindow.h"
 
 namespace {
+
+/*!
+ * The size of the resize area (if the cursor is not within this area the window will be moved
+ * instead of resized).
+ */
+const int RESIZE_AREA_SIZE_ = 16;
+
 
 /*!
  * Returns the event \a event as \a EventType if the type is \a type; \a nullptr otherwise.
@@ -279,75 +286,128 @@ void ItemWindow::closeEvent(QCloseEvent* event)
 bool ItemWindow::eventFilter(QObject* object, QEvent* event)
 {
    Q_ASSERT(event != nullptr);
+   Q_ASSERT(object->isWidgetType());
 
+   ///
+   /// If \a true, the event shall be consumed (not passed to the object).
+   ///
    bool consumeEvent = false;
 
-   ///
-   /// For dragging to be enabled to cursor must be over the item edit and the shift key must be
-   /// pressed. If the mouse button is then pressed the window can be dragged. If the mouse button
-   /// is released (or the shift key is no longer pressed) dragging stops.
-   ///
    if (auto keyPressEvent = eventAs<QKeyEvent>(event, QEvent::KeyPress))
    {
-      if ((static_cast<QWidget*>(object)->underMouse() == true) && (keyPressEvent->modifiers() & Qt::ShiftModifier))
+      ///
+      /// If the modifier is pressed the window modification operation may begin.
+      ///
+      if ((keyPressEvent->modifiers() & Qt::ShiftModifier) != Qt::NoModifier)
       {
-         windowDragModifier_ = true;
-
-         QApplication::setOverrideCursor(Qt::OpenHandCursor);
+         windowModificationModifierActive_ = true;
       }
    }
-   else if (/* auto mouseEvent = */ eventAs<QKeyEvent>(event, QEvent::KeyRelease))
+   else if (auto keyReleaseEvent = eventAs<QKeyEvent>(event, QEvent::KeyRelease))
    {
-      windowDrag_ = false;
-      windowDragModifier_ = false;
-
-      QApplication::restoreOverrideCursor();
-      QApplication::restoreOverrideCursor();
-   }
-   else if (auto mouseEvent = eventAs<QMouseEvent>(event, QEvent::MouseButtonPress))
-   {
-      if (windowDragModifier_ == true)
+      ///
+      /// If the modifier is released the window modification operation must end.
+      ///
+      if ((keyReleaseEvent->modifiers() & Qt::ShiftModifier) == Qt::NoModifier)
       {
-         windowDrag_ = true;
-         windowDragOrigin_ = { mouseEvent->x(), mouseEvent->y() };
+         windowModificationModifierActive_ = false;
 
-         QApplication::setOverrideCursor(Qt::ClosedHandCursor);
+         windowModificationOperationActive_ = false;
+         windowModificationOperation_ = WindowModificationOperation::None;
+
+         static_cast<QWidget*>(object)->unsetCursor();
+      }
+   }
+   else if (/* auto mouseButtonPressedEvent = */ eventAs<QMouseEvent>(event, QEvent::MouseButtonPress))
+   {
+      ///
+      /// If the mouse button is pressed and the modifier is active the window modification
+      /// operation begins.
+      ///
+      if (windowModificationModifierActive_ == true)
+      {
+         windowModificationOperationActive_ = true;
 
          consumeEvent = true;
       }
    }
-   else if (/* auto mouseEvent = */ eventAs<QMouseEvent>(event, QEvent::MouseButtonRelease))
+   else if (/* auto mouseButtonReleasedEvent = */ eventAs<QMouseEvent>(event, QEvent::MouseButtonRelease))
    {
-      windowDrag_ = false;
-
-      if (windowDragModifier_ == true)
+      ///
+      /// If the mouse button is released the window modification operation ends.
+      ///
+      if (windowModificationModifierActive_ == true)
       {
-         QApplication::setOverrideCursor(Qt::OpenHandCursor);
+         windowModificationOperationActive_ = false;
+
+         consumeEvent = true;
+      }
+   }
+   else if (auto mouseMovedEvent = eventAs<QMouseEvent>(event, QEvent::MouseMove))
+   {
+      ///
+      /// If the mouse cursor is moved and the window modification operation is active perform
+      /// the operation by modifiying the window geometry, either position or size, relative to
+      /// the position of the cursor when the operation was started, the origin. If the window
+      /// modification operation is not active just updated the origin, so the proper operation
+      /// can be determined outside of this event.
+      ///
+      if (windowModificationOperationActive_ == true)
+      {
+         if (windowModificationOperation_ == WindowModificationOperation::Move)
+         {
+            setGeometry(geometry().x() + (mouseMovedEvent->x() - windowModificationOrigin_.x()),
+                        geometry().y() + (mouseMovedEvent->y() - windowModificationOrigin_.y()),
+                        geometry().width(),
+                        geometry().height());
+         }
+         else if (windowModificationOperation_ == WindowModificationOperation::Resize)
+         {
+            setGeometry(geometry().x() + (mouseMovedEvent->x() - windowModificationOrigin_.x()),
+                        geometry().y(),
+                        geometry().width() - (mouseMovedEvent->x() - windowModificationOrigin_.x()),
+                        geometry().height());
+         }
+
+         consumeEvent = true;
       }
       else
       {
-         QApplication::restoreOverrideCursor();
-         QApplication::restoreOverrideCursor();
+         windowModificationOrigin_ = { mouseMovedEvent->x(), mouseMovedEvent->y() };
       }
-
-      consumeEvent = true;
    }
-   else if (auto mouseEvent = eventAs<QMouseEvent>(event, QEvent::MouseMove))
+
+   if (windowModificationModifierActive_ == true)
    {
-      if (windowDrag_ == true)
+      ///
+      /// If the modifier is pressed determine the window modification operation, which is either
+      /// resize if the cursor is positioned near the left edge of the widget or move otherwise.
+      ///
+      auto widget = static_cast<QWidget*>(object);
+      auto widgetPosition = widget->mapToGlobal(widget->pos());
+
+      if (widget->underMouse() == true)
       {
-         move(mouseEvent->globalX() - windowDragOrigin_.x(), mouseEvent->globalY() - windowDragOrigin_.y());
+         if ((widget->mapToGlobal(windowModificationOrigin_).x() >= (widgetPosition.x() - RESIZE_AREA_SIZE_)) &&
+             (widget->mapToGlobal(windowModificationOrigin_).x() <= (widgetPosition.x() + RESIZE_AREA_SIZE_)))
+         {
+            if (windowModificationOperation_ != WindowModificationOperation::Resize)
+            {
+               windowModificationOperation_ = WindowModificationOperation::Resize;
 
-         consumeEvent = true;
+               widget->setCursor(Qt::SizeHorCursor);
+            }
+         }
+         else
+         {
+            if (windowModificationOperation_ != WindowModificationOperation::Move)
+            {
+               windowModificationOperation_ = WindowModificationOperation::Move;
+
+               widget->setCursor(Qt::SizeAllCursor);
+            }
+         }
       }
-   }
-   else if (/* auto leaveEvent = */ eventAs<QEvent>(event, QEvent::Leave))
-   {
-      windowDrag_ = false;
-      windowDragModifier_ = false;
-
-      QApplication::restoreOverrideCursor();
-      QApplication::restoreOverrideCursor();
    }
 
    return consumeEvent;

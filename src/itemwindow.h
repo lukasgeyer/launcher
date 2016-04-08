@@ -41,30 +41,30 @@ protected:
 
 private:
    /*!
-    * Is \a true if the window is being dragged; \a false otherwise.
+    * The type of window modification currently active.
     */
-   bool windowDrag_ = false;
+   enum class WindowModificationOperation
+   {
+      None, /*< No window modification is currently performed. */
+      Move, /*< The window is currently moved. */
+      Resize /*< The window is currently resized. */
+   };
    /*!
-    * Is \a true if the required modifier for window dragging is active; \a false otherwise.
+    * The current window modifcation.
     */
-   bool windowDragModifier_ = false;
+   WindowModificationOperation windowModificationOperation_ = WindowModificationOperation::None;
    /*!
-    * The origin of the window drag operation.
+    * Is \a true if the window modification operation is active.
     */
-   QPoint windowDragOrigin_ = {};
-
+   bool windowModificationOperationActive_ = false;
    /*!
-    * Is \a true if the window is being resized; \a false otherwise.
+    * Is \a true if the required modifier for window modification is active.
     */
-   bool windowResize_ = false;
+   bool windowModificationModifierActive_ = false;
    /*!
-    * Is \a true if the required modifier for window resizing is active; \a false otherwise.
+    * The origin of the window modification.
     */
-   bool windowResizeModifier_ = false;
-   /*!
-    * The origin of the window resize operation.
-    */
-   QPoint windowResizeOrigin_ = {};
+   QPoint windowModificationOrigin_ = {};
 
    /*!
     * \reimp
