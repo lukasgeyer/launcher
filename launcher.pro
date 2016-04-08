@@ -12,7 +12,7 @@ QT += core gui sql widgets
 TARGET = launcher
 TEMPLATE = app
 
-CONFIG += c++11
+CONFIG += c++11 warn_on
 
 SOURCES += \
    src/main.cpp\
