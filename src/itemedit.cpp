@@ -16,11 +16,21 @@ ItemEdit::ItemEdit(QWidget *parent) : QLineEdit(parent)
 {
    errorIndication_ = addAction(QIcon(QStringLiteral(":/images/error.png")), QLineEdit::TrailingPosition);
    errorIndication_->setVisible(false);
+   errorIndication_->connect(errorIndication_, &QAction::triggered, [this](){
+      removeError();
+   });
 }
 
 void ItemEdit::addError(const QString& errorId, const QString& error)
 {
    errors_.insert(errorId, error);
+
+   updateErrorIndication_();
+}
+
+void ItemEdit::removeError()
+{
+   errors_.clear();
 
    updateErrorIndication_();
 }

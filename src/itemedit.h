@@ -36,6 +36,10 @@ public slots:
     */
    void addError(const QString& errorId, const QString& error);
    /*!
+    * Removes all errors.
+    */
+   void removeError();
+   /*!
     * Removes the error with the ID \a errorId.
     */
    void removeError(const QString& errorId);
