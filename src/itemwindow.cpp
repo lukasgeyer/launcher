@@ -76,6 +76,7 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    itemView->setModel(itemFilterModel);
    itemView->setModelColumn(0);
    itemView->setSelectionMode(QAbstractItemView::SingleSelection);
+   itemView->setContextMenuPolicy(Qt::CustomContextMenu);
 
    auto itemEditShadowEffect = new QGraphicsDropShadowEffect;
    itemEditShadowEffect->setBlurRadius(16.0);
@@ -162,6 +163,20 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
          itemEdit->removeError(QStringLiteral("openUrlError"));
       }
    });
+   itemView->connect(itemView, &ItemView::customContextMenuRequested, [this, itemEdit, itemView](const QPoint& position){
+      ///
+      /// Show the item-specific context menu if a valid item has been selected.
+      ///
+      auto positionIndex = itemView->indexAt(position);
+      if (positionIndex.isValid() == true)
+      {
+         QMenu itemViewContextMenu;
+         itemViewContextMenu.addAction(tr("Edit item..."), [this, itemEdit, itemView, positionIndex](){
+            openUrl_(QUrl::fromUserInput(itemView->model()->data(positionIndex, ItemModel::SourceRole).toString()), itemEdit);
+         });
+         itemViewContextMenu.exec(itemView->mapToGlobal(position));
+      }
+   });
 
    ///
    /// Hide the application if it loses focus, as it cannot be activated programatically for
@@ -184,7 +199,7 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    });
 
    ///
-   /// Decorate the standard context menu with the additional font selection action.
+   /// Decorate the standard context menu with the additional actions.
    ///
    auto itemEditContextMenu = itemEdit->createStandardContextMenu();
    itemEditContextMenu->addSeparator();
@@ -207,13 +222,17 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
          itemView->setFont(font);
       }
    });
+   itemEditContextMenu->addSeparator();
+   itemEditContextMenu->addAction(tr("Edit items..."), [this, itemEdit, itemModel](){
+      openUrl_(QUrl::fromUserInput(itemModel->source()), itemEdit);
+   });
 
    ///
    /// Show the decorated context menu instead of the standard context menu.
    ///
    itemEdit->setContextMenuPolicy(Qt::CustomContextMenu);
    itemEdit->connect(itemEdit, &ItemEdit::customContextMenuRequested, [itemEdit, itemEditContextMenu](const QPoint& position){
-      itemEditContextMenu->popup(itemEdit->mapToGlobal(position));
+      itemEditContextMenu->exec(itemEdit->mapToGlobal(position));
    });
 
    ///

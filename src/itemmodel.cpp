@@ -30,10 +30,9 @@ void ItemModel::setSource(const QString& source)
    updateModel_();
 }
 
-   ///
-   /// Parse model source.
-   ///
-   return readSource_(sourceFile);
+QString ItemModel::source() const
+{
+   return rootSource_;
 }
 
 QVariant ItemModel::data(const QModelIndex &index, int role) const
@@ -43,6 +42,7 @@ QVariant ItemModel::data(const QModelIndex &index, int role) const
    return ((role == ItemModel::NameRole)   ? (items_[index.row()].name)            :
            (role == ItemModel::LinkRole)   ? (items_[index.row()].link)            :
            (role == ItemModel::TagsRole)   ? (items_[index.row()].tags)            :
+           (role == ItemModel::SourceRole) ? (items_[index.row()].source)          :
            (role == Qt::ToolTipRole    )   ? (items_[index.row()].link.toString()) : QVariant());
 }
 

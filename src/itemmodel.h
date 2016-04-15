@@ -34,7 +34,8 @@ public:
    {
       NameRole = Qt::DisplayRole, /*< The name for the item of type QString. */
       LinkRole = Qt::UserRole + 1, /*< The link for the item of type QString. */
-      TagsRole = Qt::UserRole + 2 /*< The tags for the item of the QStringList. */
+      TagsRole = Qt::UserRole + 2, /*< The tags for the item of type QStringList. */
+      SourceRole = Qt::UserRole +3 /*< The source for the item of type QString. */
    };
 
    /*!
@@ -47,7 +48,11 @@ public:
     * data could be loaded from the file; \a false otherwise. If the file is modified the data
     * is reloaded.
     */
-   bool setSource(const QString& sourceFile);
+   void setSource(const QString& source);
+   /*!
+    *  Returns the source for this model.
+    */
+   QString source() const;
 
    /*!
     * \reimp
@@ -89,6 +94,7 @@ private:
     */
    struct Item_
    {
+      QString source;
       QString name;
       QUrl link;
       QStringList tags;
