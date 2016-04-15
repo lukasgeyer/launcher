@@ -72,6 +72,19 @@ signals:
 
 private:
    /*!
+    * The root source for the model.
+    */
+   QString rootSource_;
+   /*!
+    * The imported sources file the model.
+    */
+   QStringList importedSources_;
+   /*!
+    * The watcher responsible for the source files.
+    */
+   QFileSystemWatcher importedSourcesFileWatcher_;
+
+   /*!
     * An item.
     */
    struct Item_
@@ -90,9 +103,10 @@ private:
    Items_ items_;
 
    /*!
-    * The watcher responsible for the source file.
+    * Updates the model from the source and returns \a true if the items could be updated;
+    * \a false otherwise.
     */
-   QFileSystemWatcher sourceFileWatcher_;
+   bool updateModel_();
 
    /*!
     * Reads the data from the file \a sourceFile and returns \a true when the data could be
@@ -100,17 +114,30 @@ private:
     */
    bool readSource_(const QString& sourceFile);
    /*!
-    * Reads an item list from the XML stream \a reader and returns it.
+    * Reads an item list from the XML stream \a reader and adds it to the list of items and
+    * returns \a true if the items could be read; \a false otherwise.
     */
-   Items_ readItems_(QXmlStreamReader* reader);
+   bool readItems_(QXmlStreamReader* reader);
    /*!
-    * Reads an item from the XML stream \a reader and returns it.
+    * Reads an item from the XML stream \a reader, adds the tags \a tags and adds it to the
+    * list of items and returns \a true if the item could be read; \a false otherwise.
     */
-   Item_ readItem_(QXmlStreamReader* reader);
+   bool readItem_(QXmlStreamReader* reader, const QStringList& tags = QStringList());
    /*!
-    * Reads a group from the XML stream \a reader and returns it.
+    * Reads a group from the XML stream \a reader and add it to the list of items and returns
+    * \a true if the group could be read; \a false otherwise.
     */
-   Items_ readGroup_(QXmlStreamReader* reader);
+   bool readGroup_(QXmlStreamReader* reader);
+   /*!
+    * Reads an imported source from the XML stream \a stream and returns \a true if the
+    * imported source could be read; \a false otherwise.
+    */
+   bool readImport_(QXmlStreamReader* reader);
+
+   /*!
+    * Inserts the item \a item into the stream \a stream and returns the stream.
+    */
+   friend QDebug operator<<(QDebug stream, const Item_ &item);
 };
 
 #endif // ITEMMODEL_H
