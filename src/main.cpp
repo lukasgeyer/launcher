@@ -9,6 +9,7 @@
 
 #include <QApplication>
 #include <QDateTime>
+#include <QDebug>
 #include <QFile>
 #include <QTextStream>
 
@@ -50,10 +51,10 @@ int main(int argc, char *argv[])
    /// Set up the application.
    ///
    QApplication application(argc, argv);
-   application.setApplicationName(QStringLiteral("Launcher"));
-   application.setApplicationVersion(QStringLiteral("1.0"));
-   application.setOrganizationName(QStringLiteral("Lukas Geyer"));
-   application.setOrganizationDomain(QStringLiteral("https://github.com/lukasgeyer"));
+   application.setApplicationName(QStringLiteral(APPLICATION_NAME));
+   application.setApplicationVersion(QStringLiteral(APPLICATION_VERSION));
+   application.setOrganizationName(QStringLiteral(ORGANIZATION_NAME));
+   application.setOrganizationDomain(QStringLiteral(ORGANIZATION_DOMAIN));
 
    ///
    /// Try to acquire the application lock and exit immediately if it cannot be acquired (so that
@@ -72,6 +73,11 @@ int main(int argc, char *argv[])
 
          logMessageHandler_ = qInstallMessageHandler(logFileHandler);
       }
+
+      ///
+      /// Print application name and version.
+      ///
+      qInfo().noquote() << application.applicationName() << application.applicationVersion();
 
       ///
       /// Set up the item window.

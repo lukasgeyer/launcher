@@ -12,7 +12,18 @@ QT += core gui sql widgets
 TARGET = launcher
 TEMPLATE = app
 
+VERSION = 1.0.0
+QMAKE_TARGET_PRODUCT = "Launcher"
+QMAKE_TARGET_COMPANY = "Lukas Geyer"
+QMAKE_TARGET_COPYRIGHT = "Copyright (C) 2016 Lukas Geyer. All rights reserved."
+QMAKE_TARGET_DOMAIN = "https://github.com/lukasgeyer/launcher"
+
 CONFIG += c++11 warn_on
+
+DEFINES += APPLICATION_NAME=\\\"\"$$QMAKE_TARGET_PRODUCT\\\"\"
+DEFINES += APPLICATION_VERSION=\\\"\"$$VERSION\\\"\"
+DEFINES += ORGANIZATION_NAME=\\\"\"$$QMAKE_TARGET_COMPANY\\\"\"
+DEFINES += ORGANIZATION_DOMAIN=\\\"\"$$QMAKE_TARGET_DOMAIN\\\"\"
 
 SOURCES += \
    src/main.cpp\
@@ -38,11 +49,6 @@ HEADERS += \
 RESOURCES += \
     resources/resources.qrc
 
-DISTFILES += \
-   resources/sql/schema.sql \
-   resources/sql/data.sql \
-   launcher.xml
-
 unix {
    LIBS += -lxcb
    QT += x11extras
@@ -50,5 +56,5 @@ unix {
 
 win32 {
    LIBS += user32.lib
-   RC_FILE = resources/resources.rc
+   RC_ICONS  = resources/images/logo.ico
 }
