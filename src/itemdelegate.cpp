@@ -58,22 +58,28 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
    ///
    /// Draw item name.
    ///
-   painter->drawText(QRect((option.rect.left() + 4),
+   QRect itemNameRectangle((option.rect.left() + 4),
                            (option.rect.top() + 4),
                            (option.rect.width() / 2) - 8,
-                           (option.rect.height() - 2)),
-                           index.data(ItemModel::NameRole).toString(),
-                           QTextOption(Qt::AlignLeft));
+                           (option.rect.height() - 2));
+   QString itemNameString = painter->fontMetrics().elidedText(index.data(ItemModel::NameRole).toString(),
+                                                              Qt::ElideRight, itemNameRectangle.width());
+
+   painter->drawText(itemNameRectangle, itemNameString, QTextOption(Qt::AlignLeft));
+
    ///
    /// Draw item tags.
    ///
+   QRect itemTagsRectangle ((option.rect.left() + 4) + (option.rect.width() / 2),
+                            (option.rect.top() + 4),
+                            (option.rect.width() / 2) - 8,
+                            (option.rect.height() - 2));
+   QString itemTagsString = painter->fontMetrics().elidedText(index.data(ItemModel::TagsRole).toStringList().join(QStringLiteral(", ")),
+                                                              Qt::ElideLeft, itemTagsRectangle.width());
+
    painter->setPen(QPen(Qt::lightGray));
-   painter->drawText(QRect((option.rect.left() + 4) + (option.rect.width() / 2),
-                           (option.rect.top() + 4),
-                           (option.rect.width() / 2) - 8,
-                           (option.rect.height() - 2)),
-                           index.data(ItemModel::TagsRole).toStringList().join(QStringLiteral(", ")),
-                           QTextOption(Qt::AlignRight));
+   painter->drawText(itemTagsRectangle, itemTagsString, QTextOption(Qt::AlignRight));
+
    ///
    /// Restore painter.
    ///
