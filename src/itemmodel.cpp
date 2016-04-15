@@ -40,9 +40,10 @@ QVariant ItemModel::data(const QModelIndex &index, int role) const
 {
    Q_ASSERT(index.row() < items_.count());
 
-   return ((role == ItemModel::NameRole) ? (items_[index.row()].name) :
-           (role == ItemModel::LinkRole) ? (items_[index.row()].link) :
-           (role == ItemModel::TagsRole) ? (items_[index.row()].tags) : QVariant());
+   return ((role == ItemModel::NameRole)   ? (items_[index.row()].name)            :
+           (role == ItemModel::LinkRole)   ? (items_[index.row()].link)            :
+           (role == ItemModel::TagsRole)   ? (items_[index.row()].tags)            :
+           (role == Qt::ToolTipRole    )   ? (items_[index.row()].link.toString()) : QVariant());
 }
 
 int ItemModel::rowCount(const QModelIndex &) const
