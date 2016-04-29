@@ -13,11 +13,14 @@
 #include <QAbstractListModel>
 #include <QFileSystemWatcher>
 #include <QIODevice>
+#include <QPoint>
 #include <QString>
 #include <QStringList>
 #include <QUrl>
 #include <QVector>
 #include <QXmlStreamReader>
+
+#include "sourceposition.h"
 
 /*!
  * \brief An item model representing the items found in an XML-based source file.
@@ -34,8 +37,9 @@ public:
    {
       NameRole = Qt::DisplayRole, /*< The name for the item of type QString. */
       LinkRole = Qt::UserRole + 1, /*< The link for the item of type QString. */
-      TagsRole = Qt::UserRole + 2, /*< The tags for the item of type QStringList. */
-      SourceRole = Qt::UserRole +3 /*< The source for the item of type QString. */
+      LinkPositionRole = Qt::UserRole + 2, /*< The link position for the item of type QPoint. */
+      TagsRole = Qt::UserRole + 3, /*< The tags for the item of type QStringList. */
+      SourceRole = Qt::UserRole + 4 /*< The source for the item of type QString. */
    };
 
    /*!
@@ -71,9 +75,10 @@ signals:
    void modelUpdateSucceeded();
    /*!
     * Is emitted when the model has been unsuccessfully updated. The reason why updating the
-    * model has failed is indicated in \a reason.
+    * model has failed is indicated in \a reason. The source position (if available) is stored
+    * in \a sourcePosition.
     */
-   void modelUpdateFailed(const QString& reason);
+   void modelUpdateFailed(const QString& reason, const QString& source, const SourcePosition& sourcePosition);
 
 private:
    /*!
@@ -97,6 +102,7 @@ private:
       QString source;
       QString name;
       QUrl link;
+      SourcePosition linkPosition;
       QStringList tags;
    };
    /*!

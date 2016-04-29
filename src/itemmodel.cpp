@@ -25,7 +25,7 @@ void ItemModel::setSource(const QString& source)
 {
    qInfo() << "set source:" << source;
 
-   rootSource_ = source;
+   rootSource_ = QFileInfo(source).absoluteFilePath();
 
    updateModel_();
 }
@@ -39,11 +39,12 @@ QVariant ItemModel::data(const QModelIndex &index, int role) const
 {
    Q_ASSERT(index.row() < items_.count());
 
-   return ((role == ItemModel::NameRole)   ? (items_[index.row()].name)            :
-           (role == ItemModel::LinkRole)   ? (items_[index.row()].link)            :
-           (role == ItemModel::TagsRole)   ? (items_[index.row()].tags)            :
-           (role == ItemModel::SourceRole) ? (items_[index.row()].source)          :
-           (role == Qt::ToolTipRole    )   ? (items_[index.row()].link.toString()) : QVariant());
+   return ((role == ItemModel::NameRole)         ? (QVariant::fromValue(items_[index.row()].name))            :
+           (role == ItemModel::LinkRole)         ? (QVariant::fromValue(items_[index.row()].link))            :
+           (role == ItemModel::LinkPositionRole) ? (QVariant::fromValue(items_[index.row()].linkPosition))    :
+           (role == ItemModel::TagsRole)         ? (QVariant::fromValue(items_[index.row()].tags))            :
+           (role == ItemModel::SourceRole)       ? (QVariant::fromValue(items_[index.row()].source))          :
+           (role == Qt::ToolTipRole    )         ? (QVariant::fromValue(items_[index.row()].link.toString())) : QVariant());
 }
 
 int ItemModel::rowCount(const QModelIndex &) const
@@ -141,7 +142,10 @@ bool ItemModel::readSource_(const QString& sourceFile)
 
             emit modelUpdateFailed(QStringLiteral("In %1 at %2:%3 %4").arg(sourceFile)
                                                                       .arg(sourceFileReader.lineNumber()).arg(sourceFileReader.columnNumber())
-                                                                      .arg(sourceFileReader.errorString()));
+                                                                      .arg(sourceFileReader.errorString()),
+                                   absoluteSourceFilePath,
+                                   SourcePosition(sourceFileReader.lineNumber(),
+                                                  sourceFileReader.columnNumber()));
             result = false;
          }
 
@@ -154,7 +158,9 @@ bool ItemModel::readSource_(const QString& sourceFile)
       {
          qCritical() << "open source failed:" << sourceFile << sourceFileDevice.errorString();
 
-         emit modelUpdateFailed(QStringLiteral("%1: %2").arg(sourceFile).arg(sourceFileDevice.errorString()));
+         emit modelUpdateFailed(QStringLiteral("%1: %2").arg(sourceFile).arg(sourceFileDevice.errorString()),
+                                absoluteSourceFilePath,
+                                SourcePosition());
       }
    }
    else
@@ -227,7 +233,14 @@ bool ItemModel::readItem_(QXmlStreamReader* reader, const QStringList& tags)
       }
       else if (reader->name() == "url")
       {
-         item.link = QUrl::fromUserInput(reader->readElementText());
+         item.linkPosition.setLineNumber(reader->lineNumber());
+         item.linkPosition.setColumnNumber(reader->columnNumber());
+
+         const auto& elementText = reader->readElementText();
+
+         item.link = QUrl::fromUserInput(elementText);
+
+         item.linkPosition.setSize(elementText.size());
       }
       else if (reader->name() == "tag")
       {
@@ -296,7 +309,7 @@ bool ItemModel::readImport_(QXmlStreamReader *reader)
    {
       if (reader->name() == "file")
       {
-         result = readSource_(reader->readElementText());
+         result &= readSource_(reader->readElementText());
       }
       else
       {

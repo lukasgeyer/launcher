@@ -14,12 +14,14 @@
 #include <QEvent>
 #include <QLineEdit>
 #include <QString>
-#include <QHash>
+#include <QVector>
+
+#include "indicator.h"
 
 /*!
  * \brief A line edit providing additional up-key, down-key or escape-key pressed signals.
  */
-class ItemEdit : public QLineEdit
+class ItemEdit : public QLineEdit, public Indicator
 {
    Q_OBJECT
 
@@ -31,18 +33,18 @@ public:
 
 public slots:
    /*!
-    * Adds the error \a error with the error ID \a errorId to the list of errors. If an error
-    * with such an ID already exists it is replaced.
+    * \reimp
     */
-   void addError(const QString& errorId, const QString& error);
+   void addInidication(const QString& id, Indication* indication) override;
+
    /*!
-    * Removes all errors.
+    * \reimp
     */
-   void removeError();
+   void removeIndication(const QString& id) override;
    /*!
-    * Removes the error with the ID \a errorId.
+    * \reimp
     */
-   void removeError(const QString& errorId);
+   void removeIndications() override;
 
 signals:
    /*!
@@ -58,24 +60,33 @@ signals:
     */
    void escapePressed();
 
+   /*!
+    * \reimp
+    */
+   void indicationAdded(const QString& id, const Indication& indication);
+   /*!
+    * \reimp
+    */
+   void indicationRemoved(const QString& id, const Indication& indication);
+
 private:
    /*!
-    * A list of errors.
+    * A list of indications.
     */
-   typedef QHash<QString, QString> Errors_;
+   typedef QHash<QString, Indication*> Indications_;
    /*!
-    * The list of errors.
+    * The list of indications.
     */
-   Errors_ errors_;
+   Indications_ indications_;
    /*!
-    * The error indication.
+    * The indication action.
     */
-   QAction* errorIndication_ = nullptr;
+   QAction* indicationAction_ = nullptr;
 
    /*!
-    * Updates the error indication.
+    * Updates the indication action.
     */
-   void updateErrorIndication_();
+   void updateIndicationAction_();
 
    /*!
     * \reimp

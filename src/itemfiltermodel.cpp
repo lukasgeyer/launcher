@@ -27,8 +27,8 @@ void ItemFilterModel::setFilterRegularExpressionPattern(const QString& regularEx
 
 bool ItemFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const
 {
-   const auto& name = sourceModel()->index(sourceRow, 0, sourceParent).data(ItemModel::NameRole).toString();
-   const auto& tags = sourceModel()->index(sourceRow, 0, sourceParent).data(ItemModel::TagsRole).toStringList();
+   const auto& name = sourceModel()->index(sourceRow, 0, sourceParent).data(ItemModel::NameRole).value<QString>();
+   const auto& tags = sourceModel()->index(sourceRow, 0, sourceParent).data(ItemModel::TagsRole).value<QStringList>();
 
    ///
    /// A regular expression matches if it is either empty and a non-tagged item is requested or
@@ -42,11 +42,11 @@ bool ItemFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex& sourceP
 
 bool ItemFilterModel::lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const
 {
-   const auto& nameLeft = sourceModel()->index(sourceLeft.row(), 0, sourceLeft.parent()).data(ItemModel::NameRole).toString();
-   const auto& tagsLeft = sourceModel()->index(sourceLeft.row(), 0, sourceLeft.parent()).data(ItemModel::TagsRole).toStringList();
+   const auto& nameLeft = sourceModel()->index(sourceLeft.row(), 0, sourceLeft.parent()).data(ItemModel::NameRole).value<QString>();
+   const auto& tagsLeft = sourceModel()->index(sourceLeft.row(), 0, sourceLeft.parent()).data(ItemModel::TagsRole).value<QStringList>();
 
-   const auto& nameRight = sourceModel()->index(sourceRight.row(), 0, sourceRight.parent()).data(ItemModel::NameRole).toString();
-   const auto& tagsRight = sourceModel()->index(sourceRight.row(), 0, sourceRight.parent()).data(ItemModel::TagsRole).toStringList();
+   const auto& nameRight = sourceModel()->index(sourceRight.row(), 0, sourceRight.parent()).data(ItemModel::NameRole).value<QString>();
+   const auto& tagsRight = sourceModel()->index(sourceRight.row(), 0, sourceRight.parent()).data(ItemModel::TagsRole).value<QStringList>();
 
    ///
    /// A tagged item is sorted up, an non-tagged item is sorted down, if both are of the same

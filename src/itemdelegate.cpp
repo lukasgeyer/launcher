@@ -62,7 +62,7 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
                            (option.rect.top() + 4),
                            (option.rect.width() / 2) - 8,
                            (option.rect.height() - 2));
-   QString itemNameString = painter->fontMetrics().elidedText(index.data(ItemModel::NameRole).toString(),
+   QString itemNameString = painter->fontMetrics().elidedText(index.data(ItemModel::NameRole).value<QString>(),
                                                               Qt::ElideRight, itemNameRectangle.width());
 
    painter->drawText(itemNameRectangle, itemNameString, QTextOption(Qt::AlignLeft));
@@ -74,7 +74,7 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
                             (option.rect.top() + 4),
                             (option.rect.width() / 2) - 8,
                             (option.rect.height() - 2));
-   QString itemTagsString = painter->fontMetrics().elidedText(index.data(ItemModel::TagsRole).toStringList().join(QStringLiteral(", ")),
+   QString itemTagsString = painter->fontMetrics().elidedText(index.data(ItemModel::TagsRole).value<QStringList>().join(QStringLiteral(", ")),
                                                               Qt::ElideLeft, itemTagsRectangle.width());
 
    painter->setPen(QPen(Qt::lightGray));

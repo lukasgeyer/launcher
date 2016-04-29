@@ -34,7 +34,14 @@ SOURCES += \
    src/itemedit.cpp \
    src/itemhotkey.cpp \
    src/itemwindow.cpp \
-   src/itemlock.cpp
+   src/itemlock.cpp \
+   src/sourceeditor.cpp \
+   src/sourcehighlighter.cpp \
+   src/geometrystore.cpp \
+   src/application.cpp \
+   src/sourceposition.cpp \
+   src/indication.cpp \
+   src/sourceerrorindication.cpp
 
 HEADERS += \
    src/itemmodel.h \
@@ -44,7 +51,16 @@ HEADERS += \
    src/itemedit.h \
    src/itemhotkey.h \
    src/itemwindow.h \
-   src/itemlock.h
+   src/itemlock.h \
+   src/sourceeditor.h \
+   src/sourcehighlighter.h \
+   src/geometrystore.h \
+   src/event.h \
+   src/application.h \
+   src/indication.h \
+   src/sourceposition.h \
+   src/sourceerrorindication.h \
+   src/indicator.h
 
 RESOURCES += \
     resources/resources.qrc

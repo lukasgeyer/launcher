@@ -7,12 +7,12 @@
  *          published by the Free Software Foundation.
  */
 
-#include <QApplication>
 #include <QDateTime>
 #include <QDebug>
 #include <QFile>
 #include <QTextStream>
 
+#include "application.h"
 #include "itemlock.h"
 #include "itemwindow.h"
 
@@ -50,11 +50,7 @@ int main(int argc, char *argv[])
    ///
    /// Set up the application.
    ///
-   QApplication application(argc, argv);
-   application.setApplicationName(QStringLiteral(APPLICATION_NAME));
-   application.setApplicationVersion(QStringLiteral(APPLICATION_VERSION));
-   application.setOrganizationName(QStringLiteral(ORGANIZATION_NAME));
-   application.setOrganizationDomain(QStringLiteral(ORGANIZATION_DOMAIN));
+   Application application(argc, argv);
 
    ///
    /// Try to acquire the application lock and exit immediately if it cannot be acquired (so that

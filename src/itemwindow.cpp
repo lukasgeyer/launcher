@@ -17,16 +17,21 @@
 #include <QKeyEvent>
 #include <QMenu>
 #include <QMouseEvent>
-#include <QSettings>
 #include <QUrl>
 #include <QVBoxLayout>
 
+#include "application.h"
+#include "event.h"
+#include "indication.h"
+#include "indicator.h"
 #include "itemfiltermodel.h"
 #include "itemedit.h"
 #include "itemhotkey.h"
 #include "itemmodel.h"
 #include "itemview.h"
 #include "itemwindow.h"
+#include "sourceeditor.h"
+#include "sourceerrorindication.h"
 
 namespace {
 
@@ -36,18 +41,9 @@ namespace {
  */
 const int RESIZE_AREA_SIZE_ = 16;
 
-
-/*!
- * Returns the event \a event as \a EventType if the type is \a type; \a nullptr otherwise.
- */
-template <typename EventType> EventType* eventAs(QEvent* event, QEvent::Type type)
-{
-   return ((event != nullptr) ? ((event->type() == type) ? (static_cast<EventType*>(event)) : (nullptr)) : (nullptr));
-}
-
 } // namespace
 
-ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::WindowSystemMenuHint)
+ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHint | Qt::WindowSystemMenuHint)
 {
    ///
    /// Disable window background.
@@ -101,9 +97,9 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
          /// could be opened. In addition, the last URL open error is cleared. Remain shown
          /// otherwise so the error can be seen.
          ///
-         if (openUrl_(currentIndex.data(ItemModel::LinkRole).toUrl(), itemEdit) == true)
+         if (openUrl_(currentIndex.data(ItemModel::LinkRole).value<QUrl>(), itemEdit) == true)
          {
-            itemEdit->removeError(QStringLiteral("openUrlError"));
+            itemEdit->removeIndication(QStringLiteral("openUrlError"));
             hide();
          }
       }
@@ -119,15 +115,15 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
          for (int row = 0; row < itemView->model()->rowCount(); ++row)
          {
             const auto &rowIndex = itemView->model()->index(row, 0);
-            if ((itemEdit->text().isEmpty() == false) || (rowIndex.data(ItemModel::TagsRole).toStringList().empty() == false))
+            if ((itemEdit->text().isEmpty() == false) || (rowIndex.data(ItemModel::TagsRole).value<QStringList>().empty() == false))
             {
-               urlOpened &= openUrl_(rowIndex.data(ItemModel::LinkRole).toUrl(), itemEdit);
+               urlOpened &= openUrl_(rowIndex.data(ItemModel::LinkRole).value<QUrl>(), itemEdit);
             }
          }
 
          if (urlOpened == true)
          {
-            itemEdit->removeError(QStringLiteral("openUrlError"));
+            itemEdit->removeIndication(QStringLiteral("openUrlError"));
             hide();
          }
       }
@@ -147,20 +143,27 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
       ///
       hide();
    });
-   itemEdit->connect(itemModel, &ItemModel::modelUpdateSucceeded, [itemEdit](){
-      itemEdit->removeError(QStringLiteral("modelError"));
+   itemEdit->connect(itemEdit, &ItemEdit::indicationRemoved, [this](const QString& /* id */, const Indication& indication){
+      if (auto sourceErrorIndication = qobject_cast<const SourceErrorIndication*>(&indication))
+      {
+         openSource_(sourceErrorIndication->source(), sourceErrorIndication->sourcePosition());
+      }
    });
-   itemEdit->connect(itemModel, &ItemModel::modelUpdateFailed, [itemEdit](const QString& reason) {
-      itemEdit->addError(QStringLiteral("modelError"), reason);
+   itemEdit->connect(itemModel, &ItemModel::modelUpdateSucceeded, [itemEdit](){
+      itemEdit->removeIndication(QStringLiteral("modelError"));
+   });
+   itemEdit->connect(itemModel, &ItemModel::modelUpdateFailed, [itemEdit](const QString& reason,
+                                                                          const QString& source, const SourcePosition& sourcePosition) {
+      itemEdit->addInidication(QStringLiteral("modelError"), new SourceErrorIndication(reason, source, sourcePosition));
    });
    itemView->connect(itemView, &ItemView::clicked, [this, itemEdit](const QModelIndex& index)
    {
       ///
       /// If an item is clicked open the link and remain shown (so multiple items can be clicked).
       ///
-      if (openUrl_(index.data(ItemModel::LinkRole).toUrl(), itemEdit) == true)
+      if (openUrl_(index.data(ItemModel::LinkRole).value<QUrl>(), itemEdit) == true)
       {
-         itemEdit->removeError(QStringLiteral("openUrlError"));
+         itemEdit->removeIndication(QStringLiteral("openUrlError"));
       }
    });
    itemView->connect(itemView, &ItemView::customContextMenuRequested, [this, itemEdit, itemView](const QPoint& position){
@@ -172,11 +175,16 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
       {
          QMenu itemViewContextMenu;
          itemViewContextMenu.addAction(tr("Edit item..."), [this, itemEdit, itemView, positionIndex](){
-            openUrl_(QUrl::fromUserInput(itemView->model()->data(positionIndex, ItemModel::SourceRole).toString()), itemEdit);
+            openSource_(itemView->model()->data(positionIndex, ItemModel::SourceRole).value<QString>(),
+                        itemView->model()->data(positionIndex, ItemModel::LinkPositionRole).value<SourcePosition>(),
+                        itemEdit);
          });
          itemViewContextMenu.exec(itemView->mapToGlobal(position));
       }
    });
+
+   setFocusPolicy(Qt::NoFocus);
+   setFocusProxy(itemEdit);
 
    ///
    /// Hide the application if it loses focus, as it cannot be activated programatically for
@@ -188,7 +196,6 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
       if (applicationState == Qt::ApplicationActive)
       {
          itemEdit->selectAll();
-         itemEdit->setFocus();
 
          activateWindow();
       }
@@ -204,13 +211,13 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    auto itemEditContextMenu = itemEdit->createStandardContextMenu();
    itemEditContextMenu->addSeparator();
    itemEditContextMenu->addAction(tr("Select font..."), [itemEdit, itemView](){
-      QSettings settings;
+      auto& settings = static_cast<Application*>(Application::instance())->settings();
 
       auto fontSelected = false;
-      auto font = QFontDialog::getFont(&fontSelected, QFont(settings.value(QStringLiteral("font/family")).toString(),
-                                                            settings.value(QStringLiteral("font/size")).toInt(),
-                                                            settings.value(QStringLiteral("font/weight")).toInt(),
-                                                            settings.value(QStringLiteral("font/italic")).toBool()), itemEdit);
+      auto font = QFontDialog::getFont(&fontSelected, QFont(settings.value(QStringLiteral("font/family")).value<QString>(),
+                                                            settings.value(QStringLiteral("font/size")).value<int>(),
+                                                            settings.value(QStringLiteral("font/weight")).value<int>(),
+                                                            settings.value(QStringLiteral("font/italic")).value<bool>()), itemEdit);
       if (fontSelected == true)
       {
          settings.setValue(QStringLiteral("font/family"), font.family());
@@ -224,7 +231,7 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    });
    itemEditContextMenu->addSeparator();
    itemEditContextMenu->addAction(tr("Edit items..."), [this, itemEdit, itemModel](){
-      openUrl_(QUrl::fromUserInput(itemModel->source()), itemEdit);
+      openSource_(itemModel->source(), SourcePosition(), itemEdit);
    });
 
    ///
@@ -261,38 +268,29 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    ///
    if (itemHotkey->registerKeySequence() == false)
    {
-      itemEdit->addError(QStringLiteral("hotkeyError"), tr("The hotkey could not be registered."));
+      itemEdit->addInidication(QStringLiteral("hotkeyError"), new Indication(tr("The hotkey could not be registered.")));
    }
 
    ///
-   /// Restore settings.
+   /// Register the widget with the geomerty store.
    ///
-   QSettings settings;
+   auto screenGeometry = QApplication::desktop()->screenGeometry();
+   QSize defaultSize(screenGeometry.width() * 0.3, screenGeometry.height() * 0.8);
+   QPoint defaultPosition(screenGeometry.right() - defaultSize.width(), 0);
 
-   ///
-   /// Restore the geometry or resize and move the window to the default value if no geometry is stored.
-   ///
-   auto geometry = settings.value("itemWindow/geometry");
-   if (geometry.isValid() == true)
-   {
-      restoreGeometry(geometry.toByteArray());
-   }
-   else
-   {
-      auto screenGeometry = QApplication::desktop()->screenGeometry();
+   qDebug() << defaultSize << defaultPosition;
 
-      resize(screenGeometry.width() * 0.3, screenGeometry.height() * 0.6);
-      move(screenGeometry.right() - width(), 0);
-   }
+   static_cast<Application*>(Application::instance())->geometryStore().addWidget(this, QRect(defaultPosition, defaultSize));
 
    ///
    /// Restore the font or use the default font is no font is stored.
    ///
+   auto& settings = static_cast<Application*>(Application::instance())->settings();
    auto defaultFont = QApplication::font();
-   auto font = QFont(settings.value(QStringLiteral("font/family"), defaultFont.family()).toString(),
-                     settings.value(QStringLiteral("font/size"), defaultFont.pointSize()).toInt(),
-                     settings.value(QStringLiteral("font/weight"), defaultFont.weight()).toInt(),
-                     settings.value(QStringLiteral("font/italic"), defaultFont.italic()).toBool());
+   auto font = QFont(settings.value(QStringLiteral("font/family"), defaultFont.family()).value<QString>(),
+                     settings.value(QStringLiteral("font/size"), defaultFont.pointSize()).value<int>(),
+                     settings.value(QStringLiteral("font/weight"), defaultFont.weight()).value<int>(),
+                     settings.value(QStringLiteral("font/italic"), defaultFont.italic()).value<bool>());
 
    itemEdit->setFont(font);
    itemView->setFont(font);
@@ -306,16 +304,6 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
 
 ItemWindow::~ItemWindow()
 {
-}
-
-void ItemWindow::closeEvent(QCloseEvent* event)
-{
-   ///
-   /// Store the current window geometry.
-   ///
-   QSettings().setValue("itemWindow/geometry", saveGeometry());
-
-   QWidget::closeEvent(event);
 }
 
 bool ItemWindow::eventFilter(QObject* object, QEvent* event)
@@ -448,10 +436,40 @@ bool ItemWindow::eventFilter(QObject* object, QEvent* event)
    return consumeEvent;
 }
 
-bool ItemWindow::openUrl_(const QUrl& url, ItemEdit* errorIndication)
+bool ItemWindow::openSource_(const QString& source, SourcePosition position, Indicator* errorIndicator)
 {
-   Q_ASSERT(errorIndication);
+   qInfo() << "open source: " << source << "at" << position.lineNumber() << position.columnNumber() << "for" << position.size();
 
+   ///
+   /// Open an editor for the source.
+   ///
+   auto sourceEditor = new SourceEditor(this);
+   bool result = sourceEditor->openSource(new QFile(source, this));
+   if (result == true)
+   {
+      sourceEditor->setAttribute(Qt::WA_DeleteOnClose);
+      sourceEditor->setWindowModality(Qt::ApplicationModal);
+
+      sourceEditor->selectSource(position.lineNumber(), position.columnNumber(), position.size());
+
+      sourceEditor->show();
+      sourceEditor->activateWindow();
+   }
+   else
+   {
+      sourceEditor->deleteLater();
+
+      if (errorIndicator != nullptr)
+      {
+         errorIndicator->addInidication(QStringLiteral("openSourceError"), new Indication(tr("Failed to open source ").append(source)));
+      }
+   }
+
+   return result;
+}
+
+bool ItemWindow::openUrl_(const QUrl& url, Indicator* errorIndicator)
+{
    qInfo() << "open url:" << url.toString();
 
    ///
@@ -460,7 +478,10 @@ bool ItemWindow::openUrl_(const QUrl& url, ItemEdit* errorIndication)
    bool result = QDesktopServices::openUrl(url);
    if (result == false)
    {
-      errorIndication->addError(QStringLiteral("openUrlError"), tr("Failed to open URL ").append(url.toString()));
+      if (errorIndicator != nullptr)
+      {
+         errorIndicator->addInidication(QStringLiteral("openUrlError"), new Indication(tr("Failed to open URL ").append(url.toString())));
+      }
    }
 
    return result;

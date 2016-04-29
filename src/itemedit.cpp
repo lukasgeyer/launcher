@@ -7,68 +7,95 @@
  *          published by the Free Software Foundation.
  */
 
+#include <QDebug>
 #include <QIcon>
 #include <QKeyEvent>
 
+#include "indication.h"
 #include "itemedit.h"
 
 ItemEdit::ItemEdit(QWidget *parent) : QLineEdit(parent)
 {
-   errorIndication_ = addAction(QIcon(QStringLiteral(":/images/error.png")), QLineEdit::TrailingPosition);
-   errorIndication_->setVisible(false);
-   errorIndication_->connect(errorIndication_, &QAction::triggered, [this](){
-      removeError();
+   indicationAction_ = addAction(QIcon(QStringLiteral(":/images/error.png")), QLineEdit::TrailingPosition);
+   indicationAction_->setVisible(false);
+   indicationAction_->connect(indicationAction_, &QAction::triggered, [this](){
+      removeIndications();
    });
 }
 
-void ItemEdit::addError(const QString& errorId, const QString& error)
+void ItemEdit::addInidication(const QString& id, Indication* indication)
 {
-   errors_.insert(errorId, error);
+   Q_ASSERT(indication != nullptr);
 
-   updateErrorIndication_();
+   qDebug() << "add indication" << id << indication->metaObject()->className();
+
+   emit indicationAdded(id, *indication);
+
+   indications_.insert(id, indication);
+
+   updateIndicationAction_();
 }
 
-void ItemEdit::removeError()
+void ItemEdit::removeIndication(const QString& id)
 {
-   errors_.clear();
+   qDebug() << "remove indication" << id;
 
-   updateErrorIndication_();
+   auto indication = indications_.find(id);
+   if (indication != indications_.end())
+   {
+      emit indicationRemoved(indication.key(), *indication.value());
+
+      delete indication.value();
+
+      indications_.erase(indication);
+   }
+
+   updateIndicationAction_();
 }
 
-void ItemEdit::removeError(const QString& errorId)
+void ItemEdit::removeIndications()
 {
-   errors_.remove(errorId);
+   qDebug() << "remove indications";
 
-   updateErrorIndication_();
+   for(auto indication = indications_.begin(); indication != indications_.end(); )
+   {
+      emit indicationRemoved(indication.key(), *indication.value());
+
+      delete indication.value();
+
+      indication = indications_.erase(indication);
+   }
+
+   updateIndicationAction_();
 }
 
-void ItemEdit::updateErrorIndication_()
+void ItemEdit::updateIndicationAction_()
 {
-   Q_ASSERT(errorIndication_ != nullptr);
+   Q_ASSERT(indicationAction_ != nullptr);
 
-   if (errors_.isEmpty() == false)
+   if (indications_.isEmpty() == false)
    {
       ///
-      /// If there are errors in the error list display the error indication and the list of errors
-      /// as tooltip for that action.
+      /// If there are indications in the indications list display the error indication and the
+      /// list of indications as tooltip for that action.
       ///
-      QString errorIndicationToolTip;
-      for (const auto& error : errors_)
+      QString indicationActionTooltip;
+      for (const auto& indication : indications_)
       {
-         errorIndicationToolTip.append(error);
-         errorIndicationToolTip.append("\n");
+         indicationActionTooltip.append(indication->text());
+         indicationActionTooltip.append("\n");
       }
-      errorIndicationToolTip.chop(1 /* '\n' */);
+      indicationActionTooltip.chop(1 /* '\n' */);
 
-      errorIndication_->setToolTip(errorIndicationToolTip);
-      errorIndication_->setVisible(true);
+      indicationAction_->setToolTip(indicationActionTooltip);
+      indicationAction_->setVisible(true);
    }
    else
    {
       ///
-      /// If there are no errors hide the error indication.
+      /// If there are no indications hide the indication action.
       ///
-      errorIndication_->setVisible(false);
+      indicationAction_->setVisible(false);
    }
 }
 
