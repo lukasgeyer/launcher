@@ -229,7 +229,7 @@ bool ItemModel::readItem_(QXmlStreamReader* reader, const QStringList& tags)
    {
       if (reader->name() == "name")
       {
-         item.name = reader->readElementText();
+         item.name = reader->readElementText().trimmed();
       }
       else if (reader->name() == "url")
       {
@@ -238,13 +238,13 @@ bool ItemModel::readItem_(QXmlStreamReader* reader, const QStringList& tags)
 
          const auto& elementText = reader->readElementText();
 
-         item.link = QUrl::fromUserInput(elementText);
+         item.link = QUrl::fromUserInput(elementText.trimmed());
 
          item.linkPosition.setSize(elementText.size());
       }
       else if (reader->name() == "tag")
       {
-         item.tags.push_back(reader->readElementText());
+         item.tags.push_back(reader->readElementText().trimmed());
       }
       else
       {
@@ -281,7 +281,7 @@ bool ItemModel::readGroup_(QXmlStreamReader* reader)
    {
       if (reader->name() == "tag")
       {
-         tags.append(reader->readElementText());
+         tags.append(reader->readElementText().trimmed());
       }
       else if (reader->name() == "item")
       {
@@ -309,7 +309,7 @@ bool ItemModel::readImport_(QXmlStreamReader *reader)
    {
       if (reader->name() == "file")
       {
-         result &= readSource_(reader->readElementText());
+         result &= readSource_(reader->readElementText().trimmed());
       }
       else
       {
