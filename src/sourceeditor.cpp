@@ -36,8 +36,14 @@ SourceEditor::SourceEditor(QWidget* parent, Qt::WindowFlags windowFlags) : QDial
 
    auto buttonBox = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, this);
    buttonBox->connect(buttonBox, &QDialogButtonBox::accepted, [this](){
-      source_->open(QIODevice::WriteOnly | QIODevice::Truncate);
+      source_->reset();
       source_->write(sourceEdit_->toPlainText().toUtf8());
+      if (auto sourceFile = qobject_cast<QFile*>(source_))
+      {
+         sourceFile->resize(sourceFile->pos());
+      }
+      source_->close();
+
       accept();
    });
    buttonBox->connect(buttonBox, &QDialogButtonBox::rejected, [this](){
@@ -78,11 +84,10 @@ bool SourceEditor::openSource(QIODevice* source)
    ///
    /// Open the device and display the content in the editor.
    ///
-   bool result = source_->open(QIODevice::ReadOnly);
+   bool result = source_->open(QIODevice::ReadWrite);
    if (result == true)
    {
       sourceEdit_->setPlainText(QString::fromUtf8(source_->readAll()));
-      source_->close();
    }
 
    return result;
