@@ -7,7 +7,7 @@
 #          published by the Free Software Foundation.
 #
 
-QT += core gui sql widgets
+QT += core gui widgets
 
 TARGET = launcher
 TEMPLATE = app
