@@ -26,7 +26,7 @@
 #include "indicator.h"
 #include "itemfiltermodel.h"
 #include "itemedit.h"
-#include "itemhotkey.h"
+#include "systemhotkey.h"
 #include "itemmodel.h"
 #include "itemview.h"
 #include "itemwindow.h"
@@ -231,7 +231,7 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    });
    itemEditContextMenu->addSeparator();
    itemEditContextMenu->addAction(tr("Edit items..."), [this, itemEdit, itemModel](){
-      openSource_(itemModel->source(), SourcePosition(), itemEdit);
+      openSource_(itemModel->sourceFile(), SourcePosition(), itemEdit);
    });
 
    ///
@@ -255,8 +255,8 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    ///
    /// Create the hotkey.
    ///
-   auto itemHotkey = new ItemHotkey(this);
-   itemHotkey->connect(itemHotkey, &ItemHotkey::hotkeyPressed, [this, itemEdit](){
+   auto itemHotkey = new SystemHotkey(this);
+   itemHotkey->connect(itemHotkey, &SystemHotkey::hotkeyPressed, [this, itemEdit](){
       ///
       /// Show the window.
       ///
@@ -278,8 +278,6 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    QSize defaultSize(screenGeometry.width() * 0.3, screenGeometry.height() * 0.8);
    QPoint defaultPosition(screenGeometry.right() - defaultSize.width(), 0);
 
-   qDebug() << defaultSize << defaultPosition;
-
    static_cast<Application*>(Application::instance())->geometryStore().addWidget(this, QRect(defaultPosition, defaultSize));
 
    ///
@@ -299,7 +297,7 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    /// Update the source model. Be aware that this must be done after creating the UI, so that
    /// possible errors during the model update are properly indicated.
    ///
-   itemModel->setSource(settings.value("sourceFile", QStringLiteral("launcher.xml")).toString());
+   itemModel->setSourceFile(settings.value("sourceFile", QStringLiteral("launcher.xml")).toString());
 }
 
 ItemWindow::~ItemWindow()

@@ -1,5 +1,5 @@
 /*!
- * \file itemlock.h
+ * \file systemlock.h
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -7,21 +7,21 @@
  *          published by the Free Software Foundation.
  */
 
-#ifndef ITEMLOCK_H
-#define ITEMLOCK_H
+#ifndef SYSTEMLOCK_H
+#define SYSTEMLOCK_H
 
 #include <QString>
 
 /*!
- * \brief An application-spanning lock.
+ * \brief A system-wide lock.
  */
-class ItemLock
+class SystemLock
 {
 public:
    /*!
     * Destructs an item lock, unlocking it if locked.
     */
-   ~ItemLock();
+   ~SystemLock();
 
    /*!
     * Tries to lock and returns \a true if the lock could be obtained; \a false otherwise.
@@ -46,4 +46,4 @@ private:
 #endif // defined(Q_OS_LINUX)
 };
 
-#endif // ITEMLOCK_H
+#endif // SYSTEMLOCK_H

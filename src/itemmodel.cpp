@@ -7,322 +7,161 @@
  *          published by the Free Software Foundation.
  */
 
+#include <algorithm>
+
 #include <QDebug>
 #include <QFile>
 #include <QFileInfo>
+#include <QThreadPool>
 
 #include "itemmodel.h"
+#include "sourcereader.h"
 
 ItemModel::ItemModel(QObject* parent) : QAbstractListModel(parent)
 {
-   ///
-   /// Reset the model when the source has changed.
-   ///
-   importedSourcesFileWatcher_.connect(&importedSourcesFileWatcher_, &QFileSystemWatcher::fileChanged, this, &ItemModel::updateModel_);
+   connect(&sourceFileWatcher_, &QFileSystemWatcher::fileChanged, this, &ItemModel::resetSource_);
 }
 
-void ItemModel::setSource(const QString& source)
+void ItemModel::setSourceFile(const QString& sourceFile)
 {
-   qInfo() << "set source:" << source;
+   qInfo() << "set source:" << sourceFile;
 
-   rootSource_ = QFileInfo(source).absoluteFilePath();
+   sourceFile_ = sourceFile;
 
-   updateModel_();
+   resetSource_();
 }
 
-QString ItemModel::source() const
+QString ItemModel::sourceFile() const
 {
-   return rootSource_;
+   return sourceFile_;
 }
 
 QVariant ItemModel::data(const QModelIndex &index, int role) const
 {
-   Q_ASSERT(index.row() < items_.count());
+   QVariant data;
 
-   return ((role == ItemModel::NameRole)         ? (QVariant::fromValue(items_[index.row()].name))            :
-           (role == ItemModel::LinkRole)         ? (QVariant::fromValue(items_[index.row()].link))            :
-           (role == ItemModel::LinkPositionRole) ? (QVariant::fromValue(items_[index.row()].linkPosition))    :
-           (role == ItemModel::TagsRole)         ? (QVariant::fromValue(items_[index.row()].tags))            :
-           (role == ItemModel::SourceRole)       ? (QVariant::fromValue(items_[index.row()].source))          :
-           (role == Qt::ToolTipRole    )         ? (QVariant::fromValue(items_[index.row()].link.toString())) : QVariant());
+   if (index.isValid() == true)
+   {
+      data = ((role == ItemModel::NameRole)         ? (QVariant::fromValue(items_[index.row()].name()))            :
+              (role == ItemModel::LinkRole)         ? (QVariant::fromValue(items_[index.row()].link()))            :
+              (role == ItemModel::LinkPositionRole) ? (QVariant::fromValue(items_[index.row()].linkPosition()))    :
+              (role == ItemModel::TagsRole)         ? (QVariant::fromValue(items_[index.row()].tags()))            :
+              (role == ItemModel::SourceRole)       ? (QVariant::fromValue(items_[index.row()].sourceFile()))      :
+              (role == Qt::ToolTipRole)             ? (QVariant::fromValue(items_[index.row()].link().toString())) : QVariant());
+   }
+
+   return data;
 }
 
-int ItemModel::rowCount(const QModelIndex &) const
+int ItemModel::rowCount(const QModelIndex & /* parent */) const
 {
    return items_.count();
 }
 
-bool ItemModel::updateModel_()
+void ItemModel::applySource(const Source& source)
 {
-   qInfo() << "update model from source:" << rootSource_;
-
-   ///
-   /// Begin resetting the model, so that the view is automatically updated when reset has ended.
-   ///
-   beginResetModel();
-
-   ///
-   /// Remove current imported sources.
-   ///
-   importedSources_.clear();
-
-   foreach (const auto& file, importedSourcesFileWatcher_.files())
+   if (source.error().type() == SourceError::Type::None)
    {
-      importedSourcesFileWatcher_.removePath(file);
-   }
-
-   ///
-   /// Remove current items.
-   ///
-   items_.clear();
-
-   ///
-   /// Parse model source, which may add additional items to the item list and files to the file
-   /// system watcher.
-   ///
-   bool result = readSource_(rootSource_);
-   if (result == true)
-   {
-      emit modelUpdateSucceeded();
-   }
-
-   ///
-   /// End resetting the model, so that the view is automatically updated.
-   ///
-   endResetModel();
-
-   return result;
-}
-
-bool ItemModel::readSource_(const QString& sourceFile)
-{
-   bool result = true;
-
-   ///
-   /// Use absolute path.
-   ///
-   auto absoluteSourceFilePath = QFileInfo(sourceFile).absoluteFilePath();
-
-   ///
-   /// Import each source once to avoid circular dependencies.
-   ///
-   if (importedSources_.contains(absoluteSourceFilePath) == false)
-   {
-      importedSources_.append(absoluteSourceFilePath);
+      ///
+      /// Notify any connected view that a model change is about to happend.
+      ///
+      beginResetModel();
 
       ///
-      /// Open the source file and parse the content.
+      /// Remove any items from this source from the items list.
       ///
-      QFile sourceFileDevice(absoluteSourceFilePath);
-      result = sourceFileDevice.open(QIODevice::ReadOnly);
-      if (result == true)
+      items_.erase(std::remove_if(items_.begin(),
+                                  items_.end(),
+                                  [&source](const Item& item) { return (item.sourceFile() == source.file()); }), items_.end());
+
+      ///
+      /// Append all items from this source to the items list.
+      ///
+      items_.append(source.items());
+
+      ///
+      /// Notify any connected view that a model change has happended.
+      ///
+      endResetModel();
+
+      ///
+      /// Read the import if it has not been processed yet.
+      ///
+      for (const auto& import : source.imports())
       {
-         qInfo() << "parse source:" << sourceFile;
-
-         ///
-         /// Add the source file to the source file system watcher, so a change triggers a
-         /// model update.
-         ///
-         importedSourcesFileWatcher_.addPath(absoluteSourceFilePath);
-
-         ///
-         /// Parse the source file.
-         ///
-         QXmlStreamReader sourceFileReader(&sourceFileDevice);
-         if ((sourceFileReader.readNextStartElement() == true) && (sourceFileReader.name() == "items"))
+         if (sourceFileWatcher_.files().contains(import.file()) == false)
          {
-            result = readItems_(&sourceFileReader);
+            sourceFileWatcher_.addPath(import.file());
+
+            readSource_(import.file());
          }
-
-         if (sourceFileReader.hasError() == true)
-         {
-            qCritical() << "parse source failed:" << sourceFile
-                                                  << sourceFileReader.lineNumber() << sourceFileReader.columnNumber()
-                                                  << sourceFileReader.errorString();
-
-            emit modelUpdateFailed(QStringLiteral("In %1 at %2:%3 %4").arg(sourceFile)
-                                                                      .arg(sourceFileReader.lineNumber()).arg(sourceFileReader.columnNumber())
-                                                                      .arg(sourceFileReader.errorString()),
-                                   absoluteSourceFilePath,
-                                   SourcePosition(sourceFileReader.lineNumber(),
-                                                  sourceFileReader.columnNumber()));
-            result = false;
-         }
-
-         ///
-         /// Close the source file.
-         ///
-         sourceFileDevice.close();
-      }
-      else
-      {
-         qCritical() << "open source failed:" << sourceFile << sourceFileDevice.errorString();
-
-         emit modelUpdateFailed(QStringLiteral("%1: %2").arg(sourceFile).arg(sourceFileDevice.errorString()),
-                                absoluteSourceFilePath,
-                                SourcePosition());
       }
    }
    else
    {
-      qInfo() << "ignore source:" << sourceFile;
+      ///
+      /// Emit a model update failure if an import could not be loaded.
+      ///
+      emit modelUpdateFailed(source.error().text(), source.file(), source.error().position());
    }
-
-   return result;
 }
 
-bool ItemModel::readItems_(QXmlStreamReader* reader)
+void ItemModel::resetSource_()
 {
-   Q_ASSERT(reader != nullptr);
-
-   bool result = true;
+   ///
+   /// Notify any connected view that a model change is about to happend.
+   ///
+   beginResetModel();
 
    ///
-   /// Parse the <items> element.
+   /// Remove any items.
    ///
-   while (reader->readNextStartElement())
+   items_.clear();
+
+   ///
+   /// Notify any connected view that a model change has happended.
+   ///
+   endResetModel();
+
+   ///
+   /// Remove any watched source files and append just the root source file.
+   ///
+   const auto& files = sourceFileWatcher_.files();
+   if (files.empty() == false)
    {
-      if (reader->name() == "item")
-      {
-         result &= readItem_(reader);
-      }
-      else if (reader->name() == "group")
-      {
-         result &= readGroup_(reader);
-      }
-      else if (reader->name() == "import")
-      {
-         result &= readImport_(reader);
-      }
-      else
-      {
-         reader->skipCurrentElement();
-      }
+      sourceFileWatcher_.removePaths(sourceFileWatcher_.files());
+   }
+   const auto& directories = sourceFileWatcher_.directories();
+   if (directories.empty() == false)
+   {
+      sourceFileWatcher_.removePaths(sourceFileWatcher_.directories());
    }
 
-   return ((result == true) && (reader->hasError() == false));
+   sourceFileWatcher_.addPath(sourceFile_);
+
+   ///
+   /// Emit a successful model update so that the error is cleared.
+   ///
+   emit modelUpdateSucceeded();
+
+   ///
+   /// Read the source.
+   ///
+   readSource_(sourceFile_);
 }
 
-bool ItemModel::readItem_(QXmlStreamReader* reader, const QStringList& tags)
+void ItemModel::readSource_(const QString& file)
 {
-   Q_ASSERT(reader != nullptr);
-
-   Item_ item;
+   ///
+   /// Create a source reader for this file.
+   ///
+   auto sourceReader = new SourceReader(file);
+   sourceReader->setAutoDelete(true);
+   sourceReader->connect(sourceReader, &SourceReader::sourceRead, this, &ItemModel::applySource);
 
    ///
-   /// Store the current source file as item source (if read from a file).
+   /// Asychnorounsly execute the source reader.
    ///
-   if (auto readerFile = qobject_cast<QFile*>(reader->device()))
-   {
-      item.source = readerFile->fileName();
-   }
-
-   ///
-   /// Append the passed tags to the item.
-   ///
-   item.tags.append(tags);
-
-   ///
-   /// Parse the <item> element.
-   ///
-   while (reader->readNextStartElement())
-   {
-      if (reader->name() == "name")
-      {
-         item.name = reader->readElementText().trimmed();
-      }
-      else if (reader->name() == "url")
-      {
-         item.linkPosition.setLineNumber(reader->lineNumber());
-         item.linkPosition.setColumnNumber(reader->columnNumber());
-
-         const auto& elementText = reader->readElementText();
-
-         item.link = QUrl::fromUserInput(elementText.trimmed());
-
-         item.linkPosition.setSize(elementText.size());
-      }
-      else if (reader->name() == "tag")
-      {
-         item.tags.push_back(reader->readElementText().trimmed());
-      }
-      else
-      {
-         reader->skipCurrentElement();
-      }
-   }
-
-   ///
-   /// Append the item to the items list if there was no error.
-   ///
-   bool result = (reader->hasError() == false);
-   if (result == true)
-   {
-      qInfo() << "append item:" << item;
-
-      items_.append(std::move(item));
-   }
-
-   return result;
+   QThreadPool::globalInstance()->start(sourceReader);
 }
 
-bool ItemModel::readGroup_(QXmlStreamReader* reader)
-{
-   Q_ASSERT(reader != nullptr);
-
-   bool result = true;
-
-   QStringList tags;
-
-   ///
-   /// Parse the <group> element.
-   ///
-   while (reader->readNextStartElement())
-   {
-      if (reader->name() == "tag")
-      {
-         tags.append(reader->readElementText().trimmed());
-      }
-      else if (reader->name() == "item")
-      {
-         result &= readItem_(reader, tags);
-      }
-      else
-      {
-         reader->skipCurrentElement();
-      }
-   }
-
-   return ((result == true) && (reader->hasError() == false));
-}
-
-bool ItemModel::readImport_(QXmlStreamReader *reader)
-{
-   Q_ASSERT(reader != nullptr);
-
-   bool result = false;
-
-   ///
-   /// Parse the <import> element.
-   ///
-   while (reader->readNextStartElement())
-   {
-      if (reader->name() == "file")
-      {
-         result &= readSource_(reader->readElementText().trimmed());
-      }
-      else
-      {
-         reader->skipCurrentElement();
-      }
-   }
-
-   return ((result == true) && (reader->hasError() == false));
-}
-
-QDebug operator<<(QDebug stream, const ItemModel::Item_ &item)
-{
-   return (stream << "name:" << item.name <<
-                     "link:" << item.link.toString() <<
-                     "tags:" << item.tags);
-}

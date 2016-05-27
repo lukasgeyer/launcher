@@ -1,5 +1,5 @@
 /*!
- * \file itemlock.cpp
+ * \file systemlock.cpp
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -17,14 +17,14 @@
    #include <qt_windows.h>
 #endif // defined(Q_OS_LINUX)
 
-#include "itemlock.h"
+#include "systemlock.h"
 
-ItemLock::~ItemLock()
+SystemLock::~SystemLock()
 {
    unlock();
 }
 
-bool ItemLock::tryLock()
+bool SystemLock::tryLock()
 {
    bool isLocked = false;
 
@@ -59,7 +59,7 @@ bool ItemLock::tryLock()
    return isLocked;
 }
 
-void ItemLock::unlock()
+void SystemLock::unlock()
 {
 #if defined(Q_OS_LINUX)
    if (lockFileDescriptor_ >= 0)

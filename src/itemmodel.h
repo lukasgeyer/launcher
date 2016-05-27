@@ -14,12 +14,18 @@
 #include <QFileSystemWatcher>
 #include <QIODevice>
 #include <QPoint>
+#include <QSharedPointer>
 #include <QString>
 #include <QStringList>
 #include <QUrl>
 #include <QVector>
 #include <QXmlStreamReader>
 
+#include "source.h"
+#include "item.h"
+#include "items.h"
+#include "import.h"
+#include "imports.h"
 #include "sourceposition.h"
 
 /*!
@@ -36,10 +42,10 @@ public:
    enum Role
    {
       NameRole = Qt::DisplayRole, /*< The name for the item of type QString. */
-      LinkRole = Qt::UserRole + 1, /*< The link for the item of type QString. */
-      LinkPositionRole = Qt::UserRole + 2, /*< The link position for the item of type QPoint. */
-      TagsRole = Qt::UserRole + 3, /*< The tags for the item of type QStringList. */
-      SourceRole = Qt::UserRole + 4 /*< The source for the item of type QString. */
+      LinkRole = Qt::UserRole, /*< The link for the item of type QString. */
+      LinkPositionRole, /*< The link position for the item of type QPoint. */
+      TagsRole, /*< The tags for the item of type QStringList. */
+      SourceRole /*< The source for the item of type QString. */
    };
 
    /*!
@@ -52,11 +58,16 @@ public:
     * data could be loaded from the file; \a false otherwise. If the file is modified the data
     * is reloaded.
     */
-   void setSource(const QString& source);
+   void setSourceFile(const QString& sourceFile);
    /*!
     *  Returns the source for this model.
     */
-   QString source() const;
+   QString sourceFile() const;
+
+   /*!
+    * \reimp
+    */
+   int rowCount(const QModelIndex& parent) const override;
 
    /*!
     * \reimp
@@ -64,9 +75,10 @@ public:
    QVariant data(const QModelIndex& index, int role) const override;
 
    /*!
-    * \reimp
+    * Applies the source \a source to the model, adding all items and read the imported sources
+    * if neccessary.
     */
-   int rowCount(const QModelIndex& /* parent */) const override;
+   void applySource(const Source& source);
 
 signals:
    /*!
@@ -78,78 +90,35 @@ signals:
     * model has failed is indicated in \a reason. The source position (if available) is stored
     * in \a sourcePosition.
     */
-   void modelUpdateFailed(const QString& reason, const QString& source, const SourcePosition& sourcePosition);
+   void modelUpdateFailed(const QString& reason, const QString& sourceFile, const SourcePosition& sourcePosition);
 
 private:
    /*!
-    * The root source for the model.
+    * The source file of this model.
     */
-   QString rootSource_;
+   QString sourceFile_;
+
    /*!
-    * The imported sources file the model.
+    * The items in this model.
     */
-   QStringList importedSources_;
+   Items items_;
+
    /*!
     * The watcher responsible for the source files.
     */
-   QFileSystemWatcher importedSourcesFileWatcher_;
+   QFileSystemWatcher sourceFileWatcher_;
 
    /*!
-    * An item.
+    * Resets the source for this model, effectively removing all items and imports.
     */
-   struct Item_
-   {
-      QString source;
-      QString name;
-      QUrl link;
-      SourcePosition linkPosition;
-      QStringList tags;
-   };
-   /*!
-    *  A list of items.
-    */
-   typedef QVector<Item_> Items_;
-   /*!
-    * The list of items.
-    */
-   Items_ items_;
+   void resetSource_();
 
    /*!
     * Updates the model from the source and returns \a true if the items could be updated;
     * \a false otherwise.
     */
-   bool updateModel_();
+   void readSource_(const QString& file);
 
-   /*!
-    * Reads the data from the file \a sourceFile and returns \a true when the data could be
-    * loaded; \a false otherwise.
-    */
-   bool readSource_(const QString& sourceFile);
-   /*!
-    * Reads an item list from the XML stream \a reader and adds it to the list of items and
-    * returns \a true if the items could be read; \a false otherwise.
-    */
-   bool readItems_(QXmlStreamReader* reader);
-   /*!
-    * Reads an item from the XML stream \a reader, adds the tags \a tags and adds it to the
-    * list of items and returns \a true if the item could be read; \a false otherwise.
-    */
-   bool readItem_(QXmlStreamReader* reader, const QStringList& tags = QStringList());
-   /*!
-    * Reads a group from the XML stream \a reader and add it to the list of items and returns
-    * \a true if the group could be read; \a false otherwise.
-    */
-   bool readGroup_(QXmlStreamReader* reader);
-   /*!
-    * Reads an imported source from the XML stream \a stream and returns \a true if the
-    * imported source could be read; \a false otherwise.
-    */
-   bool readImport_(QXmlStreamReader* reader);
-
-   /*!
-    * Inserts the item \a item into the stream \a stream and returns the stream.
-    */
-   friend QDebug operator<<(QDebug stream, const Item_ &item);
 };
 
 #endif // ITEMMODEL_H

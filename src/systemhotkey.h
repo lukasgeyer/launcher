@@ -1,5 +1,5 @@
 /*!
- * \file itemhotkey.h
+ * \file systemhotkey.h
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -7,8 +7,8 @@
  *          published by the Free Software Foundation.
  */
 
-#ifndef ITEMHOTKEY_H
-#define ITEMHOTKEY_H
+#ifndef SYSTEMHOTKEY_H
+#define SYSTEMHOTKEY_H
 
 #include <QAbstractNativeEventFilter>
 #include <QObject>
@@ -16,7 +16,7 @@
 /*!
  * \brief A system-wide hotkey.
  */
-class ItemHotkey : public QObject, public QAbstractNativeEventFilter
+class SystemHotkey : public QObject, public QAbstractNativeEventFilter
 {
    Q_OBJECT
 
@@ -24,11 +24,11 @@ public:
    /*!
     * Constructs an ItemHotkey with the parent \a parent.
     */
-   ItemHotkey(QObject* parent = nullptr);
+   SystemHotkey(QObject* parent = nullptr);
    /*!
     * Destructs an ItemHotkey.
     */
-   ~ItemHotkey();
+   ~SystemHotkey();
 
    /*!
     * Registers the predefined key sequence.
@@ -51,4 +51,4 @@ signals:
    void hotkeyPressed();
 };
 
-#endif // ITEMHOTKEY_H
+#endif // SYSTEMHOTKEY_H

@@ -13,7 +13,7 @@
 #include <QTextStream>
 
 #include "application.h"
-#include "itemlock.h"
+#include "systemlock.h"
 #include "itemwindow.h"
 
 namespace {
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
    /// Try to acquire the application lock and exit immediately if it cannot be acquired (so that
    /// just a single instance of the application is running at a time).
    ///
-   ItemLock lock;
+   SystemLock lock;
    if (lock.tryLock() == true)
    {
       ///

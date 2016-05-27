@@ -27,31 +27,33 @@ DEFINES += ORGANIZATION_DOMAIN=\\\"\"$$QMAKE_TARGET_DOMAIN\\\"\"
 
 SOURCES += \
    src/main.cpp\
-   src/itemmodel.cpp \
    src/itemview.cpp \
    src/itemdelegate.cpp \
    src/itemfiltermodel.cpp \
    src/itemedit.cpp \
-   src/itemhotkey.cpp \
    src/itemwindow.cpp \
-   src/itemlock.cpp \
    src/sourceeditor.cpp \
    src/sourcehighlighter.cpp \
    src/geometrystore.cpp \
    src/application.cpp \
    src/sourceposition.cpp \
    src/indication.cpp \
-   src/sourceerrorindication.cpp
+   src/sourceerrorindication.cpp \
+   src/source.cpp \
+    src/sourcereader.cpp \
+    src/sourceerror.cpp \
+    src/item.cpp \
+    src/itemmodel.cpp \
+    src/systemlock.cpp \
+    src/systemhotkey.cpp \
+    src/import.cpp
 
 HEADERS += \
-   src/itemmodel.h \
    src/itemview.h \
    src/itemdelegate.h \
    src/itemfiltermodel.h \
    src/itemedit.h \
-   src/itemhotkey.h \
    src/itemwindow.h \
-   src/itemlock.h \
    src/sourceeditor.h \
    src/sourcehighlighter.h \
    src/geometrystore.h \
@@ -60,7 +62,17 @@ HEADERS += \
    src/indication.h \
    src/sourceposition.h \
    src/sourceerrorindication.h \
-   src/indicator.h
+   src/indicator.h \
+   src/source.h \
+   src/sourcereader.h \
+    src/sourceerror.h \
+    src/item.h \
+    src/items.h \
+    src/itemmodel.h \
+    src/systemlock.h \
+    src/systemhotkey.h \
+    src/import.h \
+    src/imports.h
 
 RESOURCES += \
     resources/resources.qrc

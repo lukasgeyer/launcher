@@ -1,5 +1,5 @@
 /*!
- * \file itemhotkey.cpp
+ * \file systemhotkey.cpp
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -17,18 +17,18 @@
    #include <qt_windows.h>
 #endif // defined(Q_OS_LINUX)
 
-#include "itemhotkey.h"
+#include "systemhotkey.h"
 
-ItemHotkey::ItemHotkey(QObject* parent) : QObject(parent)
+SystemHotkey::SystemHotkey(QObject* parent) : QObject(parent)
 {
 }
 
-ItemHotkey::~ItemHotkey()
+SystemHotkey::~SystemHotkey()
 {
    unregisterKeySequence();
 }
 
-bool ItemHotkey::registerKeySequence()
+bool SystemHotkey::registerKeySequence()
 {
    bool keySequenceRegistered = false;
 
@@ -71,7 +71,7 @@ bool ItemHotkey::registerKeySequence()
    return keySequenceRegistered;
 }
 
-void ItemHotkey::unregisterKeySequence()
+void SystemHotkey::unregisterKeySequence()
 {
    QAbstractEventDispatcher::instance()->removeNativeEventFilter(this);
 
@@ -83,7 +83,7 @@ void ItemHotkey::unregisterKeySequence()
 #endif // defined(Q_OS_LINUX)
 }
 
-bool ItemHotkey::nativeEventFilter(const QByteArray& /* eventType */, void *message, long* /* result */)
+bool SystemHotkey::nativeEventFilter(const QByteArray& /* eventType */, void *message, long* /* result */)
 {
 #if defined(Q_OS_LINUX)
    auto eventMessage = static_cast<xcb_generic_event_t*>(message);
