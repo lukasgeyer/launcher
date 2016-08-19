@@ -15,7 +15,7 @@
 #include "sourceposition.h"
 
 /*!
- * \todo Document.
+ * \todo An error occuring in a source.
  */
 class SourceError
 {

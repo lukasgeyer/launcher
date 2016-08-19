@@ -26,20 +26,20 @@ DEFINES += ORGANIZATION_NAME=\\\"\"$$QMAKE_TARGET_COMPANY\\\"\"
 DEFINES += ORGANIZATION_DOMAIN=\\\"\"$$QMAKE_TARGET_DOMAIN\\\"\"
 
 SOURCES += \
-   src/main.cpp\
-   src/itemview.cpp \
-   src/itemdelegate.cpp \
-   src/itemfiltermodel.cpp \
-   src/itemedit.cpp \
-   src/itemwindow.cpp \
-   src/sourceeditor.cpp \
-   src/sourcehighlighter.cpp \
-   src/geometrystore.cpp \
-   src/application.cpp \
-   src/sourceposition.cpp \
-   src/indication.cpp \
-   src/sourceerrorindication.cpp \
-   src/source.cpp \
+    src/main.cpp\
+    src/itemview.cpp \
+    src/itemdelegate.cpp \
+    src/itemfiltermodel.cpp \
+    src/itemedit.cpp \
+    src/itemwindow.cpp \
+    src/sourceeditor.cpp \
+    src/sourcehighlighter.cpp \
+    src/geometrystore.cpp \
+    src/application.cpp \
+    src/sourceposition.cpp \
+    src/indication.cpp \
+    src/sourceerrorindication.cpp \
+    src/source.cpp \
     src/sourcereader.cpp \
     src/sourceerror.cpp \
     src/item.cpp \
@@ -49,22 +49,22 @@ SOURCES += \
     src/import.cpp
 
 HEADERS += \
-   src/itemview.h \
-   src/itemdelegate.h \
-   src/itemfiltermodel.h \
-   src/itemedit.h \
-   src/itemwindow.h \
-   src/sourceeditor.h \
-   src/sourcehighlighter.h \
-   src/geometrystore.h \
-   src/event.h \
-   src/application.h \
-   src/indication.h \
-   src/sourceposition.h \
-   src/sourceerrorindication.h \
-   src/indicator.h \
-   src/source.h \
-   src/sourcereader.h \
+    src/itemview.h \
+    src/itemdelegate.h \
+    src/itemfiltermodel.h \
+    src/itemedit.h \
+    src/itemwindow.h \
+    src/sourceeditor.h \
+    src/sourcehighlighter.h \
+    src/geometrystore.h \
+    src/event.h \
+    src/application.h \
+    src/indication.h \
+    src/sourceposition.h \
+    src/sourceerrorindication.h \
+    src/indicator.h \
+    src/source.h \
+    src/sourcereader.h \
     src/sourceerror.h \
     src/item.h \
     src/items.h \

@@ -14,7 +14,7 @@
 
 #include "sourcereader.h"
 
-SourceReader::SourceReader(const QString& file) : file_(file)
+SourceReader::SourceReader(const QString& file, const QUuid& uuid) : file_(file), uuid_(uuid)
 {
 }
 
@@ -65,7 +65,7 @@ void SourceReader::run()
    ///
    /// Emit the signal that the source has been read.
    ///
-   emit sourceRead(source);
+   emit sourceRead(source, uuid_);
 }
 
 void SourceReader::readItems_(Source* source, QXmlStreamReader* reader)

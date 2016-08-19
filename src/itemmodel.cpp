@@ -7,18 +7,25 @@
  *          published by the Free Software Foundation.
  */
 
-#include <algorithm>
-
 #include <QDebug>
 #include <QFile>
 #include <QFileInfo>
+#include <QSettings>
 #include <QThreadPool>
+#include <QTimer>
 
+#include "application.h"
 #include "itemmodel.h"
 #include "sourcereader.h"
 
 ItemModel::ItemModel(QObject* parent) : QAbstractListModel(parent)
 {
+   const auto& settings = static_cast<Application*>(QCoreApplication::instance())->settings();
+
+   auto readFailedSourcesTimer = new QTimer(this);
+   readFailedSourcesTimer->connect(readFailedSourcesTimer, &QTimer::timeout, this, &ItemModel::readFailedSources_);
+   readFailedSourcesTimer->start(settings.value(QStringLiteral("readFailedSourcesTimeout"), QStringLiteral("10000")).toInt());
+
    connect(&sourceFileWatcher_, &QFileSystemWatcher::fileChanged, this, &ItemModel::resetSource_);
 }
 
@@ -58,51 +65,58 @@ int ItemModel::rowCount(const QModelIndex & /* parent */) const
    return items_.count();
 }
 
-void ItemModel::applySource(const Source& source)
+void ItemModel::applySource(const Source& source, const QUuid& uuid)
 {
-   if (source.error().type() == SourceError::Type::None)
+   ///
+   /// The UUID must match with the currently valid UUID. A mismatch might happen if for
+   /// instance the source is reset while an asynchronous source reader is currently is
+   /// progress. The result of such a read must not be added to the item list.
+   ///
+   if (sourceUuid_ == uuid)
    {
-      ///
-      /// Notify any connected view that a model change is about to happend.
-      ///
-      beginResetModel();
-
-      ///
-      /// Remove any items from this source from the items list.
-      ///
-      items_.erase(std::remove_if(items_.begin(),
-                                  items_.end(),
-                                  [&source](const Item& item) { return (item.sourceFile() == source.file()); }), items_.end());
-
-      ///
-      /// Append all items from this source to the items list.
-      ///
-      items_.append(source.items());
-
-      ///
-      /// Notify any connected view that a model change has happended.
-      ///
-      endResetModel();
-
-      ///
-      /// Read the import if it has not been processed yet.
-      ///
-      for (const auto& import : source.imports())
+      if (source.error().type() == SourceError::Type::None)
       {
-         if (sourceFileWatcher_.files().contains(import.file()) == false)
-         {
-            sourceFileWatcher_.addPath(import.file());
+         ///
+         /// Notify any connected view that a model change is about to happend.
+         ///
+         beginResetModel();
 
-            readSource_(import.file());
+         ///
+         /// Append all items from this source to the items list.
+         ///
+         items_.append(source.items());
+
+         ///
+         /// Notify any connected view that a model change has happended.
+         ///
+         endResetModel();
+
+         ///
+         /// Read the import if it has not been processed yet.
+         ///
+         for (const auto& import : source.imports())
+         {
+            if (sourceFileWatcher_.files().contains(import.file()) == false)
+            {
+               sourceFileWatcher_.addPath(import.file());
+
+               readSource_(import.file());
+            }
          }
       }
-   }
-   else
-   {
-      ///
-      /// Emit a model update failure if an import could not be loaded.
-      ///
-      emit modelUpdateFailed(source.error().text(), source.file(), source.error().position());
+      else
+      {
+         ///
+         /// Emit a model update failure if an import could not be loaded.
+         ///
+         emit modelUpdateFailed(source.error().text(), source.file(), source.error().position());
+
+         ///
+         /// Add the source to the list of failed sources, so it will be processed later
+         /// on again.
+         ///
+         failedSources_.push_back(source.file());
+      }
    }
 }
 
@@ -116,12 +130,22 @@ void ItemModel::resetSource_()
    ///
    /// Remove any items.
    ///
-   items_.clear();
+   items_ = Items();
 
    ///
    /// Notify any connected view that a model change has happended.
    ///
    endResetModel();
+
+   ///
+   /// Regenerate the UUID.
+   ///
+   sourceUuid_ = QUuid::createUuid();
+
+   ///
+   /// Clear any pending failed sources.
+   ///
+   failedSources_.clear();
 
    ///
    /// Remove any watched source files and append just the root source file.
@@ -155,13 +179,31 @@ void ItemModel::readSource_(const QString& file)
    ///
    /// Create a source reader for this file.
    ///
-   auto sourceReader = new SourceReader(file);
+   auto sourceReader = new SourceReader(file, sourceUuid_);
    sourceReader->setAutoDelete(true);
-   sourceReader->connect(sourceReader, &SourceReader::sourceRead, this, &ItemModel::applySource);
+   sourceReader->connect(sourceReader, &SourceReader::sourceRead, this, &ItemModel::applySource, Qt::QueuedConnection);
 
    ///
    /// Asychnorounsly execute the source reader.
    ///
    QThreadPool::globalInstance()->start(sourceReader);
+}
+
+void ItemModel::readFailedSources_()
+{
+   ///
+   /// Read each failed source.
+   ///
+   for (const auto& failedSource : failedSources_)
+   {
+      qInfo() << "retry failed source: " << failedSource;
+
+      readSource_(failedSource);
+   }
+
+   ///
+   /// Clear the list.
+   ///
+   failedSources_.clear();
 }
 

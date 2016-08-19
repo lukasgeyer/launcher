@@ -10,8 +10,9 @@
 #include "sourceerrorindication.h"
 
 SourceErrorIndication::SourceErrorIndication(const QString& text, const QString& source, const SourcePosition& sourcePosition) :
-   Indication(text), source_(source), sourcePosition_(sourcePosition)
+   source_(source), sourcePosition_(sourcePosition)
 {
+   setText(source + ": " + sourcePosition.lineNumber() + ":" + sourcePosition.columnNumber() + ": " + text);
 }
 
 void SourceErrorIndication::setSource(const QString& source)

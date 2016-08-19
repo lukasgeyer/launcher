@@ -40,6 +40,15 @@ private:
    QString file_;
 
    /*!
+    * Returns \a true if \a lhs and \a rhs are equal (refer to the same file); \a false otherwise.
+    */
+   friend bool operator==(const Import& lhs, const Import& rhs);
+   /*!
+    * Returns \a false if \a lhs and \a rhs are equal (refer to the same file); \a true otherwise.
+    */
+   friend bool operator!=(const Import& lhs, const Import& rhs);
+
+   /*!
     * Inserts the item \a item into the stream \a stream and returns the stream.
     */
    friend QDebug operator<<(QDebug stream, const Import &import);

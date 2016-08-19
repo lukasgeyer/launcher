@@ -18,14 +18,13 @@
 #include <QString>
 #include <QStringList>
 #include <QUrl>
+#include <QUuid>
 #include <QVector>
 #include <QXmlStreamReader>
 
-#include "source.h"
 #include "item.h"
 #include "items.h"
-#include "import.h"
-#include "imports.h"
+#include "source.h"
 #include "sourceposition.h"
 
 /*!
@@ -78,7 +77,7 @@ public:
     * Applies the source \a source to the model, adding all items and read the imported sources
     * if neccessary.
     */
-   void applySource(const Source& source);
+   void applySource(const Source& source, const QUuid& uuid);
 
 signals:
    /*!
@@ -97,6 +96,16 @@ private:
     * The source file of this model.
     */
    QString sourceFile_;
+   /*!
+    * The source UUID os this model. This UUID will be regenerated each time the source
+    * model is reset.
+    */
+   QUuid sourceUuid_;
+
+   /*!
+    * The list of failed sources.
+    */
+   QVector<QString>failedSources_;
 
    /*!
     * The items in this model.
@@ -114,11 +123,15 @@ private:
    void resetSource_();
 
    /*!
-    * Updates the model from the source and returns \a true if the items could be updated;
-    * \a false otherwise.
+    * Updates the model from the source \a source.
     */
    void readSource_(const QString& file);
 
+private slots:
+   /*!
+    * Retries failed sources.
+    */
+   void readFailedSources_();
 };
 
 #endif // ITEMMODEL_H

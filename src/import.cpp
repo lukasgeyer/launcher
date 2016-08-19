@@ -23,6 +23,16 @@ QString Import::file() const
    return file_;
 }
 
+bool operator==(const Import& lhs, const Import& rhs)
+{
+   return (lhs.file() == rhs.file());
+}
+
+bool operator!=(const Import& lhs, const Import& rhs)
+{
+   return ((lhs == rhs) == false);
+}
+
 QDebug operator<<(QDebug stream, const Import &import)
 {
    return (stream << "file:" << import.file());

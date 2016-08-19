@@ -13,6 +13,7 @@
 #include <QObject>
 #include <QRunnable>
 #include <QString>
+#include <QUuid>
 
 #include "item.h"
 #include "items.h"
@@ -31,7 +32,7 @@ public:
    /*!
     * Constructs a source reader to read the source found in \a file.
     */
-   SourceReader(const QString& file);
+   SourceReader(const QString& file, const QUuid& uuid);
 
    /*!
     * \reimp
@@ -40,15 +41,19 @@ public:
 
 signals:
    /*!
-    * Is emitted when the source \a source has been read.
+    * Is emitted when the source \a source with the UUID \a uuid has been read.
     */
-   void sourceRead(const Source& source);
+   void sourceRead(const Source& source, const QUuid& uuid);
 
 private:
    /*!
     * The file the source should be read from.
     */
    QString file_;
+   /*!
+    * The UUID of the source reader.
+    */
+   QUuid uuid_;
 
    /*!
     * Reads an item list from the XML stream \a reader and adds it to the list of items and
