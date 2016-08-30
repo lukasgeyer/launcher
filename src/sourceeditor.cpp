@@ -20,9 +20,9 @@
 
 SourceEditor::SourceEditor(QWidget* parent, Qt::WindowFlags windowFlags) : QDialog(parent, Qt::Tool | windowFlags)
 {
-   ///
-   /// Create UI.
-   ///
+   //
+   // Create UI.
+   //
    sourceEdit_ = new QPlainTextEdit(this);
    sourceEdit_->setLineWrapMode(QPlainTextEdit::NoWrap);
    sourceEdit_->setFocusPolicy(Qt::StrongFocus);
@@ -50,18 +50,18 @@ SourceEditor::SourceEditor(QWidget* parent, Qt::WindowFlags windowFlags) : QDial
       reject();
    });
 
-   ///
-   /// Set layout.
-   ///
+   //
+   // Set layout.
+   //
    auto layout = new QVBoxLayout(this);
    layout->addWidget(sourceEdit_);
    layout->addWidget(buttonBox);
 
    setLayout(layout);
 
-   ///
-   /// Register the widget with the geomerty store.
-   ///
+   //
+   // Register the widget with the geomerty store.
+   //
    auto screenGeometry = QApplication::desktop()->screenGeometry();
    QSize defaultSize(screenGeometry.width() * 0.75, screenGeometry.height() * 0.75);
    QPoint defaultPosition((screenGeometry.width() - defaultSize.width()) / 2, (screenGeometry.height() - defaultSize.height()) / 2);
@@ -74,16 +74,16 @@ bool SourceEditor::openSource(QIODevice* source)
    Q_ASSERT(source_ != nullptr);
    Q_ASSERT(sourceEdit_ != nullptr);
 
-   ///
-   /// Transfer ownership for the source to this object (it will be automatically deleted when
-   /// the parent is being deleted).
-   ///
+   //
+   // Transfer ownership for the source to this object (it will be automatically deleted when
+   // the parent is being deleted).
+   //
    source_ = source;
    source_->setParent(this);
 
-   ///
-   /// Open the device and display the content in the editor.
-   ///
+   //
+   // Open the device and display the content in the editor.
+   //
    bool result = source_->open(QIODevice::ReadWrite);
    if (result == true)
    {
@@ -95,12 +95,12 @@ bool SourceEditor::openSource(QIODevice* source)
 
 void SourceEditor::selectSource(int line, int column, int size)
 {
-   ///
-   /// Move the cursor to the requested location. At position zero the cursor is already at line
-   /// one, so move down the cursor on line less then requested. The column is zero. The text is
-   /// selected by advancing the cursor by the requested size, but keeping the anchor at the
-   /// position it was originally moved to.
-   ///
+   //
+   // Move the cursor to the requested location. At position zero the cursor is already at line
+   // one, so move down the cursor on line less then requested. The column is zero. The text is
+   // selected by advancing the cursor by the requested size, but keeping the anchor at the
+   // position it was originally moved to.
+   //
    auto textCursor = sourceEdit_->textCursor();
    textCursor.setPosition(0);
    textCursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, line - 1);

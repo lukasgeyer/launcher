@@ -26,7 +26,7 @@ DEFINES += ORGANIZATION_NAME=\\\"\"$$QMAKE_TARGET_COMPANY\\\"\"
 DEFINES += ORGANIZATION_DOMAIN=\\\"\"$$QMAKE_TARGET_DOMAIN\\\"\"
 
 SOURCES += \
-    src/main.cpp\
+    src/main.cpp \
     src/itemview.cpp \
     src/itemdelegate.cpp \
     src/itemfiltermodel.cpp \
@@ -46,7 +46,8 @@ SOURCES += \
     src/itemmodel.cpp \
     src/systemlock.cpp \
     src/systemhotkey.cpp \
-    src/import.cpp
+    src/import.cpp \
+    src/searchexpression.cpp
 
 HEADERS += \
     src/itemview.h \
@@ -72,7 +73,8 @@ HEADERS += \
     src/systemlock.h \
     src/systemhotkey.h \
     src/import.h \
-    src/imports.h
+    src/imports.h \
+    src/searchexpression.h
 
 RESOURCES += \
     resources/resources.qrc

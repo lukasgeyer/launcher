@@ -75,10 +75,10 @@ void ItemEdit::updateIndicationAction_()
 
    if (indications_.isEmpty() == false)
    {
-      ///
-      /// If there are indications in the indications list display the error indication and the
-      /// list of indications as tooltip for that action.
-      ///
+      //
+      // If there are indications in the indications list display the error indication and the
+      // list of indications as tooltip for that action.
+      //
       QString indicationActionTooltip;
       for (const auto& indication : indications_)
       {
@@ -92,9 +92,9 @@ void ItemEdit::updateIndicationAction_()
    }
    else
    {
-      ///
-      /// If there are no indications hide the indication action.
-      ///
+      //
+      // If there are no indications hide the indication action.
+      //
       indicationAction_->setVisible(false);
    }
 }

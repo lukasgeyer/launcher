@@ -53,8 +53,8 @@ bool SystemLock::tryLock()
       {
          isLocked = true;
       }
-#endif // defined(Q_OS_LINUX)
    }
+#endif // defined(Q_OS_LINUX)
 
    return isLocked;
 }

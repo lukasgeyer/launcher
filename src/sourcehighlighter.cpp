@@ -15,9 +15,9 @@
 
 SourceHighlighter::SourceHighlighter(QObject* parent) : QSyntaxHighlighter(parent)
 {
-   ///
-   /// The keyword rule.
-   ///
+   //
+   // The keyword rule.
+   //
    {
       Rule_ rule;
       rule.expressions.append(QRegularExpression(QStringLiteral("(<[ ]*\?.*\?>)")));
@@ -25,9 +25,9 @@ SourceHighlighter::SourceHighlighter(QObject* parent) : QSyntaxHighlighter(paren
       rules_.append(std::move(rule));
    }
 
-   ///
-   /// The comment rule.
-   ///
+   //
+   // The comment rule.
+   //
    {
       Rule_ rule;
       rule.expressions.append(QRegularExpression(QStringLiteral("(<!--[^\\n]*-->)")));
@@ -35,9 +35,9 @@ SourceHighlighter::SourceHighlighter(QObject* parent) : QSyntaxHighlighter(paren
       rules_.append(std::move(rule));
    }
 
-   ///
-   /// The item(s), import tag rule.
-   ///
+   //
+   // The item(s), import tag rule.
+   //
    {
       Rule_ rule;
       rule.expressions.append(QRegularExpression(QStringLiteral("(<[/]*item[s]*[ /]*>)")));
@@ -46,9 +46,9 @@ SourceHighlighter::SourceHighlighter(QObject* parent) : QSyntaxHighlighter(paren
       rules_.append(std::move(rule));
    }
 
-   ///
-   /// The name, URL, file tag rule.
-   ///
+   //
+   // The name, URL, file tag rule.
+   //
    {
       Rule_ rule;
       rule.expressions.append(QRegularExpression(QStringLiteral("(<[/]*name[ /]*>)")));
@@ -58,9 +58,9 @@ SourceHighlighter::SourceHighlighter(QObject* parent) : QSyntaxHighlighter(paren
       rules_.append(std::move(rule));
    }
 
-   ///
-   /// The name content rule.
-   ///
+   //
+   // The name content rule.
+   //
    {
       Rule_ rule;
       rule.expressions.append(QRegularExpression(QStringLiteral("<name>(.*)</name>")));
@@ -71,9 +71,9 @@ SourceHighlighter::SourceHighlighter(QObject* parent) : QSyntaxHighlighter(paren
 
 void SourceHighlighter::highlightBlock(const QString& text)
 {
-   ///
-   /// Apply matching highlighting rules.
-   ///
+   //
+   // Apply matching highlighting rules.
+   //
    for (const auto& rule : rules_)
    {
       for (const auto& expression : rule.expressions)

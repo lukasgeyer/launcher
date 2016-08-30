@@ -24,15 +24,15 @@ void GeometryStore::addWidget(QWidget *widget, const QRect& defaultGeometry)
 {
    Q_ASSERT(widget != nullptr);
 
-   ///
-   /// Update the default geometry.
-   ///
+   //
+   // Update the default geometry.
+   //
    settings_->setValue(defaultGeometryKey(widget), defaultGeometry);
 
-   ///
-   /// Install an event filter for the tracked widget so the the geometry can be automatically
-   /// stored and restored.
-   ///
+   //
+   // Install an event filter for the tracked widget so the the geometry can be automatically
+   // stored and restored.
+   //
    widget->installEventFilter(this);
 }
 
@@ -40,9 +40,9 @@ void GeometryStore::removeWidget(QWidget *widget)
 {
    Q_ASSERT(widget != nullptr);
 
-   ///
-   /// Remove the event filter from the tracked widget.
-   ///
+   //
+   // Remove the event filter from the tracked widget.
+   //
    widget->removeEventFilter(this);
 }
 
@@ -55,10 +55,10 @@ bool GeometryStore::eventFilter(QObject* object, QEvent* event)
 
    if (/* auto showEvent = */ eventAs<QShowEvent>(event, QEvent::Show))
    {
-      ///
-      /// Try to restore the geometry. If no geometry is available try to restore the
-      /// default geometry.
-      ///
+      //
+      // Try to restore the geometry. If no geometry is available try to restore the
+      // default geometry.
+      //
       auto geometry = settings_->value(geometryKey(widget));
       if (geometry.isValid() == true)
       {
@@ -76,16 +76,16 @@ bool GeometryStore::eventFilter(QObject* object, QEvent* event)
    }
    else if (/* auto hideEvent = */ eventAs<QHideEvent>(event, QEvent::Hide))
    {
-      ///
-      /// Store the current geometry.
-      ///
+      //
+      // Store the current geometry.
+      //
       settings_->setValue(geometryKey(widget), widget->saveGeometry());
    }
    else if (/* auto destroyEvent = */ eventAs<QEvent>(event, QEvent::Destroy))
    {
-      ///
-      /// Remove the widget as it has been destroyed.
-      ///
+      //
+      // Remove the widget as it has been destroyed.
+      //
       removeWidget(widget);
    }
 

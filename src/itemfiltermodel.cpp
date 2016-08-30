@@ -9,35 +9,27 @@
 
 #include "itemfiltermodel.h"
 #include "itemmodel.h"
+#include "searchexpression.h"
 
 ItemFilterModel::ItemFilterModel(QObject* parent) : QSortFilterProxyModel(parent)
 {
 }
 
-void ItemFilterModel::setFilterRegularExpressionPattern(const QString& regularExpressionPattern)
+void ItemFilterModel::setSearchExpression(const QString& expression)
 {
-   ///
-   /// As the regular expression is matched against each item optimize immediately.
-   ///
-   regularExpression_ = QRegularExpression(regularExpressionPattern, QRegularExpression::CaseInsensitiveOption);
-   regularExpression_.optimize();
+   searchExpression_.setExpression(expression);
 
    invalidateFilter();
 }
 
 bool ItemFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const
 {
-   const auto& name = sourceModel()->index(sourceRow, 0, sourceParent).data(ItemModel::NameRole).value<QString>();
-   const auto& tags = sourceModel()->index(sourceRow, 0, sourceParent).data(ItemModel::TagsRole).value<QStringList>();
+   const auto &name = sourceModel()->index(sourceRow, 0, sourceParent).data(ItemModel::NameRole).value<QString>();
+   const auto &tags = sourceModel()->index(sourceRow, 0, sourceParent).data(ItemModel::TagsRole).value<QStringList>();
 
-   ///
-   /// A regular expression matches if it is either empty and a non-tagged item is requested or
-   /// if it is not empty the name or one of the tags matches.
-   ///
-   return (((regularExpression_.pattern().isEmpty() == true) && (tags.isEmpty() == true)) ||
-           ((regularExpression_.pattern().isEmpty() == false) &&
-            ((regularExpression_.match(name).hasMatch()) ||
-             (std::any_of(tags.begin(), tags.end(), [&](const QString& tag) { return regularExpression_.match(tag).hasMatch(); })))));
+   bool matches = searchExpression_.Matches(name, tags);
+
+   return matches;
 }
 
 bool ItemFilterModel::lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const
@@ -48,10 +40,10 @@ bool ItemFilterModel::lessThan(const QModelIndex &sourceLeft, const QModelIndex 
    const auto& nameRight = sourceModel()->index(sourceRight.row(), 0, sourceRight.parent()).data(ItemModel::NameRole).value<QString>();
    const auto& tagsRight = sourceModel()->index(sourceRight.row(), 0, sourceRight.parent()).data(ItemModel::TagsRole).value<QStringList>();
 
-   ///
-   /// A tagged item is sorted up, an non-tagged item is sorted down, if both are of the same
-   /// type sort lexically.
-   ///
+   //
+   // A tagged item is sorted up, an non-tagged item is sorted down, if both are of the same
+   // type sort lexically.
+   //
    return ((tagsLeft.isEmpty() == false) && (tagsRight.isEmpty() == true )) ? true  :
           ((tagsLeft.isEmpty() == true ) && (tagsRight.isEmpty() == false)) ? false :
           ((nameLeft < nameRight));

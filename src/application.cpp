@@ -14,22 +14,22 @@
 
 Application::Application(int& argc, char** argv) : QApplication(argc, argv)
 {
-   ///
-   /// Set up application data (the actual values are defined in the .pro file).
-   ///
+   //
+   // Set up application data (the actual values are defined in the .pro file).
+   //
    setApplicationName(QStringLiteral(APPLICATION_NAME));
    setApplicationVersion(QStringLiteral(APPLICATION_VERSION));
    setOrganizationName(QStringLiteral(ORGANIZATION_NAME));
    setOrganizationDomain(QStringLiteral(ORGANIZATION_DOMAIN));
 
-   ///
-   /// Create settings.
-   ///
+   //
+   // Create settings.
+   //
    settings_.reset(new QSettings(QSettings::IniFormat, QSettings::UserScope, applicationName()));
 
-   ///
-   /// Create geometry store.
-   ///
+   //
+   // Create geometry store.
+   //
    geometryStore_.reset(new GeometryStore(settings_.data()));
 }
 

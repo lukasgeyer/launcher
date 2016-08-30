@@ -47,21 +47,21 @@ int main(int argc, char *argv[])
 {
    int result = EXIT_FAILURE;
 
-   ///
-   /// Set up the application.
-   ///
+   //
+   // Set up the application.
+   //
    Application application(argc, argv);
 
-   ///
-   /// Try to acquire the application lock and exit immediately if it cannot be acquired (so that
-   /// just a single instance of the application is running at a time).
-   ///
+   //
+   // Try to acquire the application lock and exit immediately if it cannot be acquired (so that
+   // just a single instance of the application is running at a time).
+   //
    SystemLock lock;
    if (lock.tryLock() == true)
    {
-      ///
-      /// Set up logging. If the log file cannot be openend (just) the default message handler is used.
-      ///
+      //
+      // Set up logging. If the log file cannot be openend (just) the default message handler is used.
+      //
       QFile logFile(QStringLiteral("launcher.log"));
       if (logFile.open(QIODevice::Text | QIODevice::Truncate | QIODevice::WriteOnly) == true)
       {
@@ -70,20 +70,20 @@ int main(int argc, char *argv[])
          logMessageHandler_ = qInstallMessageHandler(logFileHandler);
       }
 
-      ///
-      /// Print application name and version.
-      ///
+      //
+      // Print application name and version.
+      //
       qInfo().noquote() << application.applicationName() << application.applicationVersion();
 
-      ///
-      /// Set up the item window.
-      ///
+      //
+      // Set up the item window.
+      //
       ItemWindow itemWindow;
       itemWindow.show();
 
-      ///
-      /// Execute the application.
-      ///
+      //
+      // Execute the application.
+      //
       result = application.exec();
    }
 

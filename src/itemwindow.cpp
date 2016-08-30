@@ -45,21 +45,21 @@ const int RESIZE_AREA_SIZE_ = 16;
 
 ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHint | Qt::WindowSystemMenuHint)
 {
-   ///
-   /// Disable window background.
-   ///
+   //
+   // Disable window background.
+   //
    setAttribute(Qt::WA_NoSystemBackground, true);
    setAttribute(Qt::WA_TranslucentBackground, true);
 
-   ///
-   /// Set the window properties.
-   ///
+   //
+   // Set the window properties.
+   //
    setWindowIcon(QIcon(QStringLiteral(":/images/logo.svg")));
    setWindowOpacity(0.95);
 
-   ///
-   /// Create UI.
-   ///
+   //
+   // Create UI.
+   //
    auto itemModel = new ItemModel(this);
 
    auto itemFilterModel = new ItemFilterModel(this);
@@ -85,18 +85,18 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    itemEdit->setFocusPolicy(Qt::StrongFocus);
    itemEdit->setGraphicsEffect(itemEditShadowEffect);
    itemEdit->connect(itemEdit, &ItemEdit::textChanged, [itemFilterModel](const QString& text){
-      itemFilterModel->setFilterRegularExpressionPattern((text.isEmpty() ? "" : "^") + text);
+      itemFilterModel->setSearchExpression(text);
       itemFilterModel->sortColumn();
    });
    itemEdit->connect(itemEdit, &ItemEdit::returnPressed, [this, itemEdit, itemView](){
       const auto& currentIndex = itemView->currentIndex();
       if (currentIndex.isValid() == true)
       {
-         ///
-         /// If enter is pressed and an item is selected open the link and hide if the link
-         /// could be opened. In addition, the last URL open error is cleared. Remain shown
-         /// otherwise so the error can be seen.
-         ///
+         //
+         // If enter is pressed and an item is selected open the link and hide if the link
+         // could be opened. In addition, the last URL open error is cleared. Remain shown
+         // otherwise so the error can be seen.
+         //
          if (openUrl_(currentIndex.data(ItemModel::LinkRole).value<QUrl>(), itemEdit) == true)
          {
             itemEdit->removeIndication(QStringLiteral("openUrlError"));
@@ -105,12 +105,12 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
       }
       else
       {
-         ///
-         /// If enter is pressed and no item is selected open all links if either a filter is
-         /// provided (and a non-tagged item might be matched) or the item is tagged and hide
-         /// if all links could be opened. In addition, the last URL open error is cleared.
-         /// Remain shown otherwise so the error can be seen.
-         ///
+         //
+         // If enter is pressed and no item is selected open all links if either a filter is
+         // provided (and a non-tagged item might be matched) or the item is tagged and hide
+         // if all links could be opened. In addition, the last URL open error is cleared.
+         // Remain shown otherwise so the error can be seen.
+         //
          bool urlOpened = true;
          for (int row = 0; row < itemView->model()->rowCount(); ++row)
          {
@@ -138,9 +138,9 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
                                                          itemView->model()->index(0, 0));
    });
    itemEdit->connect(itemEdit, &ItemEdit::escapePressed, [this](){
-      ///
-      /// Is escaped is pressed hide.
-      ///
+      //
+      // Is escaped is pressed hide.
+      //
       hide();
    });
    itemEdit->connect(itemEdit, &ItemEdit::indicationRemoved, [this](const QString& /* id */, const Indication& indication){
@@ -158,18 +158,18 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    });
    itemView->connect(itemView, &ItemView::clicked, [this, itemEdit](const QModelIndex& index)
    {
-      ///
-      /// If an item is clicked open the link and remain shown (so multiple items can be clicked).
-      ///
+      //
+      // If an item is clicked open the link and remain shown (so multiple items can be clicked).
+      //
       if (openUrl_(index.data(ItemModel::LinkRole).value<QUrl>(), itemEdit) == true)
       {
          itemEdit->removeIndication(QStringLiteral("openUrlError"));
       }
    });
    itemView->connect(itemView, &ItemView::customContextMenuRequested, [this, itemEdit, itemView](const QPoint& position){
-      ///
-      /// Show the item-specific context menu if a valid item has been selected.
-      ///
+      //
+      // Show the item-specific context menu if a valid item has been selected.
+      //
       auto positionIndex = itemView->indexAt(position);
       if (positionIndex.isValid() == true)
       {
@@ -186,12 +186,12 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    setFocusPolicy(Qt::NoFocus);
    setFocusProxy(itemEdit);
 
-   ///
-   /// Hide the application if it loses focus, as it cannot be activated programatically for
-   /// instance on Windows if another application is activated. The application will simply
-   /// flash in the taskbar instead. Another option would be hiding and showing the window,
-   /// but this leads to unpleasent flickering, so the application is simply hidden.
-   ///
+   //
+   // Hide the application if it loses focus, as it cannot be activated programatically for
+   // instance on Windows if another application is activated. The application will simply
+   // flash in the taskbar instead. Another option would be hiding and showing the window,
+   // but this leads to unpleasent flickering, so the application is simply hidden.
+   //
    connect(qApp, &QApplication::applicationStateChanged, [this, itemEdit](Qt::ApplicationState applicationState){
       if (applicationState == Qt::ApplicationActive)
       {
@@ -205,9 +205,9 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
       }
    });
 
-   ///
-   /// Decorate the standard context menu with the additional actions.
-   ///
+   //
+   // Decorate the standard context menu with the additional actions.
+   //
    auto itemEditContextMenu = itemEdit->createStandardContextMenu();
    itemEditContextMenu->addSeparator();
    itemEditContextMenu->addAction(tr("Select font..."), [itemEdit, itemView](){
@@ -234,17 +234,17 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
       openSource_(itemModel->sourceFile(), SourcePosition(), itemEdit);
    });
 
-   ///
-   /// Show the decorated context menu instead of the standard context menu.
-   ///
+   //
+   // Show the decorated context menu instead of the standard context menu.
+   //
    itemEdit->setContextMenuPolicy(Qt::CustomContextMenu);
    itemEdit->connect(itemEdit, &ItemEdit::customContextMenuRequested, [itemEdit, itemEditContextMenu](const QPoint& position){
       itemEditContextMenu->exec(itemEdit->mapToGlobal(position));
    });
 
-   ///
-   /// Set layout.
-   ///
+   //
+   // Set layout.
+   //
    auto itemLayout = new QVBoxLayout;
    itemLayout->addWidget(itemEdit);
    itemLayout->addWidget(itemView);
@@ -252,37 +252,37 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
 
    setLayout(itemLayout);
 
-   ///
-   /// Create the hotkey.
-   ///
+   //
+   // Create the hotkey.
+   //
    auto itemHotkey = new SystemHotkey(this);
    itemHotkey->connect(itemHotkey, &SystemHotkey::hotkeyPressed, [this, itemEdit](){
-      ///
-      /// Show the window.
-      ///
+      //
+      // Show the window.
+      //
       showNormal();
    });
 
-   ///
-   /// Register the hotkey sequence.
-   ///
+   //
+   // Register the hotkey sequence.
+   //
    if (itemHotkey->registerKeySequence() == false)
    {
       itemEdit->addInidication(QStringLiteral("hotkeyError"), new Indication(tr("The hotkey could not be registered.")));
    }
 
-   ///
-   /// Register the widget with the geomerty store.
-   ///
+   //
+   // Register the widget with the geomerty store.
+   //
    auto screenGeometry = QApplication::desktop()->screenGeometry();
    QSize defaultSize(screenGeometry.width() * 0.3, screenGeometry.height() * 0.8);
    QPoint defaultPosition(screenGeometry.right() - defaultSize.width(), 0);
 
    static_cast<Application*>(Application::instance())->geometryStore().addWidget(this, QRect(defaultPosition, defaultSize));
 
-   ///
-   /// Restore the font or use the default font is no font is stored.
-   ///
+   //
+   // Restore the font or use the default font is no font is stored.
+   //
    auto& settings = static_cast<Application*>(Application::instance())->settings();
    auto defaultFont = QApplication::font();
    auto font = QFont(settings.value(QStringLiteral("font/family"), defaultFont.family()).value<QString>(),
@@ -293,10 +293,10 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    itemEdit->setFont(font);
    itemView->setFont(font);
 
-   ///
-   /// Update the source model. Be aware that this must be done after creating the UI, so that
-   /// possible errors during the model update are properly indicated.
-   ///
+   //
+   // Update the source model. Be aware that this must be done after creating the UI, so that
+   // possible errors during the model update are properly indicated.
+   //
    itemModel->setSourceFile(settings.value("sourceFile", QStringLiteral("launcher.xml")).toString());
 }
 
@@ -309,16 +309,16 @@ bool ItemWindow::eventFilter(QObject* object, QEvent* event)
    Q_ASSERT(event != nullptr);
    Q_ASSERT(object->isWidgetType());
 
-   ///
-   /// If \a true, the event shall be consumed (not passed to the object).
-   ///
+   //
+   // If \a true, the event shall be consumed (not passed to the object).
+   //
    bool consumeEvent = false;
 
    if (auto keyPressEvent = eventAs<QKeyEvent>(event, QEvent::KeyPress))
    {
-      ///
-      /// If the modifier is pressed the window modification operation may begin.
-      ///
+      //
+      // If the modifier is pressed the window modification operation may begin.
+      //
       if ((keyPressEvent->modifiers() & Qt::ShiftModifier) != Qt::NoModifier)
       {
          windowModificationModifierActive_ = true;
@@ -326,9 +326,9 @@ bool ItemWindow::eventFilter(QObject* object, QEvent* event)
    }
    else if (auto keyReleaseEvent = eventAs<QKeyEvent>(event, QEvent::KeyRelease))
    {
-      ///
-      /// If the modifier is released the window modification operation must end.
-      ///
+      //
+      // If the modifier is released the window modification operation must end.
+      //
       if ((keyReleaseEvent->modifiers() & Qt::ShiftModifier) == Qt::NoModifier)
       {
          windowModificationModifierActive_ = false;
@@ -341,10 +341,10 @@ bool ItemWindow::eventFilter(QObject* object, QEvent* event)
    }
    else if (/* auto mouseButtonPressedEvent = */ eventAs<QMouseEvent>(event, QEvent::MouseButtonPress))
    {
-      ///
-      /// If the mouse button is pressed and the modifier is active the window modification
-      /// operation begins.
-      ///
+      //
+      // If the mouse button is pressed and the modifier is active the window modification
+      // operation begins.
+      //
       if (windowModificationModifierActive_ == true)
       {
          windowModificationOperationActive_ = true;
@@ -354,9 +354,9 @@ bool ItemWindow::eventFilter(QObject* object, QEvent* event)
    }
    else if (/* auto mouseButtonReleasedEvent = */ eventAs<QMouseEvent>(event, QEvent::MouseButtonRelease))
    {
-      ///
-      /// If the mouse button is released the window modification operation ends.
-      ///
+      //
+      // If the mouse button is released the window modification operation ends.
+      //
       if (windowModificationModifierActive_ == true)
       {
          windowModificationOperationActive_ = false;
@@ -366,13 +366,13 @@ bool ItemWindow::eventFilter(QObject* object, QEvent* event)
    }
    else if (auto mouseMovedEvent = eventAs<QMouseEvent>(event, QEvent::MouseMove))
    {
-      ///
-      /// If the mouse cursor is moved and the window modification operation is active perform
-      /// the operation by modifiying the window geometry, either position or size, relative to
-      /// the position of the cursor when the operation was started, the origin. If the window
-      /// modification operation is not active just updated the origin, so the proper operation
-      /// can be determined outside of this event.
-      ///
+      //
+      // If the mouse cursor is moved and the window modification operation is active perform
+      // the operation by modifiying the window geometry, either position or size, relative to
+      // the position of the cursor when the operation was started, the origin. If the window
+      // modification operation is not active just updated the origin, so the proper operation
+      // can be determined outside of this event.
+      //
       if (windowModificationOperationActive_ == true)
       {
          if (windowModificationOperation_ == WindowModificationOperation::Move)
@@ -400,10 +400,10 @@ bool ItemWindow::eventFilter(QObject* object, QEvent* event)
 
    if (windowModificationModifierActive_ == true)
    {
-      ///
-      /// If the modifier is pressed determine the window modification operation, which is either
-      /// resize if the cursor is positioned near the left edge of the widget or move otherwise.
-      ///
+      //
+      // If the modifier is pressed determine the window modification operation, which is either
+      // resize if the cursor is positioned near the left edge of the widget or move otherwise.
+      //
       auto widget = static_cast<QWidget*>(object);
       auto widgetPosition = widget->mapToGlobal(widget->pos());
 
@@ -438,9 +438,9 @@ bool ItemWindow::openSource_(const QString& source, SourcePosition position, Ind
 {
    qInfo() << "open source: " << source << "at" << position.lineNumber() << position.columnNumber() << "for" << position.size();
 
-   ///
-   /// Open an editor for the source.
-   ///
+   //
+   // Open an editor for the source.
+   //
    auto sourceEditor = new SourceEditor(this);
    bool result = sourceEditor->openSource(new QFile(source, this));
    if (result == true)
@@ -470,9 +470,9 @@ bool ItemWindow::openUrl_(const QUrl& url, Indicator* errorIndicator)
 {
    qInfo() << "open url:" << url.toString();
 
-   ///
-   /// Open the URL with the registered default application.
-   ///
+   //
+   // Open the URL with the registered default application.
+   //
    bool result = QDesktopServices::openUrl(url);
    if (result == false)
    {

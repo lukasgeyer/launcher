@@ -11,7 +11,8 @@
 #define ITEMFILTERMODEL_H
 
 #include <QSortFilterProxyModel>
-#include <QRegularExpression>
+
+#include "searchexpression.h"
 
 /*!
  * \brief A sort filter proxy model filtering an item based on the name and tag by a regular
@@ -31,7 +32,7 @@ public slots:
    /*!
     * Sets the regular pattern filter to \a regularExpressionPattern.
     */
-   void setFilterRegularExpressionPattern(const QString& regularExpressionPattern);
+   void setSearchExpression(const QString& expression);
 
 protected:
    /*!
@@ -47,7 +48,7 @@ private:
    /*!
     * The regular expression used for matching.
     */
-   QRegularExpression regularExpression_;
+   SearchExpression searchExpression_;
 };
 
 #endif // ITEMFILTERMODEL_H

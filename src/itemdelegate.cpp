@@ -19,26 +19,26 @@ ItemDelegate::ItemDelegate(QObject* parent) : QStyledItemDelegate(parent)
 
 void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
-   ///
-   /// Save painter.
-   ///
+   //
+   // Save painter.
+   //
    painter->save();
 
-   ///
-   /// Enable anti aliasing.
-   ///
+   //
+   // Enable anti aliasing.
+   //
    painter->setRenderHint(QPainter::Antialiasing, true);
    painter->setRenderHint(QPainter::TextAntialiasing, true);
 
-   ///
-   /// Draw item border.
-   ///
+   //
+   // Draw item border.
+   //
    painter->setPen(Qt::darkGray);
    painter->drawRect(option.rect);
 
-   ///
-   /// Draw item background.
-   ///
+   //
+   // Draw item background.
+   //
    if ((option.state & QStyle::State_Selected) == 0)
    {
       painter->fillRect(option.rect.adjusted(1, 0, -1, 0), ((index.row() % 2) ? (QColor(236, 236, 236)) : (QColor(255, 255, 255))));
@@ -50,14 +50,14 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
       painter->setPen(QPen(Qt::white));
    }
 
-   ///
-   /// Set the font (the application default font).
-   ///
+   //
+   // Set the font (the application default font).
+   //
    painter->setFont(option.font);
 
-   ///
-   /// Draw item name.
-   ///
+   //
+   // Draw item name.
+   //
    QRect itemNameRectangle((option.rect.left() + 4),
                            (option.rect.top() + 4),
                            (option.rect.width() / 2) - 8,
@@ -67,9 +67,9 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
 
    painter->drawText(itemNameRectangle, itemNameString, QTextOption(Qt::AlignLeft));
 
-   ///
-   /// Draw item tags.
-   ///
+   //
+   // Draw item tags.
+   //
    QRect itemTagsRectangle ((option.rect.left() + 4) + (option.rect.width() / 2),
                             (option.rect.top() + 4),
                             (option.rect.width() / 2) - 8,
@@ -80,9 +80,9 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
    painter->setPen(QPen(Qt::lightGray));
    painter->drawText(itemTagsRectangle, itemTagsString, QTextOption(Qt::AlignRight));
 
-   ///
-   /// Restore painter.
-   ///
+   //
+   // Restore painter.
+   //
    painter->restore();
 }
 

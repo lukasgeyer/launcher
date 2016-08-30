@@ -67,33 +67,33 @@ int ItemModel::rowCount(const QModelIndex & /* parent */) const
 
 void ItemModel::applySource(const Source& source, const QUuid& uuid)
 {
-   ///
-   /// The UUID must match with the currently valid UUID. A mismatch might happen if for
-   /// instance the source is reset while an asynchronous source reader is currently is
-   /// progress. The result of such a read must not be added to the item list.
-   ///
+   //
+   // The UUID must match with the currently valid UUID. A mismatch might happen if for
+   // instance the source is reset while an asynchronous source reader is currently is
+   // progress. The result of such a read must not be added to the item list.
+   //
    if (sourceUuid_ == uuid)
    {
       if (source.error().type() == SourceError::Type::None)
       {
-         ///
-         /// Notify any connected view that a model change is about to happend.
-         ///
+         //
+         // Notify any connected view that a model change is about to happend.
+         //
          beginResetModel();
 
-         ///
-         /// Append all items from this source to the items list.
-         ///
+         //
+         // Append all items from this source to the items list.
+         //
          items_.append(source.items());
 
-         ///
-         /// Notify any connected view that a model change has happended.
-         ///
+         //
+         // Notify any connected view that a model change has happended.
+         //
          endResetModel();
 
-         ///
-         /// Read the import if it has not been processed yet.
-         ///
+         //
+         // Read the import if it has not been processed yet.
+         //
          for (const auto& import : source.imports())
          {
             if (sourceFileWatcher_.files().contains(import.file()) == false)
@@ -106,15 +106,15 @@ void ItemModel::applySource(const Source& source, const QUuid& uuid)
       }
       else
       {
-         ///
-         /// Emit a model update failure if an import could not be loaded.
-         ///
+         //
+         // Emit a model update failure if an import could not be loaded.
+         //
          emit modelUpdateFailed(source.error().text(), source.file(), source.error().position());
 
-         ///
-         /// Add the source to the list of failed sources, so it will be processed later
-         /// on again.
-         ///
+         //
+         // Add the source to the list of failed sources, so it will be processed later
+         // on again.
+         //
          failedSources_.push_back(source.file());
       }
    }
@@ -122,34 +122,34 @@ void ItemModel::applySource(const Source& source, const QUuid& uuid)
 
 void ItemModel::resetSource_()
 {
-   ///
-   /// Notify any connected view that a model change is about to happend.
-   ///
+   //
+   // Notify any connected view that a model change is about to happend.
+   //
    beginResetModel();
 
-   ///
-   /// Remove any items.
-   ///
+   //
+   // Remove any items.
+   //
    items_ = Items();
 
-   ///
-   /// Notify any connected view that a model change has happended.
-   ///
+   //
+   // Notify any connected view that a model change has happended.
+   //
    endResetModel();
 
-   ///
-   /// Regenerate the UUID.
-   ///
+   //
+   // Regenerate the UUID.
+   //
    sourceUuid_ = QUuid::createUuid();
 
-   ///
-   /// Clear any pending failed sources.
-   ///
+   //
+   // Clear any pending failed sources.
+   //
    failedSources_.clear();
 
-   ///
-   /// Remove any watched source files and append just the root source file.
-   ///
+   //
+   // Remove any watched source files and append just the root source file.
+   //
    const auto& files = sourceFileWatcher_.files();
    if (files.empty() == false)
    {
@@ -163,37 +163,37 @@ void ItemModel::resetSource_()
 
    sourceFileWatcher_.addPath(sourceFile_);
 
-   ///
-   /// Emit a successful model update so that the error is cleared.
-   ///
+   //
+   // Emit a successful model update so that the error is cleared.
+   //
    emit modelUpdateSucceeded();
 
-   ///
-   /// Read the source.
-   ///
+   //
+   // Read the source.
+   //
    readSource_(sourceFile_);
 }
 
 void ItemModel::readSource_(const QString& file)
 {
-   ///
-   /// Create a source reader for this file.
-   ///
+   //
+   // Create a source reader for this file.
+   //
    auto sourceReader = new SourceReader(file, sourceUuid_);
    sourceReader->setAutoDelete(true);
    sourceReader->connect(sourceReader, &SourceReader::sourceRead, this, &ItemModel::applySource, Qt::QueuedConnection);
 
-   ///
-   /// Asychnorounsly execute the source reader.
-   ///
+   //
+   // Asychnorounsly execute the source reader.
+   //
    QThreadPool::globalInstance()->start(sourceReader);
 }
 
 void ItemModel::readFailedSources_()
 {
-   ///
-   /// Read each failed source.
-   ///
+   //
+   // Read each failed source.
+   //
    for (const auto& failedSource : failedSources_)
    {
       qInfo() << "retry failed source: " << failedSource;
@@ -201,9 +201,9 @@ void ItemModel::readFailedSources_()
       readSource_(failedSource);
    }
 
-   ///
-   /// Clear the list.
-   ///
+   //
+   // Clear the list.
+   //
    failedSources_.clear();
 }
 

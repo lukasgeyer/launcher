@@ -22,17 +22,17 @@ void SourceReader::run()
 {
    Source source(file_);
 
-   ///
-   /// Open the source file and parse the content.
-   ///
+   //
+   // Open the source file and parse the content.
+   //
    QFile sourceFileDevice(source.file());
    if (sourceFileDevice.open(QIODevice::ReadOnly))
    {
       qInfo() << "parse source:" << source.file();
 
-      ///
-      /// Parse the source file.
-      ///
+      //
+      // Parse the source file.
+      //
       QXmlStreamReader sourceFileReader(&sourceFileDevice);
       if ((sourceFileReader.readNextStartElement() == true) && (sourceFileReader.name() == "items"))
       {
@@ -50,9 +50,9 @@ void SourceReader::run()
                                      SourcePosition(sourceFileReader.lineNumber(), sourceFileReader.columnNumber())));
       }
 
-      ///
-      /// Close the source file.
-      ///
+      //
+      // Close the source file.
+      //
       sourceFileDevice.close();
    }
    else
@@ -62,9 +62,9 @@ void SourceReader::run()
       source.setError(SourceError(SourceError::Type::OpenError, sourceFileDevice.errorString()));
    }
 
-   ///
-   /// Emit the signal that the source has been read.
-   ///
+   //
+   // Emit the signal that the source has been read.
+   //
    emit sourceRead(source, uuid_);
 }
 
@@ -73,9 +73,9 @@ void SourceReader::readItems_(Source* source, QXmlStreamReader* reader)
    Q_ASSERT(source != nullptr);
    Q_ASSERT(reader != nullptr);
 
-   ///
-   /// Parse the <items> element.
-   ///
+   //
+   // Parse the <items> element.
+   //
    while (reader->readNextStartElement())
    {
       if (reader->name() == "item")
@@ -104,14 +104,14 @@ void SourceReader::readItem_(Source* source, QXmlStreamReader* reader, const QSt
 
    Item item(source->file());
 
-   ///
-   /// Append existing tags.
-   ///
+   //
+   // Append existing tags.
+   //
    item.appendTags(tags);
 
-   ///
-   /// Parse the <item> element.
-   ///
+   //
+   // Parse the <item> element.
+   //
    while (reader->readNextStartElement())
    {
       if (reader->name() == "name")
@@ -142,9 +142,9 @@ void SourceReader::readItem_(Source* source, QXmlStreamReader* reader, const QSt
       }
    }
 
-   ///
-   /// Append the item to the source.
-   ///
+   //
+   // Append the item to the source.
+   //
    qInfo() << "append item:" << item;
 
    source->appendItem(item);
@@ -157,9 +157,9 @@ void SourceReader::readGroup_(Source* source, QXmlStreamReader* reader)
 
    QStringList tags;
 
-   ///
-   /// Parse the <group> element.
-   ///
+   //
+   // Parse the <group> element.
+   //
    while (reader->readNextStartElement())
    {
       if (reader->name() == "tag")
@@ -182,9 +182,9 @@ void SourceReader::readImport_(Source* source, QXmlStreamReader *reader)
    Q_ASSERT(source != nullptr);
    Q_ASSERT(reader != nullptr);
 
-   ///
-   /// Parse the <import> element.
-   ///
+   //
+   // Parse the <import> element.
+   //
    while (reader->readNextStartElement())
    {
       if (reader->name() == "file")
