@@ -24,6 +24,17 @@ class SourceEditor : public QDialog
 
 public:
    /*!
+    * The result of the dialog.
+    */
+   enum
+   {
+      Accepted,
+      Rejected,
+      Failed
+   };
+
+
+   /*!
     * Constructs an SourceFileEditor for the source file \a sourceFile with the parent \a parent.
     */
    SourceEditor(QWidget* parent = nullptr, Qt::WindowFlags windowFlags = Qt::WindowFlags());

@@ -36,18 +36,21 @@ SourceEditor::SourceEditor(QWidget* parent, Qt::WindowFlags windowFlags) : QDial
 
    auto buttonBox = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, this);
    buttonBox->connect(buttonBox, &QDialogButtonBox::accepted, [this](){
-      source_->reset();
-      source_->write(sourceEdit_->toPlainText().toUtf8());
-      if (auto sourceFile = qobject_cast<QFile*>(source_))
+      bool result = source_->open(QIODevice::WriteOnly | QIODevice::Truncate);
+      if (result == true)
       {
-         sourceFile->resize(sourceFile->pos());
-      }
-      source_->close();
+         source_->write(sourceEdit_->toPlainText().toUtf8());
+         source_->close();
 
-      accept();
+         done(Accepted);
+      }
+      else
+      {
+         done(Failed);
+      }
    });
    buttonBox->connect(buttonBox, &QDialogButtonBox::rejected, [this](){
-      reject();
+      done(Rejected);
    });
 
    //
@@ -82,12 +85,15 @@ bool SourceEditor::openSource(QIODevice* source)
    source_->setParent(this);
 
    //
-   // Open the device and display the content in the editor.
+   // Open the device for reading and display the content in the editor. Be aware to not open
+   // the device for read/write, as this may cause to device to be truncated on for instance
+   // WebDAV mounted files on Windows 10.
    //
-   bool result = source_->open(QIODevice::ReadWrite);
+   bool result = source_->open(QIODevice::ReadOnly);
    if (result == true)
    {
       sourceEdit_->setPlainText(QString::fromUtf8(source_->readAll()));
+      source_->close();
    }
 
    return result;
