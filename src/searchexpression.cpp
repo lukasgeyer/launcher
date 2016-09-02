@@ -25,84 +25,108 @@ void SearchExpression::setExpression(const QString& expression)
 
 bool SearchExpression::Matches(const QString& name, const QStringList& tags) const
 {
-   bool isConjunctMatch = false;
-   bool isConjunctMatchInitialization = true;
-
-   bool isDisjunctMatch = false;
-
-   for (const auto &term : terms_)
-   {
-      bool negate = (term.option.negation == Term_::Option::Negation::Negated);
-
-      bool isTermMatch = false;
-      if (term.option.target == Term_::Option::Target::Name)
-      {
-         isTermMatch = (term.expression.match(name).hasMatch() ^ negate);
-      }
-      else if (term.option.target == Term_::Option::Target::Tag)
-      {
-         for (auto tag = std::begin(tags); ((tag != std::end(tags)) && (isTermMatch == false)); ++tag)
-         {
-            isTermMatch = (term.expression.match(*tag).hasMatch() ^ negate);
-         }
-      }
-
-      if (term.option.operation == Term_::Option::Operation::Conjunct)
-      {
-         isConjunctMatch = isTermMatch && (isConjunctMatch || isConjunctMatchInitialization);
-         isConjunctMatchInitialization = false;
-      }
-      else if (term.option.operation == Term_::Option::Operation::Disjunct)
-      {
-         isDisjunctMatch = isTermMatch || (isDisjunctMatch);
-      }
-   }
-
-   bool isMatch = ((isConjunctMatch == true) || (isDisjunctMatch == true));
-
-   return isMatch;
+   return (((nameTerms_.isEmpty() == false) || (tagsTerms_.isEmpty() == false)) &&
+           ((nameTerms_.isEmpty() == true) || (MatchesName_(name) == true)) &&
+           ((tagsTerms_.isEmpty() == true) || (MatchesTags_(tags) == true)));
 }
 
 void SearchExpression::Compile_(const QString& expression)
 {
-   Term_::Option termOption;
+   auto operation = Term_::Operation::Conjunct;
+   auto negation = Term_::Negation::NotNegated;
 
-   terms_.clear();
+   nameTerms_.clear();
+   tagsTerms_.clear();
 
    auto expressionTokens = expression.split(' ', QString::SkipEmptyParts);
    for (auto expressionToken : expressionTokens)
    {
       if (expressionToken.compare("AND", Qt::CaseInsensitive) == 0)
       {
-         termOption.operation = Term_::Option::Operation::Conjunct;
+         operation = Term_::Operation::Conjunct;
       }
       else if (expressionToken.compare("OR", Qt::CaseInsensitive) == 0)
       {
-         termOption.operation = Term_::Option::Operation::Disjunct;
+         operation = Term_::Operation::Disjunct;
       }
       else if (expressionToken.compare("NOT", Qt::CaseInsensitive) == 0)
       {
-         termOption.negation = Term_::Option::Negation::Negated;
+         negation = Term_::Negation::Negated;
       }
       else
       {
-         if (expressionToken.startsWith('@') == true)
-         {
-            expressionToken.remove(0 /* start of string */, 1 /* one character */);
+         expressionToken.replace("?", ".");
+         expressionToken.replace("*", ".*");
 
-            termOption.target = Term_::Option::Target::Tag;
+         if (expressionToken.startsWith('@') == false)
+         {
+            expressionToken.prepend('^');
+
+            nameTerms_.append({QRegularExpression(expressionToken, QRegularExpression::CaseInsensitiveOption), operation, negation});
+         }
+         else if (expressionToken.size() >= 2)
+         {
+            expressionToken.replace(0, 1, '^');
+
+            tagsTerms_.append({QRegularExpression(expressionToken, QRegularExpression::CaseInsensitiveOption), operation, negation});
          }
 
-         if (expressionToken.isEmpty() == false)
-         {
-            expressionToken.prepend("^");
-            expressionToken.replace("?", ".");
-            expressionToken.replace("*", ".*");
-
-            terms_.append({QRegularExpression(expressionToken, QRegularExpression::CaseInsensitiveOption), termOption});
-         }
-
-         termOption = Term_::Option{};
+         operation = Term_::Operation::Conjunct;
+         negation = Term_::Negation::NotNegated;
       }
    }
+}
+
+bool SearchExpression::MatchesName_(const QString& name) const
+{
+   bool isConjunctMatch = false;
+   bool isConjunctMatchInitialization = true;
+
+   bool isDisjunctMatch = false;
+
+   for (const auto &nameTerm : nameTerms_)
+   {
+      bool isTermMatch = (nameTerm.expression.match(name).hasMatch() ^ (nameTerm.negation == Term_::Negation::Negated));
+
+      if (nameTerm.operation == Term_::Operation::Conjunct)
+      {
+         isConjunctMatch = isTermMatch && (isConjunctMatch || isConjunctMatchInitialization);
+         isConjunctMatchInitialization = false;
+      }
+      else if (nameTerm.operation == Term_::Operation::Disjunct)
+      {
+         isDisjunctMatch = isTermMatch || (isDisjunctMatch);
+      }
+   }
+
+   return ((isConjunctMatch == true) || (isDisjunctMatch == true));
+}
+
+bool SearchExpression::MatchesTags_(const QStringList& tags) const
+{
+   bool isConjunctMatch = false;
+   bool isConjunctMatchInitialization = true;
+
+   bool isDisjunctMatch = false;
+
+   for (const auto &tagsTerm : tagsTerms_)
+   {
+      bool isTermMatch = false;
+      for (auto tag = std::begin(tags); ((tag != std::end(tags)) && (isTermMatch == false)); ++tag)
+      {
+         isTermMatch = (tagsTerm.expression.match(*tag).hasMatch() ^ (tagsTerm.negation == Term_::Negation::Negated));
+      }
+
+      if (tagsTerm.operation == Term_::Operation::Conjunct)
+      {
+         isConjunctMatch = isTermMatch && (isConjunctMatch || isConjunctMatchInitialization);
+         isConjunctMatchInitialization = false;
+      }
+      else if (tagsTerm.operation == Term_::Operation::Disjunct)
+      {
+         isDisjunctMatch = isTermMatch || (isDisjunctMatch);
+      }
+   }
+
+   return ((isConjunctMatch == true) || (isDisjunctMatch == true));
 }

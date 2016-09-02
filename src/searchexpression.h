@@ -58,37 +58,41 @@ private:
    {
       QRegularExpression expression;
 
-      struct Option
+      enum class Operation
       {
-         enum class Operation
-         {
-            Conjunct,
-            Disjunct,
-         } operation = Operation::Conjunct;
+         Conjunct,
+         Disjunct,
+      } operation;
 
-         enum class Negation
-         {
-            NotNegated,
-            Negated
-         } negation = Negation::NotNegated;
-
-         enum class Target
-         {
-            Name,
-            Tag
-         } target = Target::Name;
-      } option;
+      enum class Negation
+      {
+         NotNegated,
+         Negated
+      } negation;
    };
 
    /*!
-    * A list of search terms.
+    * A list of search terms to be applied to the name of an item.
     */
-   QVector<Term_> terms_;
+   QVector<Term_> nameTerms_;
+   /*!
+    * A list of search terms to be applied to the tags of an item.
+    */
+   QVector<Term_> tagsTerms_;
 
    /*!
     * Compiles the search expression \a expression.
     */
    void Compile_(const QString &expression);
+
+   /*!
+    * Returns \a true if the name \a name matches any name search terms.
+    */
+   bool MatchesName_(const QString &name) const;
+   /*!
+    *  Returns \a true if the tags \a tags match any tags search terms.
+    */
+   bool MatchesTags_(const QStringList &tags) const;
 };
 
 
