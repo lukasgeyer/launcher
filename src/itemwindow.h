@@ -69,17 +69,11 @@ private:
    bool eventFilter(QObject* object, QEvent* event) override;
 
    /*!
-    * Tries to open a source editor for the source \a source and returns \a true if the source
-    * can be opened; \a false otherwise and the error will be indicated at the error indication
-    * \a errorIndication.
-    * */
-   bool openSource_(const QString& source, SourcePosition position, Indicator *errorIndicator = nullptr);
-   /*!
     * Tries to open the URL \a url with the default application and returns \a true if the URL
     * can be opened; \a false otherwise and the error will be indicated at the error indication
     * \a errorIndication.
     */
-   bool openUrl_(const QUrl& url, Indicator *errorIndicator = nullptr);
+   bool openUrl_(const QUrl& url);
 };
 
 #endif // ITEMWINDOW_H

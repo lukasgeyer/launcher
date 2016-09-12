@@ -12,7 +12,7 @@ QT += core gui widgets
 TARGET = launcher
 TEMPLATE = app
 
-VERSION = 1.0.0
+VERSION = 1.1.0
 QMAKE_TARGET_PRODUCT = "Launcher"
 QMAKE_TARGET_COMPANY = "Lukas Geyer"
 QMAKE_TARGET_COPYRIGHT = "Copyright (C) 2016 Lukas Geyer. All rights reserved."
@@ -32,22 +32,19 @@ SOURCES += \
     src/itemfiltermodel.cpp \
     src/itemedit.cpp \
     src/itemwindow.cpp \
-    src/sourceeditor.cpp \
-    src/sourcehighlighter.cpp \
     src/geometrystore.cpp \
     src/application.cpp \
-    src/sourceposition.cpp \
-    src/indication.cpp \
-    src/sourceerrorindication.cpp \
-    src/source.cpp \
-    src/sourcereader.cpp \
-    src/sourceerror.cpp \
     src/item.cpp \
     src/itemmodel.cpp \
     src/systemlock.cpp \
     src/systemhotkey.cpp \
     src/import.cpp \
-    src/searchexpression.cpp
+    src/searchexpression.cpp \
+    src/itemsource.cpp \
+    src/xmlitemsource.cpp \
+    src/itemgroup.cpp \
+    src/importer.cpp \
+    src/csvitemsource.cpp
 
 HEADERS += \
     src/itemview.h \
@@ -55,26 +52,26 @@ HEADERS += \
     src/itemfiltermodel.h \
     src/itemedit.h \
     src/itemwindow.h \
-    src/sourceeditor.h \
-    src/sourcehighlighter.h \
     src/geometrystore.h \
     src/event.h \
     src/application.h \
-    src/indication.h \
-    src/sourceposition.h \
-    src/sourceerrorindication.h \
-    src/indicator.h \
-    src/source.h \
-    src/sourcereader.h \
-    src/sourceerror.h \
     src/item.h \
     src/items.h \
     src/itemmodel.h \
     src/systemlock.h \
     src/systemhotkey.h \
+    src/searchexpression.h \
+    src/itemsource.h \
+    src/xmlitemsource.h \
     src/import.h \
     src/imports.h \
-    src/searchexpression.h
+    src/itemsourcefactory.h \
+    src/itemgroup.h \
+    src/tag.h \
+    src/tags.h \
+    src/itemgroups.h \
+    src/importer.h \
+    src/csvitemsource.h
 
 RESOURCES += \
     resources/resources.qrc

@@ -1,5 +1,5 @@
 /*!
- * \file sourceitem.cpp
+ * \file item.cpp
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -8,20 +8,6 @@
  */
 
 #include "item.h"
-
-Item::Item(const QString& sourceFile) : sourceFile_(sourceFile)
-{
-}
-
-void Item::setSource(const QString& sourceFile)
-{
-   sourceFile_ = sourceFile;
-}
-
-QString Item::sourceFile() const
-{
-   return sourceFile_;
-}
 
 void Item::setName(const QString& name)
 {
@@ -43,39 +29,27 @@ QUrl Item::link() const
    return link_;
 }
 
-void Item::setLinkPosition(const SourcePosition& linkPosition)
+void Item::setBrush(const QBrush& color)
 {
-   linkPosition_ = linkPosition;
+   brush_ = color;
 }
 
-SourcePosition Item::linkPosition() const
+QBrush Item::brush() const
 {
-   return linkPosition_;
+   return brush_;
 }
 
-void Item::appendTag(const QString& tag)
+void Item::appendTag(const Tag& tag)
 {
    tags_.append(tag);
 }
 
-void Item::appendTags(const QStringList& tags)
-{
-   tags_.append(tags);
-}
-
-void Item::setTags(const QStringList& tags)
-{
-   tags_ = tags;
-}
-
-QStringList Item::tags() const
+const Tags& Item::tags() const
 {
    return tags_;
 }
 
-QDebug operator<<(QDebug stream, const Item &item)
+QDebug operator<<(QDebug stream, const Item& item)
 {
-   return (stream << "name:" << item.name() <<
-                     "link:" << item.link().toString() <<
-                     "tags:" << item.tags());
+   return (stream << "name:" << item.name() << "link:" << item.link().toString() << "brush:" << item.brush() << "tags:" << item.tags());
 }

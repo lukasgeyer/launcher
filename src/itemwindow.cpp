@@ -22,16 +22,12 @@
 
 #include "application.h"
 #include "event.h"
-#include "indication.h"
-#include "indicator.h"
 #include "itemfiltermodel.h"
 #include "itemedit.h"
 #include "systemhotkey.h"
 #include "itemmodel.h"
 #include "itemview.h"
 #include "itemwindow.h"
-#include "sourceeditor.h"
-#include "sourceerrorindication.h"
 
 namespace {
 
@@ -97,9 +93,8 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
          // could be opened. In addition, the last URL open error is cleared. Remain shown
          // otherwise so the error can be seen.
          //
-         if (openUrl_(currentIndex.data(ItemModel::LinkRole).value<QUrl>(), itemEdit) == true)
+         if (openUrl_(currentIndex.data(ItemModel::LinkRole).value<QUrl>()) == true)
          {
-            itemEdit->removeIndication(QStringLiteral("openUrlError"));
             hide();
          }
       }
@@ -117,13 +112,12 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
             const auto &rowIndex = itemView->model()->index(row, 0);
             if ((itemEdit->text().isEmpty() == false) || (rowIndex.data(ItemModel::TagsRole).value<QStringList>().empty() == false))
             {
-               urlOpened &= openUrl_(rowIndex.data(ItemModel::LinkRole).value<QUrl>(), itemEdit);
+               urlOpened &= openUrl_(rowIndex.data(ItemModel::LinkRole).value<QUrl>());
             }
          }
 
          if (urlOpened == true)
          {
-            itemEdit->removeIndication(QStringLiteral("openUrlError"));
             hide();
          }
       }
@@ -143,28 +137,12 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
       //
       hide();
    });
-   itemEdit->connect(itemEdit, &ItemEdit::indicationRemoved, [this](const QString& /* id */, const Indication& indication){
-      if (auto sourceErrorIndication = qobject_cast<const SourceErrorIndication*>(&indication))
-      {
-         openSource_(sourceErrorIndication->source(), sourceErrorIndication->sourcePosition());
-      }
-   });
-   itemEdit->connect(itemModel, &ItemModel::modelUpdateSucceeded, [itemEdit](){
-      itemEdit->removeIndication(QStringLiteral("modelError"));
-   });
-   itemEdit->connect(itemModel, &ItemModel::modelUpdateFailed, [itemEdit](const QString& reason,
-                                                                          const QString& source, const SourcePosition& sourcePosition) {
-      itemEdit->addInidication(QStringLiteral("modelError"), new SourceErrorIndication(reason, source, sourcePosition));
-   });
    itemView->connect(itemView, &ItemView::clicked, [this, itemEdit](const QModelIndex& index)
    {
       //
       // If an item is clicked open the link and remain shown (so multiple items can be clicked).
       //
-      if (openUrl_(index.data(ItemModel::LinkRole).value<QUrl>(), itemEdit) == true)
-      {
-         itemEdit->removeIndication(QStringLiteral("openUrlError"));
-      }
+      openUrl_(index.data(ItemModel::LinkRole).value<QUrl>());
    });
    itemView->connect(itemView, &ItemView::customContextMenuRequested, [this, itemEdit, itemView](const QPoint& position){
       //
@@ -175,9 +153,7 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
       {
          QMenu itemViewContextMenu;
          itemViewContextMenu.addAction(tr("Edit item..."), [this, itemEdit, itemView, positionIndex](){
-            openSource_(itemView->model()->data(positionIndex, ItemModel::SourceRole).value<QString>(),
-                        itemView->model()->data(positionIndex, ItemModel::LinkPositionRole).value<SourcePosition>(),
-                        itemEdit);
+            // openSource
          });
          itemViewContextMenu.exec(itemView->mapToGlobal(position));
       }
@@ -229,10 +205,6 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
          itemView->setFont(font);
       }
    });
-   itemEditContextMenu->addSeparator();
-   itemEditContextMenu->addAction(tr("Edit items..."), [this, itemEdit, itemModel](){
-      openSource_(itemModel->sourceFile(), SourcePosition(), itemEdit);
-   });
 
    //
    // Show the decorated context menu instead of the standard context menu.
@@ -268,7 +240,7 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    //
    if (itemHotkey->registerKeySequence() == false)
    {
-      itemEdit->addInidication(QStringLiteral("hotkeyError"), new Indication(tr("The hotkey could not be registered.")));
+      //< REPORT ERROR.
    }
 
    //
@@ -297,7 +269,7 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    // Update the source model. Be aware that this must be done after creating the UI, so that
    // possible errors during the model update are properly indicated.
    //
-   itemModel->setSourceFile(settings.value("sourceFile", QStringLiteral("launcher.xml")).toString());
+   itemModel->read(settings.value("sourceFile", QStringLiteral("launcher.xml")).toString());
 }
 
 ItemWindow::~ItemWindow()
@@ -434,39 +406,7 @@ bool ItemWindow::eventFilter(QObject* object, QEvent* event)
    return consumeEvent;
 }
 
-bool ItemWindow::openSource_(const QString& source, SourcePosition position, Indicator* errorIndicator)
-{
-   qInfo() << "open source: " << source << "at" << position.lineNumber() << position.columnNumber() << "for" << position.size();
-
-   //
-   // Open an editor for the source.
-   //
-   auto sourceEditor = new SourceEditor(this);
-   bool result = sourceEditor->openSource(new QFile(source, this));
-   if (result == true)
-   {
-      sourceEditor->setAttribute(Qt::WA_DeleteOnClose);
-      sourceEditor->setWindowModality(Qt::ApplicationModal);
-
-      sourceEditor->selectSource(position.lineNumber(), position.columnNumber(), position.size());
-
-      sourceEditor->show();
-      sourceEditor->activateWindow();
-   }
-   else
-   {
-      sourceEditor->deleteLater();
-
-      if (errorIndicator != nullptr)
-      {
-         errorIndicator->addInidication(QStringLiteral("openSourceError"), new Indication(tr("Failed to open source ").append(source)));
-      }
-   }
-
-   return result;
-}
-
-bool ItemWindow::openUrl_(const QUrl& url, Indicator* errorIndicator)
+bool ItemWindow::openUrl_(const QUrl& url)
 {
    qInfo() << "open url:" << url.toString();
 
@@ -476,10 +416,7 @@ bool ItemWindow::openUrl_(const QUrl& url, Indicator* errorIndicator)
    bool result = QDesktopServices::openUrl(url);
    if (result == false)
    {
-      if (errorIndicator != nullptr)
-      {
-         errorIndicator->addInidication(QStringLiteral("openUrlError"), new Indication(tr("Failed to open URL ").append(url.toString())));
-      }
+      //< REPORT ERROR.
    }
 
    return result;

@@ -10,22 +10,16 @@
 #ifndef ITEMMODEL_H
 #define ITEMMODEL_H
 
-#include <QAbstractListModel>
-#include <QFileSystemWatcher>
-#include <QIODevice>
-#include <QPoint>
-#include <QSharedPointer>
-#include <QString>
-#include <QStringList>
-#include <QUrl>
-#include <QUuid>
-#include <QVector>
-#include <QXmlStreamReader>
+#include <memory>
+#include <utility>
+#include <vector>
 
-#include "item.h"
-#include "items.h"
-#include "source.h"
-#include "sourceposition.h"
+#include <QAbstractListModel>
+#include <QString>
+#include <QThreadPool>
+
+#include "imports.h"
+#include "itemsource.h"
 
 /*!
  * \brief An item model representing the items found in an XML-based source file.
@@ -36,15 +30,19 @@ class ItemModel : public QAbstractListModel
 
 public:
    /*!
+    * The identifier for a model.
+    */
+   typedef QString Identifier;
+
+   /*!
     * The custom roles provided by this model.
     */
    enum Role
    {
       NameRole = Qt::DisplayRole, /*< The name for the item of type QString. */
+      BrushRole = Qt::ForegroundRole, /*< The brush for the item of type QBrush. */
       LinkRole = Qt::UserRole, /*< The link for the item of type QString. */
-      LinkPositionRole, /*< The link position for the item of type QPoint. */
-      TagsRole, /*< The tags for the item of type QStringList. */
-      SourceRole /*< The source for the item of type QString. */
+      TagsRole /*< The tags for the item of type QStringList. */
    };
 
    /*!
@@ -53,15 +51,15 @@ public:
    ItemModel(QObject* parent = nullptr);
 
    /*!
-    * Sets the source for this model to the file \a sourceFile and returns \a true when the
-    * data could be loaded from the file; \a false otherwise. If the file is modified the data
-    * is reloaded.
+    * Reads the item model from the file \a file.
     */
-   void setSourceFile(const QString& sourceFile);
+   void read(const QString& file);
+
    /*!
-    *  Returns the source for this model.
+    * Resets the item model, by clearing all data and emitting the required signals to trigger
+    * an update of any connected views.
     */
-   QString sourceFile() const;
+   void reset();
 
    /*!
     * \reimp
@@ -73,65 +71,54 @@ public:
     */
    QVariant data(const QModelIndex& index, int role) const override;
 
+protected:
    /*!
-    * Applies the source \a source to the model, adding all items and read the imported sources
-    * if neccessary.
+    * \reimp
     */
-   void applySource(const Source& source, const QUuid& uuid);
-
-signals:
-   /*!
-    * Is emitted when the model has been successfully updated.
-    */
-   void modelUpdateSucceeded();
-   /*!
-    * Is emitted when the model has been unsuccessfully updated. The reason why updating the
-    * model has failed is indicated in \a reason. The source position (if available) is stored
-    * in \a sourcePosition.
-    */
-   void modelUpdateFailed(const QString& reason, const QString& sourceFile, const SourcePosition& sourcePosition);
+   void timerEvent(QTimerEvent *event) override;
 
 private:
    /*!
-    * The source file of this model.
+    * The opaque identifier of the model. This identifier is unique and is regenerated each time
+    * the model is reset. The main use is to relate an in-flight asnychronous import with the
+    * correct epoch of a model (each time the model is reset a new epoch is dawn, and the result
+    * of an asynchronous import of an older epoch must not be used to avoid incorrect entries).
     */
-   QString sourceFile_;
-   /*!
-    * The source UUID os this model. This UUID will be regenerated each time the source
-    * model is reset.
-    */
-   QUuid sourceUuid_;
+   Identifier identifier_;
 
    /*!
-    * The list of failed sources.
+    * The sources of this model.
     */
-   QVector<QString>failedSources_;
+   std::vector<std::shared_ptr<ItemSource>> itemSources_;
 
    /*!
-    * The items in this model.
+    * The row cache for the model, mapping a row to the repsective item within an item group.
     */
-   Items items_;
+   std::vector<std::pair<ItemGroup*, Item*>> itemSourcesCache_;
 
    /*!
-    * The watcher responsible for the source files.
+    * The list of imports that are required to be loaded asynchronously.
     */
-   QFileSystemWatcher sourceFileWatcher_;
+   Imports imports_;
+   /*!
+    * The thread pool used to asynchronously load the imports.
+    */
+   QThreadPool importsThreadPool_;
 
    /*!
-    * Resets the source for this model, effectively removing all items and imports.
+    * Adds the item source \a item source to the list of item sources, updates the row cache and
+    * emits the required signals to trigger an update of any connected views.
     */
-   void resetSource_();
+   void addItemSource_(const std::shared_ptr<ItemSource>& itemSource);
 
    /*!
-    * Updates the model from the source \a source.
+    * Adds the import \a import to the list of imports required to be loaded asynchronously.
     */
-   void readSource_(const QString& file);
-
-private slots:
+   void addImport_(const Import& import);
    /*!
-    * Retries failed sources.
+    * Starts the asynchronous import of the import \a import.
     */
-   void readFailedSources_();
+   void startImport_(const Import& import);
 };
 
 #endif // ITEMMODEL_H

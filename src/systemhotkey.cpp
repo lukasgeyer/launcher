@@ -94,8 +94,6 @@ bool SystemHotkey::nativeEventFilter(const QByteArray& /* eventType */, void *me
           (keyPressedEventMessage->state & XCB_MOD_MASK_SHIFT) &&
           (keyPressedEventMessage->detail == 65 /* Space */))
       {
-         qDebug() << "hotkey pressed";
-
          emit hotkeyPressed();
       }
    }
@@ -105,8 +103,6 @@ bool SystemHotkey::nativeEventFilter(const QByteArray& /* eventType */, void *me
    {
       if ((LOWORD(eventMessage->lParam) == (MOD_CONTROL | MOD_SHIFT)) && (HIWORD(eventMessage->lParam) == VK_SPACE))
       {
-         qDebug() << "hotkey pressed";
-
          emit hotkeyPressed();
       }
    }

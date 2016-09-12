@@ -7,203 +7,140 @@
  *          published by the Free Software Foundation.
  */
 
-#include <QDebug>
-#include <QFile>
-#include <QFileInfo>
-#include <QSettings>
-#include <QThreadPool>
-#include <QTimer>
+#include <chrono>
+
+#include <QUuid>
 
 #include "application.h"
+#include "import.h"
+#include "importer.h"
 #include "itemmodel.h"
-#include "sourcereader.h"
+#include "itemsource.h"
+
+namespace {
+
+static const std::chrono::milliseconds DEFAULT_IMPORT_RETRY_TIMEOUT_ = std::chrono::seconds(10);
+
+} // namespace
 
 ItemModel::ItemModel(QObject* parent) : QAbstractListModel(parent)
 {
-   const auto& settings = static_cast<Application*>(QCoreApplication::instance())->settings();
-
-   auto readFailedSourcesTimer = new QTimer(this);
-   readFailedSourcesTimer->connect(readFailedSourcesTimer, &QTimer::timeout, this, &ItemModel::readFailedSources_);
-   readFailedSourcesTimer->start(settings.value(QStringLiteral("readFailedSourcesTimeout"), QStringLiteral("10000")).toInt());
-
-   connect(&sourceFileWatcher_, &QFileSystemWatcher::fileChanged, this, &ItemModel::resetSource_);
+   startTimer(static_cast<int>(DEFAULT_IMPORT_RETRY_TIMEOUT_.count()));
 }
 
-void ItemModel::setSourceFile(const QString& sourceFile)
+void ItemModel::read(const QString& file)
 {
-   qInfo() << "set source:" << sourceFile;
-
-   sourceFile_ = sourceFile;
-
-   resetSource_();
+   startImport_(Import(file, QStringLiteral("xml")));
 }
 
-QString ItemModel::sourceFile() const
+void ItemModel::reset()
 {
-   return sourceFile_;
+   beginResetModel();
+
+   identifier_ = QUuid().toString();
+
+   itemSources_.clear();
+   itemSourcesCache_.clear();
+
+   imports_.clear();
+   importsThreadPool_.clear();
+
+   endResetModel();
 }
 
 QVariant ItemModel::data(const QModelIndex &index, int role) const
 {
    QVariant data;
 
-   if (index.isValid() == true)
+   if ((index.isValid() == true) && (index.row() >= 0) && (index.row() < static_cast<int>(itemSourcesCache_.size())) && (index.column() == 0))
    {
-      data = ((role == ItemModel::NameRole)         ? (QVariant::fromValue(items_[index.row()].name()))            :
-              (role == ItemModel::LinkRole)         ? (QVariant::fromValue(items_[index.row()].link()))            :
-              (role == ItemModel::LinkPositionRole) ? (QVariant::fromValue(items_[index.row()].linkPosition()))    :
-              (role == ItemModel::TagsRole)         ? (QVariant::fromValue(items_[index.row()].tags()))            :
-              (role == ItemModel::SourceRole)       ? (QVariant::fromValue(items_[index.row()].sourceFile()))      :
-              (role == Qt::ToolTipRole)             ? (QVariant::fromValue(items_[index.row()].link().toString())) : QVariant());
+      switch (static_cast<Role>(role))
+      {
+      case NameRole:
+         data = itemSourcesCache_[index.row()].second->name();
+         break;
+      case BrushRole:
+         data = itemSourcesCache_[index.row()].second->brush();
+         break;
+      case LinkRole:
+         data = itemSourcesCache_[index.row()].second->link();
+         break;
+      case TagsRole:
+         data = itemSourcesCache_[index.row()].first->tags() + itemSourcesCache_[index.row()].second->tags();
+         break;
+      }
    }
 
    return data;
 }
 
+void ItemModel::timerEvent(QTimerEvent* /* event */)
+{
+   for (const auto& import : imports_)
+   {
+      startImport_(import);
+   }
+}
+
 int ItemModel::rowCount(const QModelIndex & /* parent */) const
 {
-   return items_.count();
+   return static_cast<int>(itemSourcesCache_.size());
 }
 
-void ItemModel::applySource(const Source& source, const QUuid& uuid)
+void ItemModel::addItemSource_(const std::shared_ptr<ItemSource>& itemSource)
 {
-   //
-   // The UUID must match with the currently valid UUID. A mismatch might happen if for
-   // instance the source is reset while an asynchronous source reader is currently is
-   // progress. The result of such a read must not be added to the item list.
-   //
-   if (sourceUuid_ == uuid)
-   {
-      if (source.error().type() == SourceError::Type::None)
-      {
-         //
-         // Notify any connected view that a model change is about to happend.
-         //
-         beginResetModel();
+   Q_ASSERT(itemSource);
 
-         //
-         // Append all items from this source to the items list.
-         //
-         items_.append(source.items());
-
-         //
-         // Notify any connected view that a model change has happended.
-         //
-         endResetModel();
-
-         //
-         // Read the import if it has not been processed yet.
-         //
-         for (const auto& import : source.imports())
-         {
-            if (sourceFileWatcher_.files().contains(import.file()) == false)
-            {
-               sourceFileWatcher_.addPath(import.file());
-
-               readSource_(import.file());
-            }
-         }
-      }
-      else
-      {
-         //
-         // Emit a model update failure if an import could not be loaded.
-         //
-         emit modelUpdateFailed(source.error().text(), source.file(), source.error().position());
-
-         //
-         // Add the source to the list of failed sources, so it will be processed later
-         // on again.
-         //
-         failedSources_.push_back(source.file());
-      }
-   }
-}
-
-void ItemModel::resetSource_()
-{
-   //
-   // Notify any connected view that a model change is about to happend.
-   //
    beginResetModel();
 
-   //
-   // Remove any items.
-   //
-   items_ = Items();
+   for (const auto &itemGroup : itemSource->itemGroups())
+   {
+      for (const auto &item : itemGroup.items())
+      {
+         itemSourcesCache_.push_back(std::make_pair(const_cast<ItemGroup*>(&itemGroup), const_cast<Item*>(&item)));
+      }
+   }
 
-   //
-   // Notify any connected view that a model change has happended.
-   //
+   itemSources_.push_back(std::move(itemSource));
+
    endResetModel();
-
-   //
-   // Regenerate the UUID.
-   //
-   sourceUuid_ = QUuid::createUuid();
-
-   //
-   // Clear any pending failed sources.
-   //
-   failedSources_.clear();
-
-   //
-   // Remove any watched source files and append just the root source file.
-   //
-   const auto& files = sourceFileWatcher_.files();
-   if (files.empty() == false)
-   {
-      sourceFileWatcher_.removePaths(sourceFileWatcher_.files());
-   }
-   const auto& directories = sourceFileWatcher_.directories();
-   if (directories.empty() == false)
-   {
-      sourceFileWatcher_.removePaths(sourceFileWatcher_.directories());
-   }
-
-   sourceFileWatcher_.addPath(sourceFile_);
-
-   //
-   // Emit a successful model update so that the error is cleared.
-   //
-   emit modelUpdateSucceeded();
-
-   //
-   // Read the source.
-   //
-   readSource_(sourceFile_);
 }
 
-void ItemModel::readSource_(const QString& file)
+void ItemModel::addImport_(const Import& import)
 {
-   //
-   // Create a source reader for this file.
-   //
-   auto sourceReader = new SourceReader(file, sourceUuid_);
-   sourceReader->setAutoDelete(true);
-   sourceReader->connect(sourceReader, &SourceReader::sourceRead, this, &ItemModel::applySource, Qt::QueuedConnection);
-
-   //
-   // Asychnorounsly execute the source reader.
-   //
-   QThreadPool::globalInstance()->start(sourceReader);
+   imports_.append(import);
 }
 
-void ItemModel::readFailedSources_()
+void ItemModel::startImport_(const Import& import)
 {
-   //
-   // Read each failed source.
-   //
-   for (const auto& failedSource : failedSources_)
+   auto importer = new Importer(import, identifier_);
+   if (importer != nullptr)
    {
-      qInfo() << "retry failed source: " << failedSource;
+      connect(importer, &Importer::suceeded, [this](const Import& import, const Identifier& identifier, const std::shared_ptr<ItemSource>& itemSource)
+      {
+         if (identifier == identifier_)
+         {
+            qDebug() << "import succeeded:" << import;
 
-      readSource_(failedSource);
+            addItemSource_(itemSource);
+
+            for (const auto& import : itemSource->imports())
+            {
+               startImport_(import);
+            }
+         }
+      });
+
+      connect(importer, &Importer::failed, [this](const Import &import, const Identifier& identifier)
+      {
+         if (identifier == identifier_)
+         {
+            qDebug() << "import failed:" << import;
+
+            addImport_(import);
+         }
+      });
+
+      importsThreadPool_.start(importer);
    }
-
-   //
-   // Clear the list.
-   //
-   failedSources_.clear();
 }
-

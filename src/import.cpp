@@ -9,31 +9,32 @@
 
 #include "import.h"
 
-Import::Import(const QString& file) : file_(file)
+Import::Import(const QString& file, const QString& type) : file_(file), type_(type)
 {
 }
 
 void Import::setFile(const QString& file)
 {
-   file_ = file;
+    file_ = file;
 }
 
 QString Import::file() const
 {
-   return file_;
+    return file_;
 }
 
-bool operator==(const Import& lhs, const Import& rhs)
+void Import::setType(const QString& type)
 {
-   return (lhs.file() == rhs.file());
+    type_ = type;
 }
 
-bool operator!=(const Import& lhs, const Import& rhs)
+QString Import::type() const
 {
-   return ((lhs == rhs) == false);
+   return type_;
 }
 
-QDebug operator<<(QDebug stream, const Import &import)
+QDebug operator<<(QDebug stream, const Import& import)
 {
-   return (stream << "file:" << import.file());
+   return (stream << "file:" << import.file() << "type:" << import.type());
 }
+

@@ -1,5 +1,5 @@
 /*!
- * \file indication.cpp
+ * \file tags.h
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -7,23 +7,14 @@
  *          published by the Free Software Foundation.
  */
 
-#include "indication.h"
+#ifndef TAGS_H
+#define TAGS_H
 
+#include <QStringList>
 
-Indication::Indication(const QString& text) : text_(text)
-{
-}
+/*!
+ * \brief A list of tags.
+ */
+typedef QStringList Tags;
 
-Indication::~Indication()
-{
-}
-
-void Indication::setText(const QString& text)
-{
-   text_ = text;
-}
-
-QString Indication::text() const
-{
-   return text_;
-}
+#endif // TAGS_H
