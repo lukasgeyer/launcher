@@ -72,7 +72,7 @@ HEADERS += \
     src/importer.h \
     src/csvitemsource.h \
     src/searchwindow.h \
-    metatype.h
+    src/metatype.h
 
 RESOURCES += \
     resources/resources.qrc
