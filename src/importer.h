@@ -13,7 +13,9 @@
 #include <memory>
 
 #include <QObject>
+#include <QPoint>
 #include <QRunnable>
+#include <QString>
 
 #include "import.h"
 #include "itemmodel.h"
@@ -45,7 +47,7 @@ signals:
    /*!
     * Is emitted when the import for \a import failed.
     */
-   void failed(const Import& import, const ItemModel::Identifier& identifier);
+   void failed(const Import& import, const ItemModel::Identifier& identifier, const QString& error, const QPoint& errorPosition);
 
 private:
    /*!

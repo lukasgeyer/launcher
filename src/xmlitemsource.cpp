@@ -66,9 +66,8 @@ bool XmlItemSource::read(QIODevice* device)
       result = (deviceReader.hasError() == false);
       if (result == false)
       {
-         documentError_ = deviceReader.errorString();
-         documentErrorPosition_ = {static_cast<int>(deviceReader.lineNumber()),
-                                   static_cast<int>(deviceReader.columnNumber())};
+         errorString_ = deviceReader.errorString();
+         errorPosition_ = {static_cast<int>(deviceReader.lineNumber()), static_cast<int>(deviceReader.columnNumber())};
       }
    }
 
@@ -130,8 +129,8 @@ bool XmlItemSource::write(QIODevice* device) const
       result = (deviceWriter.hasError() == false);
       if (result == false)
       {
-         documentError_ = device->errorString();
-         documentErrorPosition_ = {0, 0};
+         errorString_ = device->errorString();
+         errorPosition_ = {0, 0};
       }
    }
 
@@ -159,14 +158,14 @@ const Imports& XmlItemSource::imports() const
    return imports_;
 }
 
-QString XmlItemSource::lastError() const
+QString XmlItemSource::errorString() const
 {
-   return documentError_;
+   return errorString_;
 }
 
-QPoint XmlItemSource::lastErrorPosition() const
+QPoint XmlItemSource::errorPosition() const
 {
-   return documentErrorPosition_;
+   return errorPosition_;
 }
 
 void XmlItemSource::readItem_(QXmlStreamReader* reader, ItemGroup *itemGroup)

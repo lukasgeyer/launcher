@@ -52,11 +52,11 @@ public:
    /*!
     * \reimp
     */
-   QString lastError() const override;
+   QString errorString() const override;
    /*!
     * \reimp
     */
-   QPoint lastErrorPosition() const override;
+   QPoint errorPosition() const override;
 
 private:
    /*!
@@ -73,11 +73,11 @@ private:
    /*!
     * The XML document error.
     */
-   mutable QString documentError_;
+   mutable QString errorString_;
    /*!
     * The XML document error position.
     */
-   mutable QPoint documentErrorPosition_;
+   mutable QPoint errorPosition_;
 
    /*!
     * Reads an item from the XML stream \a reader and adds it to the list of items.

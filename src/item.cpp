@@ -51,5 +51,5 @@ const Tags& Item::tags() const
 
 QDebug operator<<(QDebug stream, const Item& item)
 {
-   return (stream << "name:" << item.name() << "link:" << item.link().toString() << "brush:" << item.brush() << "tags:" << item.tags());
+   return (stream << item.name() << item.link().toString() << item.brush() << item.tags());
 }

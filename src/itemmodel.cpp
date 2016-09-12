@@ -16,6 +16,9 @@
 #include "importer.h"
 #include "itemmodel.h"
 #include "itemsource.h"
+#include "metatype.h"
+
+REGISTER_METATYPE(ItemModel::Identifier)
 
 namespace {
 
@@ -30,11 +33,15 @@ ItemModel::ItemModel(QObject* parent) : QAbstractListModel(parent)
 
 void ItemModel::read(const QString& file)
 {
+   qDebug() << "read:" << file;
+
    startImport_(Import(file, QStringLiteral("xml")));
 }
 
 void ItemModel::reset()
 {
+   qDebug() << "reset";
+
    beginResetModel();
 
    identifier_ = QUuid().toString();
@@ -78,6 +85,8 @@ void ItemModel::timerEvent(QTimerEvent* /* event */)
 {
    for (const auto& import : imports_)
    {
+      qDebug() << "retry import:" << import;
+
       startImport_(import);
    }
 }
@@ -97,6 +106,8 @@ void ItemModel::addItemSource_(const std::shared_ptr<ItemSource>& itemSource)
    {
       for (const auto &item : itemGroup.items())
       {
+         qDebug() << "add item:" << item;
+
          itemSourcesCache_.push_back(std::make_pair(const_cast<ItemGroup*>(&itemGroup), const_cast<Item*>(&item)));
       }
    }
@@ -116,30 +127,34 @@ void ItemModel::startImport_(const Import& import)
    auto importer = new Importer(import, identifier_);
    if (importer != nullptr)
    {
-      connect(importer, &Importer::suceeded, [this](const Import& import, const Identifier& identifier, const std::shared_ptr<ItemSource>& itemSource)
-      {
-         if (identifier == identifier_)
-         {
-            qDebug() << "import succeeded:" << import;
+      connect(importer, &Importer::suceeded, this,
+              [this](const Import& import, const Identifier& identifier, const std::shared_ptr<ItemSource>& itemSource)
+              {
+                 if (identifier == identifier_)
+                 {
+                    qDebug() << "import succeeded:" << import;
 
-            addItemSource_(itemSource);
+                    addItemSource_(itemSource);
 
-            for (const auto& import : itemSource->imports())
-            {
-               startImport_(import);
-            }
-         }
-      });
+                    for (const auto& import : itemSource->imports())
+                    {
+                       startImport_(import);
+                    }
+                 }
+              }, Qt::QueuedConnection);
 
-      connect(importer, &Importer::failed, [this](const Import &import, const Identifier& identifier)
-      {
-         if (identifier == identifier_)
-         {
-            qDebug() << "import failed:" << import;
+      connect(importer, &Importer::failed, this,
+              [this](const Import &import, const Identifier& identifier, const QString& errorString, const QPoint& errorPosition)
+              {
+                 if (identifier == identifier_)
+                 {
+                    qDebug() << "import failed:" << import << errorString << errorPosition;
 
-            addImport_(import);
-         }
-      });
+                    addImport_(import);
+                 }
+              }, Qt::QueuedConnection);
+
+      qDebug() << "start import:" << import;
 
       importsThreadPool_.start(importer);
    }

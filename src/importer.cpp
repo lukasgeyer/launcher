@@ -14,7 +14,10 @@
 #include "importer.h"
 #include "itemsource.h"
 #include "itemsourcefactory.h"
+#include "metatype.h"
 #include "xmlitemsource.h"
+
+REGISTER_METATYPE(std::shared_ptr<ItemSource>)
 
 namespace {
 
@@ -40,6 +43,9 @@ void Importer::run()
 {
    bool result = false;
 
+   QString errorString;
+   QPoint errorPosition;
+
    QFile itemSourceFile(import_.file());
    if (itemSourceFile.open(QIODevice::ReadOnly) == true)
    {
@@ -51,11 +57,24 @@ void Importer::run()
          {
             emit suceeded(import_, identifier_, std::shared_ptr<ItemSource>(itemSource.release()));
          }
+         else
+         {
+            errorString = itemSource->errorString();
+            errorPosition = itemSource->errorPosition();
+         }
       }
+      else
+      {
+         errorString = (QObject::tr("Unsupported import type: \"") + import_.type() + "\"");
+      }
+   }
+   else
+   {
+      errorString = itemSourceFile.errorString();
    }
 
    if (result == false)
    {
-      emit failed(import_, identifier_);
+      emit failed(import_, identifier_, errorString, errorPosition);
    }
 }

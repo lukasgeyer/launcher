@@ -37,12 +37,12 @@ const Imports& CsvItemSource::imports() const
    return Imports();
 }
 
-QString CsvItemSource::lastError() const
+QString CsvItemSource::errorString() const
 {
    return QString();
 }
 
-QPoint CsvItemSource::lastErrorPosition() const
+QPoint CsvItemSource::errorPosition() const
 {
    return QPoint();
 }

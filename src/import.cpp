@@ -8,6 +8,9 @@
  */
 
 #include "import.h"
+#include "metatype.h"
+
+REGISTER_METATYPE(Import)
 
 Import::Import(const QString& file, const QString& type) : file_(file), type_(type)
 {
@@ -35,6 +38,6 @@ QString Import::type() const
 
 QDebug operator<<(QDebug stream, const Import& import)
 {
-   return (stream << "file:" << import.file() << "type:" << import.type());
+   return (stream << import.file() << import.type());
 }
 

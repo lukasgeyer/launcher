@@ -71,7 +71,8 @@ HEADERS += \
     src/itemgroups.h \
     src/importer.h \
     src/csvitemsource.h \
-    src/searchwindow.h
+    src/searchwindow.h \
+    metatype.h
 
 RESOURCES += \
     resources/resources.qrc

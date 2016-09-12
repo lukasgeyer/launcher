@@ -52,11 +52,11 @@ public:
    /*!
     * \reimp
     */
-   QString lastError() const override;
+   QString errorString() const override;
    /*!
     * \reimp
     */
-   QPoint lastErrorPosition() const override;
+   QPoint errorPosition() const override;
 };
 
 #endif // CSVITEMSOURCE_H

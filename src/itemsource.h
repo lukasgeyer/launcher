@@ -77,12 +77,12 @@ public:
     * Returns the string representation of the last error that occurred. The behaviour is undefined
     * if no error has occurred yet.
     */
-   virtual QString lastError() const = 0;
+   virtual QString errorString() const = 0;
    /*!
     * Returns the position within the item source of the last error that occurred. The behaviour is
     * undefined if no error has occurred yet.
     */
-   virtual QPoint lastErrorPosition() const = 0;
+   virtual QPoint errorPosition() const = 0;
 
 private:
    /*!
