@@ -1,5 +1,5 @@
 /*!
- * \file itemwindow.h
+ * \file searchwindow.h
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -7,8 +7,8 @@
  *          published by the Free Software Foundation.
  */
 
-#ifndef ITEMWINDOW_H
-#define ITEMWINDOW_H
+#ifndef SEARCHWINDOW_H
+#define SEARCHWINDOW_H
 
 #include <QPoint>
 #include <QWidget>
@@ -22,7 +22,7 @@ class ItemView;
 /*!
  * \brief An item window, listing all items, filtered by name and tags.
  */
-class ItemWindow : public QWidget
+class SearchWindow : public QWidget
 {
    Q_OBJECT
 
@@ -30,11 +30,11 @@ public:
    /*!
     * Constructs an ItemWindow with the parent \a parent.
     */
-   ItemWindow(QWidget* parent = nullptr);
+   SearchWindow(QWidget* parent = nullptr);
    /*!
     * Destructs the ItemWindow.
     */
-   ~ItemWindow();
+   ~SearchWindow();
 
 private:
    /*!
@@ -76,4 +76,4 @@ private:
    bool openUrl_(const QUrl& url);
 };
 
-#endif // ITEMWINDOW_H
+#endif // SEARCHWINDOW_H

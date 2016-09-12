@@ -14,7 +14,7 @@
 
 #include "application.h"
 #include "systemlock.h"
-#include "itemwindow.h"
+#include "searchwindow.h"
 
 namespace {
 
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
       //
       // Set up the item window.
       //
-      ItemWindow itemWindow;
+      SearchWindow itemWindow;
       itemWindow.show();
 
       //

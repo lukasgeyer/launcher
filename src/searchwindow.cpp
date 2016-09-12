@@ -1,5 +1,5 @@
 /*!
- * \file itemwindow.cpp
+ * \file searchwindow.cpp
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -27,7 +27,7 @@
 #include "systemhotkey.h"
 #include "itemmodel.h"
 #include "itemview.h"
-#include "itemwindow.h"
+#include "searchwindow.h"
 
 namespace {
 
@@ -39,7 +39,7 @@ const int RESIZE_AREA_SIZE_ = 16;
 
 } // namespace
 
-ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHint | Qt::WindowSystemMenuHint)
+SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHint | Qt::WindowSystemMenuHint)
 {
    //
    // Disable window background.
@@ -272,11 +272,11 @@ ItemWindow::ItemWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindowHin
    itemModel->read(settings.value("sourceFile", QStringLiteral("launcher.xml")).toString());
 }
 
-ItemWindow::~ItemWindow()
+SearchWindow::~SearchWindow()
 {
 }
 
-bool ItemWindow::eventFilter(QObject* object, QEvent* event)
+bool SearchWindow::eventFilter(QObject* object, QEvent* event)
 {
    Q_ASSERT(event != nullptr);
    Q_ASSERT(object->isWidgetType());
@@ -406,7 +406,7 @@ bool ItemWindow::eventFilter(QObject* object, QEvent* event)
    return consumeEvent;
 }
 
-bool ItemWindow::openUrl_(const QUrl& url)
+bool SearchWindow::openUrl_(const QUrl& url)
 {
    qInfo() << "open url:" << url.toString();
 

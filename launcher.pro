@@ -31,7 +31,6 @@ SOURCES += \
     src/itemdelegate.cpp \
     src/itemfiltermodel.cpp \
     src/itemedit.cpp \
-    src/itemwindow.cpp \
     src/geometrystore.cpp \
     src/application.cpp \
     src/item.cpp \
@@ -44,14 +43,14 @@ SOURCES += \
     src/xmlitemsource.cpp \
     src/itemgroup.cpp \
     src/importer.cpp \
-    src/csvitemsource.cpp
+    src/csvitemsource.cpp \
+    src/searchwindow.cpp
 
 HEADERS += \
     src/itemview.h \
     src/itemdelegate.h \
     src/itemfiltermodel.h \
     src/itemedit.h \
-    src/itemwindow.h \
     src/geometrystore.h \
     src/event.h \
     src/application.h \
@@ -71,7 +70,8 @@ HEADERS += \
     src/tags.h \
     src/itemgroups.h \
     src/importer.h \
-    src/csvitemsource.h
+    src/csvitemsource.h \
+    src/searchwindow.h
 
 RESOURCES += \
     resources/resources.qrc
