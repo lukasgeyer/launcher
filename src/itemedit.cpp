@@ -17,6 +17,7 @@ ItemEdit::ItemEdit(QWidget *parent) : QLineEdit(parent)
 {
    indicationsAction_ = addAction(QIcon(QStringLiteral(":/images/error.png")), QLineEdit::TrailingPosition);
    indicationsAction_->setVisible(false);
+   indicationsAction_->connect(indicationsAction_, &QAction::triggered, this, &ItemEdit::removeIndications);
 }
 
 void ItemEdit::addInidication(const QString& id, const QString& indication)
