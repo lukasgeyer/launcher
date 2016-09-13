@@ -7,8 +7,10 @@
  *          published by the Free Software Foundation.
  */
 
+#include <algorithm>
 #include <chrono>
 
+#include <QFileInfo>
 #include <QUuid>
 
 #include "application.h"
@@ -140,7 +142,17 @@ void ItemModel::startImport_(const Import& import)
 
                     for (const auto& import : itemSource->imports())
                     {
-                       startImport_(import);
+                       if (std::find_if(std::cbegin(itemSources_), std::cend(itemSources_),
+                                        [this, import](const std::shared_ptr<ItemSource>& itemSource){
+                                           return (QFileInfo(import.file()).absoluteFilePath() == itemSource->identifier());
+                                        }) == std::cend(itemSources_))
+                       {
+                          startImport_(import);
+                       }
+                       else
+                       {
+                          qDebug() << "recursive import: " << import;
+                       }
                     }
 
                     emit importSucceeded(import);
