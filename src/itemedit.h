@@ -12,6 +12,7 @@
 
 #include <QAction>
 #include <QEvent>
+#include <QHash>
 #include <QLineEdit>
 #include <QString>
 #include <QVector>
@@ -29,6 +30,23 @@ public:
     */
    ItemEdit(QWidget* parent = nullptr);
 
+public slots:
+   /*!
+    * Adds the indication \a indication with the ID \a id to the indicator. The indicator takes
+    * ownership of the indication.
+    */
+   void addInidication(const QString& id, const QString& indication);
+
+   /*!
+    * Removes the indication with the ID \a id from the indicator. If the ID ends in an asterisk
+    * any indications starting with the remaining string are removed.
+    */
+   void removeIndication(const QString& id);
+   /*!
+    * Removes all indications from the indicator.
+    */
+   void removeIndications();
+
 signals:
    /*!
     * Is emitted when the up-key is pressed.
@@ -44,6 +62,20 @@ signals:
    void escapePressed();
 
 private:
+   /*!
+    * The list of indications.
+    */
+   QHash<QString, QString> indications_;
+   /*!
+    * The indications action.
+    */
+   QAction* indicationsAction_ = nullptr;
+
+   /*!
+    * Updates the indications action.
+    */
+   void updateIndicationsAction_();
+
    /*!
     * \reimp
     */
