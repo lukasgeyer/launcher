@@ -237,9 +237,9 @@ void XmlItemSource::readImport_(QXmlStreamReader* reader)
    {
       if (reader->name() == "file")
       {
-         imports_.append(Import(reader->readElementText().trimmed(), reader->attributes().hasAttribute("type") ?
-                                                                     reader->attributes().value("type").toString().trimmed() :
-                                                                     QStringLiteral("xml")));
+         imports_.append(Import(reader->readElementText().trimmed(), reader->attributes().hasAttribute("contentType") ?
+                                                                     reader->attributes().value("contentType").toString().trimmed() :
+                                                                     QStringLiteral("text/xml")));
       }
       else
       {

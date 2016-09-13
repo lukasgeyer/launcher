@@ -27,8 +27,8 @@ namespace {
  */
 const ItemSourceFactory& itemSourceFactory_()
 {
-   static auto itemSourceFactory = ItemSourceFactory(ItemSourceFactory::Declaration<CsvItemSource>(QStringLiteral("csv")),
-                                                     ItemSourceFactory::Declaration<XmlItemSource>(QStringLiteral("xml")));
+   static auto itemSourceFactory = ItemSourceFactory(ItemSourceFactory::Declaration<CsvItemSource>(QStringLiteral("text/csv")),
+                                                     ItemSourceFactory::Declaration<XmlItemSource>(QStringLiteral("text/xml")));
 
    return itemSourceFactory;
 }
@@ -49,7 +49,7 @@ void Importer::run()
    QFile itemSourceFile(import_.file());
    if (itemSourceFile.open(QIODevice::ReadOnly) == true)
    {
-      auto itemSource = itemSourceFactory_().create(import_.type(), QFileInfo(import_.file()).absoluteFilePath());
+      auto itemSource = itemSourceFactory_().create(import_.mimeType(), QFileInfo(import_.file()).absoluteFilePath());
       if (itemSource)
       {
          result = itemSource->read(&itemSourceFile);
@@ -65,7 +65,7 @@ void Importer::run()
       }
       else
       {
-         errorString = (QObject::tr("Unsupported import type: \"") + import_.type() + "\"");
+         errorString = (tr("Unsupported MIME type: \"").append(import_.mimeType()).append("\""));
       }
    }
    else

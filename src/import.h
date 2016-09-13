@@ -20,9 +20,9 @@ class Import
 {
 public:
    /*!
-    * Constructs an import definition for the file \a file and the type \a type.
+    * Constructs an import definition for the file \a file and the MIME type \a type.
     */
-   explicit Import(const QString& file = QString(), const QString& type = QString());
+   explicit Import(const QString& file = QString(), const QString& mimeType = QString());
 
    /*!
     * Sets the name of the file to be imported.
@@ -36,11 +36,11 @@ public:
    /*!
     * Sets the type of the file to be imported.
     */
-   void setType(const QString& type);
+   void setMimeType(const QString& mimeType);
    /*!
     * Returns the type of the file to be imported.
     */
-   QString type() const;
+   QString mimeType() const;
 
 private:
    /*!
@@ -48,9 +48,9 @@ private:
     */
    QString file_;
    /*!
-    * The type of the file to be imported.
+    * The MIME type of the file to be imported.
     */
-   QString type_;
+   QString mimeType_;
 
    /*!
     * Inserts the import \a import into the stream \a stream and returns the stream.

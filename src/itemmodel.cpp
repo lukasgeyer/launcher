@@ -35,7 +35,7 @@ void ItemModel::read(const QString& file)
 {
    qDebug() << "read:" << file;
 
-   startImport_(Import(file, QStringLiteral("xml")));
+   startImport_(Import(file, QStringLiteral("text/xml")));
 }
 
 void ItemModel::reset()

@@ -36,25 +36,25 @@ public:
       typedef ItemSourceType Type;
 
       /*!
-       * Constructs a declaration with the (textual) type \a type.
+       * Constructs a declaration with the MIME type \a mimeType.
        */
-      inline Declaration(const QString& type) : type_(type)
+      inline Declaration(const QString& mimeType) : mimeType_(mimeType)
       {
       }
 
       /*!
-       * Returns the (textual) type of the item source.
+       * Returns the MIME type of the item source.
        */
-      inline QString type() const
+      inline QString mimeType() const
       {
-         return type_;
+         return mimeType_;
       }
 
    private:
       /*!
-       * The (textual) type of the item source type.
+       * The MIME type of the item source type.
        */
-      QString type_;
+      QString mimeType_;
    };
 
    /*!
@@ -63,31 +63,31 @@ public:
    template <typename DeclarationType, typename... DeclarationTypes>
    inline ItemSourceFactory(const DeclarationType& declaration, const DeclarationTypes&... declarations) : ItemSourceFactory(declarations...)
    {
-      declare<DeclarationType::Type>(declaration.type());
+      declare<DeclarationType::Type>(declaration.mimeType());
    }
    template <typename DeclarationType>
    inline ItemSourceFactory(const DeclarationType& declaration)
    {
-      declare<DeclarationType::Type>(declaration.type());
+      declare<DeclarationType::Type>(declaration.mimeType());
    }
 
    /*!
     * Declares the item source \a ItemSourceType with the factory.
     */
-   template <typename ItemSourceType> inline void declare(const QString& type)
+   template <typename ItemSourceType> inline void declare(const QString& mimeType)
    {
-      types_.insert(type, &ItemSourceFactory::create_<ItemSourceType>);
+      types_.insert(mimeType, &ItemSourceFactory::create_<ItemSourceType>);
    }
 
    /*!
-    * Returns an instance of the item source represented by the type \a type or \a nullptr
-    * if no such type has been declared.
+    * Returns an instance of the item source represented by the MIME type \a mimeType or \a
+    * nullptr if no such type has been declared.
     */
-   inline std::unique_ptr<ItemSource> create(const QString &type, const ItemSource::Identifier& identifier) const
+   inline std::unique_ptr<ItemSource> create(const QString &mimeType, const ItemSource::Identifier& identifier) const
    {
       std::unique_ptr<ItemSource> itemSource;
 
-      auto creator = types_.find(type);
+      auto creator = types_.find(mimeType);
       if (creator != types_.end())
       {
          itemSource = creator.value()(identifier);

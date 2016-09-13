@@ -12,7 +12,7 @@
 
 REGISTER_METATYPE(Import)
 
-Import::Import(const QString& file, const QString& type) : file_(file), type_(type)
+Import::Import(const QString& file, const QString& mimeType) : file_(file), mimeType_(mimeType)
 {
 }
 
@@ -26,18 +26,18 @@ QString Import::file() const
     return file_;
 }
 
-void Import::setType(const QString& type)
+void Import::setMimeType(const QString& type)
 {
-    type_ = type;
+    mimeType_ = type;
 }
 
-QString Import::type() const
+QString Import::mimeType() const
 {
-   return type_;
+   return mimeType_;
 }
 
 QDebug operator<<(QDebug stream, const Import& import)
 {
-   return (stream << import.file() << import.type());
+   return (stream << import.file() << import.mimeType());
 }
 
