@@ -70,21 +70,21 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    itemView->setSelectionMode(QAbstractItemView::SingleSelection);
    itemView->setContextMenuPolicy(Qt::CustomContextMenu);
 
-   auto itemEditShadowEffect = new QGraphicsDropShadowEffect;
-   itemEditShadowEffect->setBlurRadius(16.0);
-   itemEditShadowEffect->setOffset(0.0);
+   auto searchExpressionEditShadowEffect = new QGraphicsDropShadowEffect;
+   searchExpressionEditShadowEffect->setBlurRadius(16.0);
+   searchExpressionEditShadowEffect->setOffset(0.0);
 
-   auto itemEdit = new ItemEdit(this);
-   itemEdit->installEventFilter(this);
-   itemEdit->setClearButtonEnabled(true);
-   itemEdit->setFocus();
-   itemEdit->setFocusPolicy(Qt::StrongFocus);
-   itemEdit->setGraphicsEffect(itemEditShadowEffect);
-   itemEdit->connect(itemEdit, &ItemEdit::textChanged, [itemFilterModel](const QString& text){
+   searchExpressionEdit_ = new ItemEdit(this);
+   searchExpressionEdit_->installEventFilter(this);
+   searchExpressionEdit_->setClearButtonEnabled(true);
+   searchExpressionEdit_->setFocus();
+   searchExpressionEdit_->setFocusPolicy(Qt::StrongFocus);
+   searchExpressionEdit_->setGraphicsEffect(searchExpressionEditShadowEffect);
+   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::textChanged, [itemFilterModel](const QString& text){
       itemFilterModel->setSearchExpression(text);
       itemFilterModel->sortColumn();
    });
-   itemEdit->connect(itemEdit, &ItemEdit::returnPressed, [this, itemEdit, itemView](){
+   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::returnPressed, [this, itemView](){
       const auto& currentIndex = itemView->currentIndex();
       if (currentIndex.isValid() == true)
       {
@@ -110,7 +110,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
          for (int row = 0; row < itemView->model()->rowCount(); ++row)
          {
             const auto &rowIndex = itemView->model()->index(row, 0);
-            if ((itemEdit->text().isEmpty() == false) || (rowIndex.data(ItemModel::TagsRole).value<QStringList>().empty() == false))
+            if ((searchExpressionEdit_->text().isEmpty() == false) || (rowIndex.data(ItemModel::TagsRole).value<QStringList>().empty() == false))
             {
                urlOpened &= openUrl_(rowIndex.data(ItemModel::LinkRole).value<QUrl>());
             }
@@ -122,29 +122,40 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
          }
       }
    });
-   itemEdit->connect(itemEdit, &ItemEdit::keyUpPressed, [itemView](){
+   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::keyUpPressed, [itemView](){
       const auto& currentIndex = itemView->currentIndex();
       itemView->setCurrentIndex(itemView->model()->index(qMax(-1, currentIndex.row() - 1), 0));
    });
-   itemEdit->connect(itemEdit, &ItemEdit::keyDownPressed, [itemView](){
+   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::keyDownPressed, [itemView](){
       const auto& currentIndex = itemView->currentIndex();
       itemView->setCurrentIndex(currentIndex.isValid() ? itemView->model()->index(qMin(itemView->model()->rowCount() - 1, currentIndex.row() + 1), 0) :
                                                          itemView->model()->index(0, 0));
    });
-   itemEdit->connect(itemEdit, &ItemEdit::escapePressed, [this](){
+   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::escapePressed, [this](){
       //
-      // Is escaped is pressed hide.
+      // If escaped is pressed hide.
       //
       hide();
    });
-   itemView->connect(itemView, &ItemView::clicked, [this, itemEdit](const QModelIndex& index)
+   itemModel->connect(itemModel, &ItemModel::importReset, [this](){
+      searchExpressionEdit_->removeIndication(QStringLiteral("importError:*"));
+   });
+   itemModel->connect(itemModel, &ItemModel::importSucceeded, [this](const Import& import) {
+      searchExpressionEdit_->removeIndication(QStringLiteral("importError:").append(import.file()));
+   });
+   itemModel->connect(itemModel, &ItemModel::importFailed, [this](const Import& import, const QString& errorString, const QPoint& /* errorPosition */){
+      searchExpressionEdit_->addInidication(QStringLiteral("importError:").append(import.file()),
+                                            QStringLiteral("Import failed: ").append(import.file()).append(QStringLiteral(": ")).append(errorString));
+   });
+
+   itemView->connect(itemView, &ItemView::clicked, [this](const QModelIndex& index)
    {
       //
       // If an item is clicked open the link and remain shown (so multiple items can be clicked).
       //
       openUrl_(index.data(ItemModel::LinkRole).value<QUrl>());
    });
-   itemView->connect(itemView, &ItemView::customContextMenuRequested, [this, itemEdit, itemView](const QPoint& position){
+   itemView->connect(itemView, &ItemView::customContextMenuRequested, [this, itemView](const QPoint& position){
       //
       // Show the item-specific context menu if a valid item has been selected.
       //
@@ -152,7 +163,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
       if (positionIndex.isValid() == true)
       {
          QMenu itemViewContextMenu;
-         itemViewContextMenu.addAction(tr("Edit item..."), [this, itemEdit, itemView, positionIndex](){
+         itemViewContextMenu.addAction(tr("Edit item..."), [this, itemView, positionIndex](){
             // openSource
          });
          itemViewContextMenu.exec(itemView->mapToGlobal(position));
@@ -160,7 +171,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    });
 
    setFocusPolicy(Qt::NoFocus);
-   setFocusProxy(itemEdit);
+   setFocusProxy(searchExpressionEdit_);
 
    //
    // Hide the application if it loses focus, as it cannot be activated programatically for
@@ -168,10 +179,10 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    // flash in the taskbar instead. Another option would be hiding and showing the window,
    // but this leads to unpleasent flickering, so the application is simply hidden.
    //
-   connect(qApp, &QApplication::applicationStateChanged, [this, itemEdit](Qt::ApplicationState applicationState){
+   connect(qApp, &QApplication::applicationStateChanged, [this](Qt::ApplicationState applicationState){
       if (applicationState == Qt::ApplicationActive)
       {
-         itemEdit->selectAll();
+         searchExpressionEdit_->selectAll();
 
          activateWindow();
       }
@@ -184,16 +195,16 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    //
    // Decorate the standard context menu with the additional actions.
    //
-   auto itemEditContextMenu = itemEdit->createStandardContextMenu();
+   auto itemEditContextMenu = searchExpressionEdit_->createStandardContextMenu();
    itemEditContextMenu->addSeparator();
-   itemEditContextMenu->addAction(tr("Select font..."), [itemEdit, itemView](){
+   itemEditContextMenu->addAction(tr("Select font..."), [this, itemView](){
       auto& settings = static_cast<Application*>(Application::instance())->settings();
 
       auto fontSelected = false;
       auto font = QFontDialog::getFont(&fontSelected, QFont(settings.value(QStringLiteral("font/family")).value<QString>(),
                                                             settings.value(QStringLiteral("font/size")).value<int>(),
                                                             settings.value(QStringLiteral("font/weight")).value<int>(),
-                                                            settings.value(QStringLiteral("font/italic")).value<bool>()), itemEdit);
+                                                            settings.value(QStringLiteral("font/italic")).value<bool>()), searchExpressionEdit_);
       if (fontSelected == true)
       {
          settings.setValue(QStringLiteral("font/family"), font.family());
@@ -201,7 +212,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
          settings.setValue(QStringLiteral("font/weight"), font.family());
          settings.setValue(QStringLiteral("font/italic"), font.italic());
 
-         itemEdit->setFont(font);
+         searchExpressionEdit_->setFont(font);
          itemView->setFont(font);
       }
    });
@@ -209,16 +220,16 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    //
    // Show the decorated context menu instead of the standard context menu.
    //
-   itemEdit->setContextMenuPolicy(Qt::CustomContextMenu);
-   itemEdit->connect(itemEdit, &ItemEdit::customContextMenuRequested, [itemEdit, itemEditContextMenu](const QPoint& position){
-      itemEditContextMenu->exec(itemEdit->mapToGlobal(position));
+   searchExpressionEdit_->setContextMenuPolicy(Qt::CustomContextMenu);
+   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::customContextMenuRequested, [this, itemEditContextMenu](const QPoint& position){
+      itemEditContextMenu->exec(searchExpressionEdit_->mapToGlobal(position));
    });
 
    //
    // Set layout.
    //
    auto itemLayout = new QVBoxLayout;
-   itemLayout->addWidget(itemEdit);
+   itemLayout->addWidget(searchExpressionEdit_);
    itemLayout->addWidget(itemView);
    itemLayout->setSpacing(0);
 
@@ -228,7 +239,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    // Create the hotkey.
    //
    auto itemHotkey = new SystemHotkey(this);
-   itemHotkey->connect(itemHotkey, &SystemHotkey::hotkeyPressed, [this, itemEdit](){
+   itemHotkey->connect(itemHotkey, &SystemHotkey::hotkeyPressed, [this](){
       //
       // Show the window.
       //
@@ -240,7 +251,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    //
    if (itemHotkey->registerKeySequence() == false)
    {
-      //< REPORT ERROR.
+      searchExpressionEdit_->addInidication(QStringLiteral("hotkeyError"), tr("The hotkey could not be registered"));
    }
 
    //
@@ -262,7 +273,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
                      settings.value(QStringLiteral("font/weight"), defaultFont.weight()).value<int>(),
                      settings.value(QStringLiteral("font/italic"), defaultFont.italic()).value<bool>());
 
-   itemEdit->setFont(font);
+   searchExpressionEdit_->setFont(font);
    itemView->setFont(font);
 
    //
@@ -416,7 +427,7 @@ bool SearchWindow::openUrl_(const QUrl& url)
    bool result = QDesktopServices::openUrl(url);
    if (result == false)
    {
-      //< REPORT ERROR.
+      searchExpressionEdit_->addInidication(QStringLiteral("openUrlError"), tr("Failed to open URL ").append(url.toString()));
    }
 
    return result;

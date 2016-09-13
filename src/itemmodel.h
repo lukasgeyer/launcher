@@ -71,6 +71,21 @@ public:
     */
    QVariant data(const QModelIndex& index, int role) const override;
 
+signals:
+   /*!
+    * Is emitted when the import \a import has been added to the model.
+    */
+   void importSucceeded(const Import& import);
+   /*!
+    * Is emitted when the import \a import has not been added to the model because of the
+    * error \a errorString at the position \a errorPosition.
+    */
+   void importFailed(const Import& import, const QString& errorString, const QPoint& errorPosition);
+   /*!
+    * Is emitted when the import list has been reset.
+    */
+   void importReset();
+
 protected:
    /*!
     * \reimp

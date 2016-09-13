@@ -53,6 +53,8 @@ void ItemModel::reset()
    importsThreadPool_.clear();
 
    endResetModel();
+
+   emit importReset();
 }
 
 QVariant ItemModel::data(const QModelIndex &index, int role) const
@@ -140,6 +142,8 @@ void ItemModel::startImport_(const Import& import)
                     {
                        startImport_(import);
                     }
+
+                    emit importSucceeded(import);
                  }
               }, Qt::QueuedConnection);
 
@@ -151,6 +155,8 @@ void ItemModel::startImport_(const Import& import)
                     qDebug() << "import failed:" << import << errorString << errorPosition;
 
                     addImport_(import);
+
+                    emit importFailed(import, errorString, errorPosition);
                  }
               }, Qt::QueuedConnection);
 

@@ -64,6 +64,11 @@ private:
    QPoint windowModificationOrigin_ = {};
 
    /*!
+    * The item edit used to enter a search expression.
+    */
+   ItemEdit* searchExpressionEdit_ = nullptr;
+
+   /*!
     * \reimp
     */
    bool eventFilter(QObject* object, QEvent* event) override;
