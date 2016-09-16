@@ -10,9 +10,6 @@
 #ifndef ITEMSOURCEFACTORY_H
 #define ITEMSOURCEFACTORY_H
 
-#include <memory>
-#include <utility>
-
 #include <QHash>
 #include <QString>
 
@@ -83,14 +80,14 @@ public:
     * Returns an instance of the item source represented by the MIME type \a mimeType or \a
     * nullptr if no such type has been declared.
     */
-   inline std::unique_ptr<ItemSource> create(const QString &mimeType, const ItemSource::Identifier& identifier) const
+   inline ItemSource* create(const QString &mimeType) const
    {
-      std::unique_ptr<ItemSource> itemSource;
+      ItemSource* itemSource;
 
       auto creator = types_.find(mimeType);
       if (creator != types_.end())
       {
-         itemSource = creator.value()(identifier);
+         itemSource = creator.value()();
       }
 
       return itemSource;
@@ -100,14 +97,14 @@ private:
    /*!
     * The item source type to creator mapping
     */
-   QHash<QString, std::unique_ptr<ItemSource> (*)(const ItemSource::Identifier&)> types_;
+   QHash<QString, ItemSource* (*)()> types_;
 
    /*!
     * Creates an item source of type \a ItemSourceType.
     */
-   template <typename ItemSourceType> static std::unique_ptr<ItemSource> create_(const ItemSource::Identifier& identifier)
+   template <typename ItemSourceType> static ItemSource* create_()
    {
-      return std::unique_ptr<ItemSource>(static_cast<ItemSource*>(new ItemSourceType(identifier)));
+      return static_cast<ItemSource*>(new ItemSourceType);
    }
 };
 

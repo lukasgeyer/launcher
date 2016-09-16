@@ -16,6 +16,9 @@
 #include "systemlock.h"
 #include "searchwindow.h"
 
+#include "itemeditdialog.h"
+#include "itemmodel.h"
+
 namespace {
 
 /*!
@@ -78,8 +81,17 @@ int main(int argc, char *argv[])
       //
       // Set up the item window.
       //
-      SearchWindow itemWindow;
-      itemWindow.show();
+      // SearchWindow itemWindow;
+      // itemWindow.show();
+
+      QFile source(QStringLiteral("launcher.xml"));
+      source.open(QIODevice::ReadOnly);
+
+      auto itemModel = new ItemModel;
+      itemModel->read(&source);
+
+      ItemEditDialog itemEditDialog(itemModel);
+      itemEditDialog.show();
 
       //
       // Execute the application.

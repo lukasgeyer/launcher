@@ -9,7 +9,7 @@
 
 #include "itemsource.h"
 
-ItemSource::ItemSource(const Identifier& identifier) : identifier_(identifier)
+ItemSource::ItemSource() : GroupItem(Item::ItemType::Source)
 {
 }
 
@@ -17,12 +17,3 @@ ItemSource::~ItemSource()
 {
 }
 
-void ItemSource::setIdentifier(const Identifier& identifier)
-{
-   identifier_ = identifier;
-}
-
-QString ItemSource::identifier() const
-{
-   return identifier_;
-}

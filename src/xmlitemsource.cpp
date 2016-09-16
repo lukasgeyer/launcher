@@ -11,6 +11,12 @@
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
 
+#include "importitem.h"
+#include "importgroupitem.h"
+#include "item.h"
+#include "groupitem.h"
+#include "linkitem.h"
+#include "linkgroupitem.h"
 #include "xmlitemsource.h"
 
 namespace {
@@ -22,15 +28,8 @@ static const int DEFAULT_INDENT_ = 3;
 
 } // namespace
 
-XmlItemSource::XmlItemSource(const QString& identifier) : ItemSource(identifier)
-{
-   reset();
-}
-
 bool XmlItemSource::read(QIODevice* device)
 {
-   Q_ASSERT(itemGroups_.isEmpty() == false);
-
    bool result = false;
 
    if (device != nullptr)
@@ -42,11 +41,11 @@ bool XmlItemSource::read(QIODevice* device)
          {
             if (deviceReader.name() == "item")
             {
-               readItem_(&deviceReader, &itemGroups_.first());
+               readItem_(&deviceReader, this);
             }
             else if (deviceReader.name() == "group")
             {
-               readGroup_(&deviceReader);
+               readGroup_(&deviceReader, this);
             }
             else if (deviceReader.name() == "import")
             {
@@ -76,86 +75,70 @@ bool XmlItemSource::read(QIODevice* device)
 
 bool XmlItemSource::write(QIODevice* device) const
 {
-   Q_ASSERT(itemGroups_.isEmpty() == false);
-
    bool result = false;
 
-   if (device != nullptr)
-   {
-      QXmlStreamWriter deviceWriter(device);
-      deviceWriter.setAutoFormatting(true);
-      deviceWriter.setAutoFormattingIndent(DEFAULT_INDENT_);
+//   if (device != nullptr)
+//   {
+//      QXmlStreamWriter deviceWriter(device);
+//      deviceWriter.setAutoFormatting(true);
+//      deviceWriter.setAutoFormattingIndent(DEFAULT_INDENT_);
 
-      deviceWriter.writeStartDocument();
-      deviceWriter.writeStartElement("items");
+//      deviceWriter.writeStartDocument();
+//      deviceWriter.writeStartElement(QStringLiteral("items"));
 
-      for (const auto& itemGroup : itemGroups_)
-      {
-         if (&itemGroup != &itemGroups_.first())
-         {
-            deviceWriter.writeStartElement("group");
+//      for (const auto& itemGroup : itemGroups_)
+//      {
+//         if (&itemGroup != &itemGroups_.first())
+//         {
+//            deviceWriter.writeStartElement(QStringLiteral("group"));
+//            if (itemGroup.brush().color().isValid() == true)
+//            {
+//               deviceWriter.writeTextElement(QStringLiteral("color"), itemGroup.brush().color().name());
+//            }
 
-            for (const auto& tag : itemGroup.tags())
-            {
-               deviceWriter.writeTextElement("tag", tag);
-            }
-         }
+//            for (const auto& tag : itemGroup.tags())
+//            {
+//               deviceWriter.writeTextElement(QStringLiteral("tag"), tag);
+//            }
+//         }
 
-         for(const auto& item : itemGroup.items())
-         {
-            deviceWriter.writeStartElement("item");
+//         for(const auto& item : itemGroup.items())
+//         {
+//            deviceWriter.writeStartElement(QStringLiteral("item"));
 
-            deviceWriter.writeTextElement("name", item.name());
-            deviceWriter.writeTextElement("url", item.link().toString());
-            deviceWriter.writeTextElement("color", item.brush().color().name());
+//            deviceWriter.writeTextElement(QStringLiteral("name"), item.name());
+//            deviceWriter.writeTextElement(QStringLiteral("url"), item.link());
+//            if (item.brush().color().isValid() == true)
+//            {
+//               deviceWriter.writeTextElement(QStringLiteral("color"), item.brush().color().name());
+//            }
 
-            for (const auto& tag : item.tags())
-            {
-               deviceWriter.writeTextElement("tag", tag);
-            }
+//            for (const auto& tag : item.tags())
+//            {
+//               deviceWriter.writeTextElement(QStringLiteral("tag"), tag);
+//            }
 
-            deviceWriter.writeEndElement();
-         }
+//            deviceWriter.writeEndElement();
+//         }
 
-         if (&itemGroup != &itemGroups_.first())
-         {
-            deviceWriter.writeEndElement();
-         }
-      }
+//         if (&itemGroup != &itemGroups_.first())
+//         {
+//            deviceWriter.writeEndElement();
+//         }
+//      }
 
-      deviceWriter.writeEndElement();
-      deviceWriter.writeEndDocument();
+//      deviceWriter.writeEndElement();
+//      deviceWriter.writeEndDocument();
 
-      result = (deviceWriter.hasError() == false);
-      if (result == false)
-      {
-         errorString_ = device->errorString();
-         errorPosition_ = {0, 0};
-      }
-   }
+//      result = (deviceWriter.hasError() == false);
+//      if (result == false)
+//      {
+//         errorString_ = device->errorString();
+//         errorPosition_ = {0, 0};
+//      }
+//   }
 
    return result;
-}
-
-void XmlItemSource::reset()
-{
-   //
-   // There is at least one item group, the global item group, which contains any items
-   // outside of an explicit item group and a list of imports. This item group is always
-   // the first item group.
-   //
-   itemGroups_.clear();
-   itemGroups_.append(ItemGroup{});
-}
-
-const ItemGroups& XmlItemSource::itemGroups() const
-{
-   return itemGroups_;
-}
-
-const Imports& XmlItemSource::imports() const
-{
-   return imports_;
 }
 
 QString XmlItemSource::errorString() const
@@ -168,30 +151,30 @@ QPoint XmlItemSource::errorPosition() const
    return errorPosition_;
 }
 
-void XmlItemSource::readItem_(QXmlStreamReader* reader, ItemGroup *itemGroup)
+void XmlItemSource::readItem_(QXmlStreamReader* reader, GroupItem* parent)
 {
    Q_ASSERT(reader != nullptr);
-   Q_ASSERT(itemGroup != nullptr);
+   Q_ASSERT(parent != nullptr);
 
-   Item item;
+   auto item = new LinkItem;
 
    while (reader->readNextStartElement())
    {
       if (reader->name() == "name")
       {
-         item.setName(reader->readElementText().trimmed());
+         item->setName(reader->readElementText().trimmed());
       }
       else if (reader->name() == "url")
       {
-         item.setLink(QUrl::fromUserInput(reader->readElementText().trimmed()));
+         item->setLink(reader->readElementText().trimmed());
       }
       else if (reader->name() == "color")
       {
-         item.setBrush(QBrush(QColor(reader->readElementText().trimmed())));
+         item->setBrush(QBrush(QColor(reader->readElementText().trimmed())));
       }
       else if (reader->name() == "tag")
       {
-         item.appendTag(Tag(reader->readElementText().trimmed()));
+         item->appendTag(reader->readElementText().trimmed());
       }
       else
       {
@@ -199,51 +182,66 @@ void XmlItemSource::readItem_(QXmlStreamReader* reader, ItemGroup *itemGroup)
       }
    }
 
-   itemGroup->appendItem(item);
+   parent->appendItem(item);
 }
 
-void XmlItemSource::readGroup_(QXmlStreamReader* reader)
+void XmlItemSource::readGroup_(QXmlStreamReader* reader, GroupItem* parent)
 {
    Q_ASSERT(reader != nullptr);
 
-   itemGroups_.append(ItemGroup{});
+   auto itemGroup = new LinkGroupItem;
 
    while (reader->readNextStartElement())
    {
       if (reader->name() == "item")
       {
-         readItem_(reader, &itemGroups_.last());
+         readItem_(reader, itemGroup);
+      }
+      else if (reader->name() == "name")
+      {
+         itemGroup->setName(reader->readElementText().trimmed());
       }
       else if (reader->name() == "color")
       {
-         itemGroups_.last().setBrush(QBrush(QColor(reader->readElementText().trimmed())));
+         itemGroup->setBrush(QBrush(QColor(reader->readElementText().trimmed())));
       }
       else if (reader->name() == "tag")
       {
-         itemGroups_.last().appendTag(reader->readElementText().trimmed());
+         itemGroup->appendTag(reader->readElementText().trimmed());
+      }
+      else if (reader->name() == "group")
+      {
+         readGroup_(reader, parent);
       }
       else
       {
          reader->skipCurrentElement();
       }
    }
+
+   parent->appendItem(itemGroup);
 }
 
 void XmlItemSource::readImport_(QXmlStreamReader* reader)
 {
    Q_ASSERT(reader != nullptr);
 
+   auto itemGroup = new ImportGroupItem;
+
    while (reader->readNextStartElement())
    {
       if (reader->name() == "file")
       {
-         imports_.append(Import(reader->readElementText().trimmed(), reader->attributes().hasAttribute("contentType") ?
-                                                                     reader->attributes().value("contentType").toString().trimmed() :
-                                                                     QStringLiteral("text/xml")));
+         itemGroup->appendItem(new ImportItem(reader->readElementText().trimmed(),
+                                              reader->attributes().hasAttribute(QStringLiteral("contentType")) ?
+                                              reader->attributes().value(QStringLiteral("contentType")).toString().trimmed() :
+                                              QStringLiteral("text/xml")));
       }
       else
       {
          reader->skipCurrentElement();
       }
    }
+
+   appendItem(itemGroup);
 }

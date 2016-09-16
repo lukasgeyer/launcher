@@ -24,27 +24,43 @@ void ItemFilterModel::setSearchExpression(const QString& expression)
 
 bool ItemFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const
 {
-   const auto &name = sourceModel()->index(sourceRow, 0, sourceParent).data(ItemModel::NameRole).value<QString>();
-   const auto &tags = sourceModel()->index(sourceRow, 0, sourceParent).data(ItemModel::TagsRole).value<QStringList>();
+   bool matches = false;
 
-   bool matches = searchExpression_.Matches(name, tags);
+//   const auto& sourceIndex = sourceModel()->index(sourceRow, 0, sourceParent);
+//   if (sourceIndex.isValid() == true)
+//   {
+//      const auto& name = sourceIndex.data(static_cast<int>(ItemModel::Role::Name)).value<QString>();
+//      const auto& tags = sourceIndex.data(static_cast<int>(ItemModel::Role::Tags)).value<QStringList>();
+
+//      matches = searchExpression_.Matches(name, tags);
+//   }
 
    return matches;
 }
 
 bool ItemFilterModel::lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const
 {
-   const auto& nameLeft = sourceModel()->index(sourceLeft.row(), 0, sourceLeft.parent()).data(ItemModel::NameRole).value<QString>();
-   const auto& tagsLeft = sourceModel()->index(sourceLeft.row(), 0, sourceLeft.parent()).data(ItemModel::TagsRole).value<QStringList>();
+   bool isLessThan = false;
 
-   const auto& nameRight = sourceModel()->index(sourceRight.row(), 0, sourceRight.parent()).data(ItemModel::NameRole).value<QString>();
-   const auto& tagsRight = sourceModel()->index(sourceRight.row(), 0, sourceRight.parent()).data(ItemModel::TagsRole).value<QStringList>();
+//   const auto& leftSourceIndex = sourceModel()->index(sourceLeft.row(), 0, sourceLeft.parent());
+//   const auto& rightSourceIndex = sourceModel()->index(sourceRight.row(), 0, sourceRight.parent());
 
-   //
-   // A tagged item is sorted up, an non-tagged item is sorted down, if both are of the same
-   // type sort lexically.
-   //
-   return ((tagsLeft.isEmpty() == false) && (tagsRight.isEmpty() == true )) ? true  :
-          ((tagsLeft.isEmpty() == true ) && (tagsRight.isEmpty() == false)) ? false :
-          ((nameLeft < nameRight));
+//   if ((leftSourceIndex.isValid() == true) && (rightSourceIndex.isValid() == true))
+//   {
+//      const auto& leftName = leftSourceIndex.data(static_cast<int>(ItemModel::Role::Name)).value<QString>();
+//      const auto& leftTags = leftSourceIndex.data(static_cast<int>(ItemModel::Role::Tags)).value<QStringList>();
+
+//      const auto& rightName = rightSourceIndex.data(static_cast<int>(ItemModel::Role::Name)).value<QString>();
+//      const auto& rightTags = rightSourceIndex.data(static_cast<int>(ItemModel::Role::Tags)).value<QStringList>();
+
+//      //
+//      // A tagged item is sorted up, an non-tagged item is sorted down, if both are of the same
+//      // type sort lexically.
+//      //
+//      isLessThan = ((leftTags.isEmpty() == false) && (rightTags.isEmpty() == true )) ? true  :
+//                   ((leftTags.isEmpty() == true ) && (rightTags.isEmpty() == false)) ? false :
+//                   ((leftName < rightName));
+//   }
+
+   return isLessThan;
 }

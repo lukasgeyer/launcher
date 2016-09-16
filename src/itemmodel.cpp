@@ -14,13 +14,9 @@
 #include <QUuid>
 
 #include "application.h"
-#include "import.h"
-#include "importer.h"
+#include "importgroupitem.h"
 #include "itemmodel.h"
-#include "itemsource.h"
-#include "metatype.h"
-
-REGISTER_METATYPE(ItemModel::Identifier)
+#include "linkgroupitem.h"
 
 namespace {
 
@@ -28,152 +24,145 @@ static const std::chrono::milliseconds DEFAULT_IMPORT_RETRY_TIMEOUT_ = std::chro
 
 } // namespace
 
-ItemModel::ItemModel(QObject* parent) : QAbstractListModel(parent)
+ItemModel::ItemModel(QObject* parent) : QAbstractItemModel(parent)
 {
-   startTimer(static_cast<int>(DEFAULT_IMPORT_RETRY_TIMEOUT_.count()));
 }
 
-void ItemModel::read(const QString& file)
+ItemModel::~ItemModel()
 {
-   qDebug() << "read:" << file;
-
-   startImport_(Import(file, QStringLiteral("text/xml")));
 }
 
-void ItemModel::reset()
+bool ItemModel::read(QIODevice* device)
 {
-   qDebug() << "reset";
-
    beginResetModel();
 
-   identifier_ = QUuid().toString();
-
-   itemSources_.clear();
-   itemSourcesCache_.clear();
-
-   imports_.clear();
-   importsThreadPool_.clear();
+   bool result = XmlItemSource::read(device);
 
    endResetModel();
 
-   emit importReset();
+   // Process import.
+
+   return result;
+}
+
+QModelIndex ItemModel::index(int row, int column, const QModelIndex& parent) const
+{
+   QModelIndex index;
+
+   GroupItem* parentItem = const_cast<ItemModel*>(this);
+   if (parent.isValid() == true)
+   {
+      parentItem = static_cast<GroupItem*>(parent.internalPointer());
+   }
+
+   if ((row >= 0) && (row < parentItem->items().size()) && (column == 0))
+   {
+      index = createIndex(row, column, parentItem->item(row));
+   }
+
+   return index;
+}
+
+QModelIndex ItemModel::parent(const QModelIndex& child) const
+{
+   QModelIndex index;
+
+   if (child.isValid() == true)
+   {
+      Item* parentItem = static_cast<Item*>(child.internalPointer())->parent();
+      if ((parentItem != nullptr) && (parentItem != this))
+      {
+         index = createIndex(child.row(), 0, parentItem);
+      }
+   }
+
+   return index;
+}
+
+int ItemModel::rowCount(const QModelIndex& parent) const
+{
+   int rowCount = 0;
+
+   GroupItem* parentItem = const_cast<ItemModel*>(this);
+   if (parent.isValid() == true)
+   {
+      parentItem = static_cast<GroupItem*>(parent.internalPointer());
+   }
+
+   if (parentItem->cast<GroupItem>() != nullptr)
+   {
+      rowCount = parentItem->items().size();
+   }
+
+   return rowCount;
+}
+
+int ItemModel::columnCount(const QModelIndex& parent) const
+{
+   return 1;
 }
 
 QVariant ItemModel::data(const QModelIndex &index, int role) const
 {
    QVariant data;
 
-   if ((index.isValid() == true) && (index.row() >= 0) && (index.row() < static_cast<int>(itemSourcesCache_.size())) && (index.column() == 0))
+   if (index.isValid() == true)
    {
-      switch (static_cast<Role>(role))
+      if (auto item = static_cast<Item*>(index.internalPointer())->cast<LinkItem>())
       {
-      case NameRole:
-         data = itemSourcesCache_[index.row()].second->name();
-         break;
-      case BrushRole:
-         data = itemSourcesCache_[index.row()].second->brush();
-         break;
-      case LinkRole:
-         data = itemSourcesCache_[index.row()].second->link();
-         break;
-      case TagsRole:
-         data = itemSourcesCache_[index.row()].first->tags() + itemSourcesCache_[index.row()].second->tags();
-         break;
+         switch (role)
+         {
+         case Qt::DisplayRole:
+            data = item->name();
+            break;
+         case Qt::ToolTipRole:
+         case Qt::StatusTipRole:
+            data = item->link();
+            break;
+         }
+      }
+      else if (auto item = static_cast<Item*>(index.internalPointer())->cast<ImportItem>())
+      {
+         switch (role)
+         {
+         case Qt::DisplayRole:
+            data = QFileInfo(item->file()).fileName();
+            break;
+         case Qt::ToolTipRole:
+         case Qt::StatusTipRole:
+            data = item->file();
+            break;
+         }
+      }
+      else if (auto item = static_cast<Item*>(index.internalPointer())->cast<GroupItem>())
+      {
+         switch (role)
+         {
+         case Qt::DisplayRole:
+         case Qt::ToolTipRole:
+         case Qt::StatusTipRole:
+            data = item->name();
+            break;
+         }
       }
    }
 
    return data;
 }
 
-void ItemModel::timerEvent(QTimerEvent* /* event */)
+Item* ItemModel::item(const QModelIndex& index)
 {
-   for (const auto& import : imports_)
+   Item* item = nullptr;
+
+   if (index.isValid() == true)
    {
-      qDebug() << "retry import:" << import;
-
-      startImport_(import);
-   }
-}
-
-int ItemModel::rowCount(const QModelIndex & /* parent */) const
-{
-   return static_cast<int>(itemSourcesCache_.size());
-}
-
-void ItemModel::addItemSource_(const std::shared_ptr<ItemSource>& itemSource)
-{
-   Q_ASSERT(itemSource);
-
-   beginResetModel();
-
-   for (const auto &itemGroup : itemSource->itemGroups())
-   {
-      for (const auto &item : itemGroup.items())
-      {
-         qDebug() << "add item:" << item;
-
-         itemSourcesCache_.push_back(std::make_pair(const_cast<ItemGroup*>(&itemGroup), const_cast<Item*>(&item)));
-      }
+      item = static_cast<Item*>(index.internalPointer());
    }
 
-   itemSources_.push_back(std::move(itemSource));
-
-   endResetModel();
+   return item;
 }
 
-void ItemModel::addImport_(const Import& import)
+const Item* ItemModel::item(const QModelIndex& index) const
 {
-   imports_.append(import);
-}
-
-void ItemModel::startImport_(const Import& import)
-{
-   auto importer = new Importer(import, identifier_);
-   if (importer != nullptr)
-   {
-      connect(importer, &Importer::suceeded, this,
-              [this](const Import& import, const Identifier& identifier, const std::shared_ptr<ItemSource>& itemSource)
-              {
-                 if (identifier == identifier_)
-                 {
-                    qDebug() << "import succeeded:" << import;
-
-                    addItemSource_(itemSource);
-
-                    for (const auto& import : itemSource->imports())
-                    {
-                       if (std::find_if(std::cbegin(itemSources_), std::cend(itemSources_),
-                                        [this, import](const std::shared_ptr<ItemSource>& itemSource){
-                                           return (QFileInfo(import.file()).absoluteFilePath() == itemSource->identifier());
-                                        }) == std::cend(itemSources_))
-                       {
-                          startImport_(import);
-                       }
-                       else
-                       {
-                          qDebug() << "recursive import: " << import;
-                       }
-                    }
-
-                    emit importSucceeded(import);
-                 }
-              }, Qt::QueuedConnection);
-
-      connect(importer, &Importer::failed, this,
-              [this](const Import &import, const Identifier& identifier, const QString& errorString, const QPoint& errorPosition)
-              {
-                 if (identifier == identifier_)
-                 {
-                    qDebug() << "import failed:" << import << errorString << errorPosition;
-
-                    addImport_(import);
-
-                    emit importFailed(import, errorString, errorPosition);
-                 }
-              }, Qt::QueuedConnection);
-
-      qDebug() << "start import:" << import;
-
-      importsThreadPool_.start(importer);
-   }
+   return const_cast<const Item*>(const_cast<ItemModel*>(this)->item(index));
 }

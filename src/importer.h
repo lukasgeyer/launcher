@@ -17,7 +17,7 @@
 #include <QRunnable>
 #include <QString>
 
-#include "import.h"
+#include "importitem.h"
 #include "itemmodel.h"
 #include "itemsource.h"
 
@@ -32,7 +32,7 @@ public:
    /*!
     * Constructs and importer for the import \a import and the item model identifier \a identifier.
     */
-   explicit Importer(const Import& import, const ItemModel::Identifier& identifier);
+   explicit Importer(ImportItem* import, const QString& identifier);
 
    /*!
     * \reimp
@@ -43,21 +43,21 @@ signals:
    /*!
     * Is emitted when the import succeeded and resulted in the item source \a itemSource.
     */
-   void suceeded(const Import& import, const ItemModel::Identifier& identifier, const std::shared_ptr<ItemSource>& itemSource);
+   void suceeded(ImportItem* import, const QString& identifier, ItemSource* itemSource);
    /*!
     * Is emitted when the import for \a import failed.
     */
-   void failed(const Import& import, const ItemModel::Identifier& identifier, const QString& error, const QPoint& errorPosition);
+   void failed(ImportItem* import, const QString& identifier, const QString& error, const QPoint& errorPosition);
 
 private:
    /*!
     * The import to be imported.
     */
-   Import import_;
+   ImportItem* import_;
    /*!
     * The identifier of the item model that requested the import.
     */
-   ItemModel::Identifier identifier_;
+   QString identifier_;
 };
 
 #endif // IMPORTER_H

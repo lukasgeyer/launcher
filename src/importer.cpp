@@ -17,8 +17,6 @@
 #include "metatype.h"
 #include "xmlitemsource.h"
 
-REGISTER_METATYPE(std::shared_ptr<ItemSource>)
-
 namespace {
 
 /*!
@@ -35,46 +33,47 @@ const ItemSourceFactory& itemSourceFactory_()
 
 } // namespace
 
-Importer::Importer(const Import& import, const ItemModel::Identifier& identifier) : import_(import), identifier_(identifier)
+Importer::Importer(ImportItem* import, const QString& identifier) : import_(import), identifier_(identifier)
 {
+   Q_ASSERT(import != nullptr);
 }
 
 void Importer::run()
 {
-   bool result = false;
+//   bool result = false;
 
-   QString errorString;
-   QPoint errorPosition;
+//   QString errorString;
+//   QPoint errorPosition;
 
-   QFile itemSourceFile(import_.file());
-   if (itemSourceFile.open(QIODevice::ReadOnly) == true)
-   {
-      auto itemSource = itemSourceFactory_().create(import_.mimeType(), QFileInfo(import_.file()).absoluteFilePath());
-      if (itemSource)
-      {
-         result = itemSource->read(&itemSourceFile);
-         if (result == true)
-         {
-            emit suceeded(import_, identifier_, std::shared_ptr<ItemSource>(itemSource.release()));
-         }
-         else
-         {
-            errorString = itemSource->errorString();
-            errorPosition = itemSource->errorPosition();
-         }
-      }
-      else
-      {
-         errorString = (tr("Unsupported MIME type: \"").append(import_.mimeType()).append("\""));
-      }
-   }
-   else
-   {
-      errorString = itemSourceFile.errorString();
-   }
+//   QFile itemSourceFile(import_.file());
+//   if (itemSourceFile.open(QIODevice::ReadOnly) == true)
+//   {
+//      auto itemSource = itemSourceFactory_().create(import_->mimeType(), QFileInfo(import_->file()).absoluteFilePath());
+//      if (itemSource != nullptr)
+//      {
+//         result = itemSource->read(&itemSourceFile);
+//         if (result == true)
+//         {
+//            emit suceeded(import_, identifier_, itemSource);
+//         }
+//         else
+//         {
+//            errorString = itemSource->errorString();
+//            errorPosition = itemSource->errorPosition();
+//         }
+//      }
+//      else
+//      {
+//         errorString = (tr("Unsupported MIME type: \"").append(import_->mimeType()).append("\""));
+//      }
+//   }
+//   else
+//   {
+//      errorString = itemSourceFile.errorString();
+//   }
 
-   if (result == false)
-   {
-      emit failed(import_, identifier_, errorString, errorPosition);
-   }
+//   if (result == false)
+//   {
+//      emit failed(import_, identifier_, errorString, errorPosition);
+//   }
 }

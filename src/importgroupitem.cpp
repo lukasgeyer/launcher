@@ -1,5 +1,5 @@
 /*!
- * \file tags.h
+ * \file importgroupitem.cpp
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -7,14 +7,14 @@
  *          published by the Free Software Foundation.
  */
 
-#ifndef TAGS_H
-#define TAGS_H
+#include "importgroupitem.h"
 
-#include <QStringList>
 
-/*!
- * \brief A list of tags.
- */
-typedef QStringList Tags;
+ImportGroupItem::ImportGroupItem() : GroupItem(Item::ItemType::ImportGroup)
+{
+}
 
-#endif // TAGS_H
+QDebug operator<<(QDebug stream, const ImportGroupItem& itemGroup)
+{
+   return (stream << itemGroup.name());
+}

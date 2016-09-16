@@ -10,81 +10,76 @@
 #ifndef ITEM_H
 #define ITEM_H
 
-#include <QBrush>
-#include <QDebug>
-#include <QString>
-#include <QUrl>
-
-#include "tag.h"
-#include "tags.h"
+#include <type_traits>
 
 /*!
- * An item as found in a source.
+ * \brief An item.
  */
 class Item
 {
 public:
    /*!
-    * Sets the name of the item to \a name.
+    * \brief The type of the item.
     */
-   void setName(const QString& name);
-   /*!
-    * Returns the name of the item.
-    */
-   QString name() const;
+   enum ItemType
+   {
+      Link,
+      Import,
+      Group,
+       LinkGroup,
+       ImportGroup,
+       Source
+   };
 
    /*!
-    * Sets the link the item refers to to \a link.
+    * Destructs the item.
     */
-   void setLink(const QUrl& link);
-   /*!
-    * Returns the link the item refers to.
-    */
-   QUrl link() const;
+   inline virtual ~Item()
+   {
+   }
 
    /*!
-    * Sets the brush of the item to \a brush.
+    * Casts the item to the derived item type \a TargetType and returns a pointer to
+    * that type or \a nullptr if the item is not of that type.
     */
-   void setBrush(const QBrush& brush);
-   /*!
-    * Returns the bursh of the item or an Qt::NoBrush if no brush is set.
-    */
-   QBrush brush() const;
+   template <typename TargetType> inline typename std::enable_if<std::is_base_of<Item, TargetType>::value, TargetType*>::type cast()
+   {
+      return (TargetType::isItemType(type_) ? (static_cast<TargetType*>(this)) : (nullptr));
+   }
 
    /*!
-    * Appends the tag \a tag to the list of tags for the item.
+    * Sets the parent to \a parent.
     */
-   void appendTag(const Tag& tag);
+   inline void setParent(Item* parent)
+   {
+      parent_ = parent;
+   }
    /*!
-    * Returns the tags attached to the item.
+    * Returns the parent of this item.
     */
-   const Tags& tags() const;
+   inline Item* parent()
+   {
+      return parent_;
+   }
+
+protected:
+   /*!
+    * Constructs an item of the type \a type.
+    */
+   inline Item(ItemType type) : type_(type)
+   {
+   }
 
 private:
    /*!
-    * The name of the item.
+    * The type of the item.
     */
-   QString name_;
-   /*!
-    * The link the item refers to.
-    */
-   QUrl link_;
+   ItemType type_;
 
    /*!
-    * The brush that shall be used to represent the item.
+    * A pointer to the parent of this item.
     */
-   QBrush brush_;
-
-   /*!
-    * The tags attached to the item.
-    */
-   Tags tags_;
-
-   /*!
-    * Inserts the item \a item into the stream \a stream and returns the stream.
-    */
-   friend QDebug operator<<(QDebug stream, const Item& item);
+   Item* parent_ = nullptr;
 };
-
 
 #endif // ITEM_H

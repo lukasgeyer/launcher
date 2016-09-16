@@ -33,18 +33,22 @@ SOURCES += \
     src/itemedit.cpp \
     src/geometrystore.cpp \
     src/application.cpp \
-    src/item.cpp \
     src/itemmodel.cpp \
     src/systemlock.cpp \
     src/systemhotkey.cpp \
-    src/import.cpp \
     src/searchexpression.cpp \
     src/itemsource.cpp \
     src/xmlitemsource.cpp \
-    src/itemgroup.cpp \
     src/importer.cpp \
     src/csvitemsource.cpp \
-    src/searchwindow.cpp
+    src/searchwindow.cpp \
+    src/itemeditdialog.cpp \
+    src/linkitem.cpp \
+    src/importitem.cpp \
+    src/groupitem.cpp \
+    src/importgroupitem.cpp \
+    src/linkgroupitem.cpp \
+    src/linkitemproxymodel.cpp
 
 HEADERS += \
     src/itemview.h \
@@ -54,25 +58,25 @@ HEADERS += \
     src/geometrystore.h \
     src/event.h \
     src/application.h \
-    src/item.h \
-    src/items.h \
     src/itemmodel.h \
     src/systemlock.h \
     src/systemhotkey.h \
     src/searchexpression.h \
     src/itemsource.h \
     src/xmlitemsource.h \
-    src/import.h \
-    src/imports.h \
     src/itemsourcefactory.h \
-    src/itemgroup.h \
-    src/tag.h \
-    src/tags.h \
-    src/itemgroups.h \
     src/importer.h \
     src/csvitemsource.h \
     src/searchwindow.h \
-    src/metatype.h
+    src/metatype.h \
+    src/itemeditdialog.h \
+    src/linkitem.h \
+    src/item.h \
+    src/importitem.h \
+    src/groupitem.h \
+    src/importgroupitem.h \
+    src/linkgroupitem.h \
+    src/linkitemproxymodel.h
 
 RESOURCES += \
     resources/resources.qrc

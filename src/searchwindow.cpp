@@ -22,12 +22,13 @@
 
 #include "application.h"
 #include "event.h"
-#include "itemfiltermodel.h"
 #include "itemedit.h"
-#include "systemhotkey.h"
+#include "itemfiltermodel.h"
 #include "itemmodel.h"
 #include "itemview.h"
+#include "linkitemproxymodel.h"
 #include "searchwindow.h"
+#include "systemhotkey.h"
 
 namespace {
 
@@ -58,8 +59,11 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    //
    auto itemModel = new ItemModel(this);
 
+   auto linkItemProxyModel = new LinkItemProxyModel(this);
+   linkItemProxyModel->setSourceModel(itemModel);
+
    auto itemFilterModel = new ItemFilterModel(this);
-   itemFilterModel->setSourceModel(itemModel);
+   itemFilterModel->setSourceModel(linkItemProxyModel);
    itemFilterModel->sort(0);
 
    auto itemView = new ItemView(this);
@@ -93,10 +97,10 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
          // could be opened. In addition, the last URL open error is cleared. Remain shown
          // otherwise so the error can be seen.
          //
-         if (openUrl_(currentIndex.data(ItemModel::LinkRole).value<QUrl>()) == true)
-         {
-            hide();
-         }
+//         if (openUrl_(QUrl::fromUserInput(currentIndex.data(static_cast<int>(ItemModel::Role::Link)).value<QString>())) == true)
+//         {
+//            hide();
+//         }
       }
       else
       {
@@ -109,11 +113,12 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
          bool urlOpened = true;
          for (int row = 0; row < itemView->model()->rowCount(); ++row)
          {
-            const auto &rowIndex = itemView->model()->index(row, 0);
-            if ((searchExpressionEdit_->text().isEmpty() == false) || (rowIndex.data(ItemModel::TagsRole).value<QStringList>().empty() == false))
-            {
-               urlOpened &= openUrl_(rowIndex.data(ItemModel::LinkRole).value<QUrl>());
-            }
+//            const auto &rowIndex = itemView->model()->index(row, 0);
+//            if ((searchExpressionEdit_->text().isEmpty() == false) ||
+//                (rowIndex.data(static_cast<int>(ItemModel::Role::Tags)).value<QStringList>().empty() == false))
+//            {
+//               urlOpened &= openUrl_(QUrl::fromUserInput(currentIndex.data(static_cast<int>(ItemModel::Role::Link)).value<QString>()));
+//            }
          }
 
          if (urlOpened == true)
@@ -137,23 +142,20 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
       //
       hide();
    });
-   itemModel->connect(itemModel, &ItemModel::importReset, [this](){
-      searchExpressionEdit_->removeIndication(QStringLiteral("importError:*"));
-   });
-   itemModel->connect(itemModel, &ItemModel::importSucceeded, [this](const Import& import) {
-      searchExpressionEdit_->removeIndication(QStringLiteral("importError:").append(import.file()));
-   });
-   itemModel->connect(itemModel, &ItemModel::importFailed, [this](const Import& import, const QString& errorString, const QPoint& /* errorPosition */){
-      searchExpressionEdit_->addInidication(QStringLiteral("importError:").append(import.file()),
-                                            QStringLiteral("Import failed: ").append(import.file()).append(QStringLiteral(": ")).append(errorString));
-   });
+//   itemModel->connect(itemModel, &ItemModel::importSucceeded, [this](const ImportItem& import) {
+//      searchExpressionEdit_->removeIndication(QStringLiteral("importError:").append(import.file()));
+//   });
+//   itemModel->connect(itemModel, &ItemModel::importFailed, [this](const ImportItem& import, const QString& errorString, const QPoint& /* errorPosition */){
+//      searchExpressionEdit_->addInidication(QStringLiteral("importError:").append(import.file()),
+//                                            QStringLiteral("Import failed: ").append(import.file()).append(QStringLiteral(": ")).append(errorString));
+//   });
 
    itemView->connect(itemView, &ItemView::clicked, [this](const QModelIndex& index)
    {
       //
       // If an item is clicked open the link and remain shown (so multiple items can be clicked).
       //
-      openUrl_(index.data(ItemModel::LinkRole).value<QUrl>());
+//      openUrl_(QUrl::fromUserInput(index.data(static_cast<int>(ItemModel::Role::Link)).value<QString>()));
    });
    itemView->connect(itemView, &ItemView::customContextMenuRequested, [this, itemView](const QPoint& position){
       //
@@ -280,7 +282,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    // Update the source model. Be aware that this must be done after creating the UI, so that
    // possible errors during the model update are properly indicated.
    //
-   itemModel->read(settings.value("sourceFile", QStringLiteral("launcher.xml")).toString());
+//   itemModel->read(settings.value("sourceFile", QStringLiteral("launcher.xml")).toString());
 }
 
 SearchWindow::~SearchWindow()
