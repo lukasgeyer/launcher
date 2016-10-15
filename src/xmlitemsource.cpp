@@ -36,7 +36,7 @@ bool XmlItemSource::read(QIODevice* device)
    if (device != nullptr)
    {
       QXmlStreamReader deviceReader(device);
-      if ((deviceReader.readNextStartElement() == true) && (deviceReader.name() == "items"))
+      if ((deviceReader.readNextStartElement() ) && (deviceReader.name() == "items"))
       {
          while (deviceReader.readNextStartElement())
          {
@@ -63,8 +63,8 @@ bool XmlItemSource::read(QIODevice* device)
          deviceReader.raiseError(QObject::tr("No root element found"));
       }
 
-      result = (deviceReader.hasError() == false);
-      if (result == false)
+      result = (!deviceReader.hasError());
+      if (!result)
       {
          errorString_ = deviceReader.errorString();
          errorPosition_ = {static_cast<int>(deviceReader.lineNumber()), static_cast<int>(deviceReader.columnNumber())};
@@ -92,7 +92,7 @@ bool XmlItemSource::write(QIODevice* device) const
 //         if (&itemGroup != &itemGroups_.first())
 //         {
 //            deviceWriter.writeStartElement(QStringLiteral("group"));
-//            if (itemGroup.brush().color().isValid() == true)
+//            if (itemGroup.brush().color().isValid() )
 //            {
 //               deviceWriter.writeTextElement(QStringLiteral("color"), itemGroup.brush().color().name());
 //            }
@@ -109,7 +109,7 @@ bool XmlItemSource::write(QIODevice* device) const
 
 //            deviceWriter.writeTextElement(QStringLiteral("name"), item.name());
 //            deviceWriter.writeTextElement(QStringLiteral("url"), item.link());
-//            if (item.brush().color().isValid() == true)
+//            if (item.brush().color().isValid() )
 //            {
 //               deviceWriter.writeTextElement(QStringLiteral("color"), item.brush().color().name());
 //            }

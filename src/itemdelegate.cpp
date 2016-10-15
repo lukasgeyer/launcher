@@ -20,7 +20,7 @@ ItemDelegate::ItemDelegate(QObject* parent) : QStyledItemDelegate(parent)
 
 void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
-   Q_ASSERT(index.isValid() == true);
+   Q_ASSERT(index.isValid() );
 
    //
    // Save painter.

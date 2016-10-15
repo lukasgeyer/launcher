@@ -9,7 +9,7 @@
 
 #include "itemsource.h"
 
-ItemSource::ItemSource() : GroupItem(Item::ItemType::Source)
+ItemSource::ItemSource() : GroupItem(Item::Type::Source)
 {
 }
 

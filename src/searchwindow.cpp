@@ -83,19 +83,20 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    searchExpressionEdit_->installEventFilter(this);
    searchExpressionEdit_->setFocus();
    searchExpressionEdit_->setFocusPolicy(Qt::StrongFocus);
+   searchExpressionEdit_->setStyleSheet(QStringLiteral("QLineEdit { border: none; padding: 2px; }"));
    searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::textChanged, [this, linkItemFilterModel, itemView](const QString& text){
       linkItemFilterModel->setSearchExpression(text);
    });
    searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::returnPressed, [this, linkItemFilterModel, itemView](){
       const auto& currentIndex = itemView->currentIndex();
-      if (currentIndex.isValid() == true)
+      if (currentIndex.isValid() )
       {
          //
          // If enter is pressed and an item is selected open the link and hide if the link
          // could be opened. In addition, the last URL open error is cleared. Remain shown
          // otherwise so the error can be seen.
          //
-         if (openItem_(linkItemFilterModel->item(currentIndex)) == true)
+         if (openItem_(linkItemFilterModel->item(currentIndex)) )
          {
             hide();
          }
@@ -160,7 +161,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
                                                             settings->value(QStringLiteral("font/size")).value<int>(),
                                                             settings->value(QStringLiteral("font/weight")).value<int>(),
                                                             settings->value(QStringLiteral("font/italic")).value<bool>()), searchExpressionEdit_);
-      if (fontSelected == true)
+      if (fontSelected )
       {
          settings->setValue(QStringLiteral("font/family"), font.family());
          settings->setValue(QStringLiteral("font/size"), font.pointSize());
@@ -211,7 +212,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    //
    // Register the hotkey sequence.
    //
-   if (itemHotkey->registerKeySequence() == false)
+   if (!itemHotkey->registerKeySequence())
    {
       searchExpressionEdit_->addInidication(QStringLiteral("hotkeyError"), tr("The hotkey could not be registered"));
    }
@@ -291,7 +292,7 @@ bool SearchWindow::eventFilter(QObject* object, QEvent* event)
       // If the mouse button is pressed and the modifier is active the window modification
       // operation begins.
       //
-      if (windowModificationModifierActive_ == true)
+      if (windowModificationModifierActive_ )
       {
          windowModificationOperationActive_ = true;
 
@@ -303,7 +304,7 @@ bool SearchWindow::eventFilter(QObject* object, QEvent* event)
       //
       // If the mouse button is released the window modification operation ends.
       //
-      if (windowModificationModifierActive_ == true)
+      if (windowModificationModifierActive_ )
       {
          windowModificationOperationActive_ = false;
 
@@ -319,7 +320,7 @@ bool SearchWindow::eventFilter(QObject* object, QEvent* event)
       // modification operation is not active just updated the origin, so the proper operation
       // can be determined outside of this event.
       //
-      if (windowModificationOperationActive_ == true)
+      if (windowModificationOperationActive_ )
       {
          if (windowModificationOperation_ == WindowModificationOperation::Move)
          {
@@ -344,7 +345,7 @@ bool SearchWindow::eventFilter(QObject* object, QEvent* event)
       }
    }
 
-   if (windowModificationModifierActive_ == true)
+   if (windowModificationModifierActive_ )
    {
       //
       // If the modifier is pressed determine the window modification operation, which is either
@@ -353,7 +354,7 @@ bool SearchWindow::eventFilter(QObject* object, QEvent* event)
       auto widget = static_cast<QWidget*>(object);
       auto widgetPosition = widget->mapToGlobal(widget->pos());
 
-      if (widget->underMouse() == true)
+      if (widget->underMouse() )
       {
          if ((widget->mapToGlobal(windowModificationOrigin_).x() >= (widgetPosition.x() - RESIZE_AREA_SIZE_)) &&
              (widget->mapToGlobal(windowModificationOrigin_).x() <= (widgetPosition.x() + RESIZE_AREA_SIZE_)))
@@ -388,7 +389,7 @@ bool SearchWindow::openItem_(LinkItem* item)
    // Open the link with the registered default application.
    //
    bool result = QDesktopServices::openUrl(QUrl::fromUserInput(item->link()));
-   if (result == false)
+   if (!result)
    {
       searchExpressionEdit_->addInidication(QStringLiteral("openUrlError"), tr("Failed to open URL ").append(item->link()));
    }

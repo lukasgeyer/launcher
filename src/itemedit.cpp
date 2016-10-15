@@ -29,7 +29,7 @@ void ItemEdit::addInidication(const QString& id, const QString& indication)
 
 void ItemEdit::removeIndication(const QString& id)
 {
-   if (id.endsWith('*') == true)
+   if (id.endsWith('*') )
    {
       //
       // If the ID ends in an asterisk wildcard matching shall occur and any indication, whose
@@ -40,7 +40,7 @@ void ItemEdit::removeIndication(const QString& id)
       bool indicationMatches = false;
       for (auto indication = std::begin(indications_); indication != std::end(indications_); )
       {
-         if (indication.key().startsWith(idWithoutWildcard) == true)
+         if (indication.key().startsWith(idWithoutWildcard) )
          {
             indicationMatches = true;
             indication = indications_.erase(indication);
@@ -51,7 +51,7 @@ void ItemEdit::removeIndication(const QString& id)
          }
       }
 
-      if (indicationMatches == true)
+      if (indicationMatches )
       {
          updateIndicationsAction_();
       }
@@ -80,8 +80,15 @@ void ItemEdit::removeIndications()
 
 void ItemEdit::updateIndicationsAction_()
 {
-   if (indications_.isEmpty() == false)
-  {
+   if (indications_.isEmpty())
+   {
+      //
+      // If there are no indications hide the indication action.
+      //
+      indicationsAction_->setVisible(false);
+   }
+   else
+   {
      //
      // If there are indications in the indications list display the error indication and the
      // list of indications as tooltip for that action.
@@ -96,13 +103,6 @@ void ItemEdit::updateIndicationsAction_()
 
      indicationsAction_->setToolTip(indicationsActionTooltip);
      indicationsAction_->setVisible(true);
-  }
-  else
-  {
-     //
-     // If there are no indications hide the indication action.
-     //
-     indicationsAction_->setVisible(false);
   }
 }
 

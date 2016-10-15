@@ -80,7 +80,9 @@ HEADERS += \
     src/itemeditor.h \
     src/linkitemeditor.h \
     src/importitemeditor.h \
-    src/itemeditorfactory.h
+    src/itemeditorfactory.h \
+    src/itemfactory.h \
+    src/factory.h
 
 RESOURCES += \
     resources/resources.qrc

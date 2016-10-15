@@ -9,7 +9,7 @@
 
 #include "linkitem.h"
 
-LinkItem::LinkItem() : Item(Item::ItemType::Link)
+LinkItem::LinkItem() : Item(Item::Type::Link)
 {
 }
 

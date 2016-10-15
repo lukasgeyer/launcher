@@ -20,7 +20,7 @@ enum Widget_
    NameWidget_,
    UrlWidget_,
    ColorWidget_,
-   TagWidget_
+   TagsWidget_
 };
 
 /*!
@@ -39,22 +39,37 @@ LinkItemEditor::LinkItemEditor(QWidget* parent) : ItemEditor(parent)
    layout->insertRow(NameWidget_, tr("Name"), new QLineEdit);
    layout->insertRow(UrlWidget_, tr("Url"), new QLineEdit);
    layout->insertRow(ColorWidget_, tr("Color"), new QLineEdit);
-   layout->insertRow(TagWidget_, tr("Tag"), new QLineEdit);
+   layout->insertRow(TagsWidget_, tr("Tag"), new QLineEdit);
 
    setLayout(layout);
 }
 
 void LinkItemEditor::read(Item* item)
 {
-   LinkItem* linkItem = static_cast<LinkItem*>(item);
-
-   widget_<QLineEdit>(layout(), NameWidget_)->setText(linkItem->name());
-   widget_<QLineEdit>(layout(), UrlWidget_)->setText(linkItem->link());
-   widget_<QLineEdit>(layout(), ColorWidget_)->setText(linkItem->brush().color().name());
-   widget_<QLineEdit>(layout(), TagWidget_)->setText(linkItem->tags().join(QStringLiteral(", ")));
+   LinkItem* linkItem = Item::cast<LinkItem>(item);
+   if (linkItem != nullptr)
+   {
+      widget_<QLineEdit>(layout(), NameWidget_)->setText(linkItem->name());
+      widget_<QLineEdit>(layout(), UrlWidget_)->setText(linkItem->link());
+      widget_<QLineEdit>(layout(), TagsWidget_)->setText(linkItem->tags().join(QStringLiteral(", ")));
+      widget_<QLineEdit>(layout(), ColorWidget_)->setText(linkItem->brush().color().name());
+   }
 }
 
 void LinkItemEditor::write(Item* item)
 {
+   LinkItem* linkItem = Item::cast<LinkItem>(item);
+   if (linkItem != nullptr)
+   {
+      linkItem->setName(widget_<QLineEdit>(layout(), NameWidget_)->text());
+      linkItem->setLink(widget_<QLineEdit>(layout(), UrlWidget_)->text());
+      linkItem->setTags(widget_<QLineEdit>(layout(), TagsWidget_)->text().split(QStringLiteral(",")));
 
+      const auto& color = widget_<QLineEdit>(layout(), ColorWidget_)->text();
+      if (!color.isEmpty())
+      {
+         linkItem->setBrush(QBrush(QColor(color)));
+      }
+
+   }
 }

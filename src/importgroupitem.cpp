@@ -10,7 +10,7 @@
 #include "importgroupitem.h"
 
 
-ImportGroupItem::ImportGroupItem() : GroupItem(Item::ItemType::ImportGroup)
+ImportGroupItem::ImportGroupItem() : GroupItem(Item::Type::ImportGroup)
 {
 }
 

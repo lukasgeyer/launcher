@@ -25,11 +25,19 @@ public:
    ImportGroupItem();
 
    /*!
-    * The type of the group.
+    * \reimp
     */
-   static inline bool isItemType(Item::ItemType itemType)
+   inline bool isContainerOf(Item::Type type) const override
    {
-      return (itemType == Item::ItemType::ImportGroup);
+      return (type == Item::Type::Import);
+   }
+
+   /*!
+    * \reimp
+    */
+   static inline bool isType(Item::Type type)
+   {
+      return (type == Item::Type::ImportGroup);
    }
 
 private:

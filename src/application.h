@@ -16,6 +16,7 @@
 
 #include "geometrystore.h"
 #include "itemeditorfactory.h"
+#include "itemfactory.h"
 #include "itemsourcefactory.h"
 
 /*!
@@ -30,32 +31,25 @@ public:
    Application(int& argc, char** argv);
 
    /*!
-    * Returns a pointer to the geometry store.
+    * Returns a pointer to the item factory.
     */
-   inline GeometryStore* geometryStore()
+   inline ItemFactory* itemFactory()
    {
-      Q_ASSERT(geometryStore_.isNull() == false);
-
-      return geometryStore_.data();
+      return &itemFactory_;
    }
-
    /*!
     * Returns a pointer to the item editor factory.
     */
    inline ItemEditorFactory* itemEditorFactory()
    {
-      Q_ASSERT(itemEditorFactory_.isNull() == false);
-
-      return itemEditorFactory_.data();
+      return &itemEditorFactory_;
    }
    /*!
     * Returns a pointer to the item source factory.
     */
    inline ItemSourceFactory* itemSourceFactory()
    {
-      Q_ASSERT(itemSourceFactory_.isNull() == false);
-
-      return itemSourceFactory_.data();
+      return &itemSourceFactory_;
    }
 
    /*!
@@ -63,30 +57,40 @@ public:
     */
    inline QSettings* settings()
    {
-      Q_ASSERT(settings_.isNull() == false);
+      return &settings_;
+   }
 
-      return settings_.data();
+   /*!
+    * Returns a pointer to the geometry store.
+    */
+   inline GeometryStore* geometryStore()
+   {
+      return &geometryStore_;
    }
 
 private:
    /*!
-    * The geometry store.
+    * The application-wide settings.
     */
-   QScopedPointer<GeometryStore> geometryStore_;
+   QSettings settings_;
 
+   /*!
+    * The item factory.
+    */
+   ItemFactory itemFactory_;
    /*!
     * The item editor factory.
     */
-   QScopedPointer<ItemEditorFactory> itemEditorFactory_;
+   ItemEditorFactory itemEditorFactory_;
    /*!
     * The item source factory.
     */
-   QScopedPointer<ItemSourceFactory> itemSourceFactory_;
+   ItemSourceFactory itemSourceFactory_;
 
    /*!
-    * The application-wide settings.
+    * The geometry store.
     */
-   QScopedPointer<QSettings> settings_;
+   GeometryStore geometryStore_;
 };
 
 #endif // APPLICATION_H

@@ -74,9 +74,9 @@ public:
    /*!
     * The type of the item.
     */
-   static inline bool isItemType(Item::ItemType itemType)
+   static inline bool isType(Item::Type type)
    {
-      return (itemType == Item::ItemType::Link);
+      return (type == Item::Type::Link);
    }
 
 private:

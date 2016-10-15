@@ -37,7 +37,7 @@ ItemModel::~ItemModel()
 void ItemModel::read(const QString& fileName)
 {
    QFile file(fileName);
-   if (file.open(QIODevice::ReadOnly) == true)
+   if (file.open(QIODevice::ReadOnly) )
    {
       beginResetModel();
 
@@ -55,7 +55,7 @@ QModelIndex ItemModel::index(int row, int column, const QModelIndex& parent) con
    QModelIndex index;
 
    const GroupItem* groupItem = this;
-   if (parent.isValid() == true)
+   if (parent.isValid() )
    {
       groupItem = static_cast<const GroupItem*>(parent.internalPointer());
    }
@@ -90,7 +90,7 @@ int ItemModel::rowCount(const QModelIndex& parent) const
 {
    int rowCount = 0;
 
-   auto item = ((parent.isValid() == false) ? (this) : (Item::cast<GroupItem>(static_cast<Item*>(parent.internalPointer()))));
+   auto item = ((!parent.isValid()) ? (this) : (Item::cast<GroupItem>(static_cast<Item*>(parent.internalPointer()))));
    if (item != nullptr)
    {
       rowCount = item->items().count();
@@ -99,7 +99,7 @@ int ItemModel::rowCount(const QModelIndex& parent) const
    return rowCount;
 }
 
-int ItemModel::columnCount(const QModelIndex& parent) const
+int ItemModel::columnCount(const QModelIndex& /* parent */) const
 {
    return 1;
 }
@@ -108,7 +108,7 @@ QVariant ItemModel::data(const QModelIndex &index, int role) const
 {
    QVariant data;
 
-   if (index.isValid() == true)
+   if (index.isValid() )
    {
       if (auto item = Item::cast<LinkItem>(static_cast<Item*>(index.internalPointer())))
       {
@@ -156,7 +156,7 @@ Item* ItemModel::item(const QModelIndex& index)
 {
    Item* item = nullptr;
 
-   if (index.isValid() == true)
+   if (index.isValid() )
    {
       item = static_cast<Item*>(index.internalPointer());
    }

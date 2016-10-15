@@ -28,7 +28,7 @@ public:
    /*!
     * Constructs an item edit dialog with the parent \a parent and the flags \a windowFlags.
     */
-   ItemEditDialog(ItemModel *model, QWidget* parent = nullptr, Qt::WindowFlags windowFlags = Qt::WindowFlags());
+   ItemEditDialog(ItemModel *itemModel, QWidget* parent = nullptr, Qt::WindowFlags windowFlags = Qt::WindowFlags());
 
 private:
    /*!

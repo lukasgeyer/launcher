@@ -64,9 +64,9 @@ bool LinkItemFilterModel::lessThan(const QModelIndex &sourceLeft, const QModelIn
       // A tagged item is sorted up, an non-tagged item is sorted down, if both are of the same
       // type sort lexically.
       //
-      isLessThan = ((itemLeft->tags().isEmpty() == false) && (itemRight->tags().isEmpty() == true )) ? true  :
-                   ((itemLeft->tags().isEmpty() == true ) && (itemRight->tags().isEmpty() == false)) ? false :
-                   ((itemLeft->name() < itemRight->name()));
+      isLessThan = ((!itemLeft->tags().isEmpty()) && ( itemRight->tags().isEmpty())) ? true  :
+                   (( itemLeft->tags().isEmpty()) && (!itemRight->tags().isEmpty())) ? false :
+                   (( itemLeft->name() < itemRight->name()));
    }
 
    return isLessThan;

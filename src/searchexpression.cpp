@@ -25,9 +25,8 @@ void SearchExpression::setExpression(const QString& expression)
 
 bool SearchExpression::Matches(const QString& name, const QStringList& tags) const
 {
-   return (((nameTerms_.isEmpty() == false) || (tagsTerms_.isEmpty() == false)) &&
-           ((nameTerms_.isEmpty() == true) || (MatchesName_(name) == true)) &&
-           ((tagsTerms_.isEmpty() == true) || (MatchesTags_(tags) == true)));
+   return (((!nameTerms_.isEmpty()) || (!tagsTerms_.isEmpty())) && ((nameTerms_.isEmpty()) || ( MatchesName_(name))) &&
+                                                                   ((tagsTerms_.isEmpty()) || ( MatchesTags_(tags))));
 }
 
 void SearchExpression::Compile_(const QString& expression)
@@ -58,7 +57,7 @@ void SearchExpression::Compile_(const QString& expression)
          expressionToken.replace("?", ".");
          expressionToken.replace("*", ".*");
 
-         if (expressionToken.startsWith('@') == false)
+         if (!expressionToken.startsWith('@'))
          {
             expressionToken.prepend('^');
 
@@ -99,7 +98,7 @@ bool SearchExpression::MatchesName_(const QString& name) const
       }
    }
 
-   return ((isConjunctMatch == true) || (isDisjunctMatch == true));
+   return ((isConjunctMatch ) || (isDisjunctMatch ));
 }
 
 bool SearchExpression::MatchesTags_(const QStringList& tags) const
@@ -112,7 +111,7 @@ bool SearchExpression::MatchesTags_(const QStringList& tags) const
    for (const auto &tagsTerm : tagsTerms_)
    {
       bool isTermMatch = false;
-      for (auto tag = std::begin(tags); ((tag != std::end(tags)) && (isTermMatch == false)); ++tag)
+      for (auto tag = std::begin(tags); ((tag != std::end(tags)) && (!isTermMatch)); ++tag)
       {
          isTermMatch = (tagsTerm.expression.match(*tag).hasMatch() ^ (tagsTerm.negation == Term_::Negation::Negated));
       }
@@ -128,5 +127,5 @@ bool SearchExpression::MatchesTags_(const QStringList& tags) const
       }
    }
 
-   return ((isConjunctMatch == true) || (isDisjunctMatch == true));
+   return ((isConjunctMatch ) || (isDisjunctMatch ));
 }

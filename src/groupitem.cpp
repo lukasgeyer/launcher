@@ -1,5 +1,5 @@
 /*!
- * \file itemgroup.cpp
+ * \file groupitem.cpp
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license the program is free software; you can redistribute it and/or modify
@@ -11,7 +11,7 @@
 
 #include "groupitem.h"
 
-GroupItem::GroupItem() : Item(Item::ItemType::Group)
+GroupItem::GroupItem() : Item(Item::Type::Group)
 {
 }
 
@@ -70,6 +70,6 @@ int GroupItem::indexOf(Item* item) const
    return items_.indexOf(item);
 }
 
-GroupItem::GroupItem(ItemType type) : Item(type)
+GroupItem::GroupItem(Type type) : Item(type)
 {
 }

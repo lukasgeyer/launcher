@@ -1,5 +1,5 @@
 /*!
- * \file itemgroup.h
+ * \file groupitem.h
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license the program is free software; you can redistribute it and/or modify
@@ -7,8 +7,8 @@
  *          published by the Free Software Foundation.
  */
 
-#ifndef ITEMGROUP_H
-#define ITEMGROUP_H
+#ifndef GROUPITEM_H
+#define GROUPITEM_H
 
 #include <QString>
 #include <QVector>
@@ -68,21 +68,31 @@ public:
    int indexOf(Item* item) const;
 
    /*!
+    * Returns \a true if this group item is a container for an item of the type \a type;
+    * \a false otherwise. The default implementation returns \a false and should be overridden
+    * in any derived class.
+    */
+   virtual inline bool isContainerOf(Item::Type /* type */) const
+   {
+      return false;
+   }
+
+   /*!
     * The type of the item.
     */
-   static inline bool isItemType(Item::ItemType itemType)
+   static inline bool isType(Item::Type type)
    {
-      return ((itemType == Item::ItemType::Group) ||
-              (itemType == Item::ItemType::LinkGroup) ||
-              (itemType == Item::ItemType::ImportGroup) ||
-              (itemType == Item::ItemType::Source));
+      return ((type == Item::Type::Group) ||
+              (type == Item::Type::LinkGroup) ||
+              (type == Item::Type::ImportGroup) ||
+              (type == Item::Type::Source));
    }
 
 protected:
    /*!
     * Constructs a gorup item of the type \a type.
     */
-   explicit GroupItem(ItemType type);
+   explicit GroupItem(Item::Type type);
 
 private:
    /*!
@@ -96,4 +106,4 @@ private:
    QVector<Item*> items_;
 };
 
-#endif // ITEMGROUP_H
+#endif // GROUPITEM_H

@@ -1,5 +1,5 @@
 /*!
- * \file itemeditorfactory.h
+ * \file itemfactory.h
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -7,21 +7,16 @@
  *          published by the Free Software Foundation.
  */
 
-#ifndef ITEMEDITORFACTORY_H
-#define ITEMEDITORFACTORY_H
-
-#include <QPair>
-#include <QList>
-#include <QString>
+#ifndef ITEMFACTORY_H
+#define ITEMFACTORY_H
 
 #include "factory.h"
 #include "item.h"
-#include "itemeditor.h"
 
 /*!
- * \brief A factory for item editors.
+ * \brief An item factory.
  */
-class ItemEditorFactory : public Factory<Item::Type, ItemEditor>
+class ItemFactory : public Factory<Item::Type, Item, QString>
 {
 public:
    /*!
@@ -31,6 +26,14 @@ public:
    {
       return ids();
    }
+
+   /*!
+    * Returns the type name for the type \a itemType.
+    */
+   inline QString typeName(Item::Type type)
+   {
+      return additionalInformation<0>(type);
+   }
 };
 
-#endif // ITEMEDITORFACTORY_H
+#endif // ITEMFACTORY_H

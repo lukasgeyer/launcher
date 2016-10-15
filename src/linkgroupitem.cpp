@@ -9,7 +9,7 @@
 
 #include "linkgroupitem.h"
 
-LinkGroupItem::LinkGroupItem() : GroupItem(Item::ItemType::LinkGroup)
+LinkGroupItem::LinkGroupItem() : GroupItem(Item::Type::LinkGroup)
 {
 }
 

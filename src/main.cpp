@@ -60,13 +60,13 @@ int main(int argc, char *argv[])
    // just a single instance of the application is running at a time).
    //
    SystemLock lock;
-   if (lock.tryLock() == true)
+   if (lock.tryLock() )
    {
       //
       // Set up logging. If the log file cannot be openend (just) the default message handler is used.
       //
       QFile logFile(QStringLiteral("launcher.log"));
-      if (logFile.open(QIODevice::Text | QIODevice::Truncate | QIODevice::WriteOnly) == true)
+      if (logFile.open(QIODevice::Text | QIODevice::Truncate | QIODevice::WriteOnly) )
       {
          logFileStream_.setDevice(&logFile);
 

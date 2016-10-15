@@ -12,7 +12,7 @@
 
 REGISTER_METATYPE(ImportItem)
 
-ImportItem::ImportItem(const QString& file, const QString& mimeType) : Item(Item::ItemType::Import), file_(file), mimeType_(mimeType)
+ImportItem::ImportItem(const QString& file, const QString& mimeType) : Item(Item::Type::Import), file_(file), mimeType_(mimeType)
 {
 }
 

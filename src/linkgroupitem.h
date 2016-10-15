@@ -49,9 +49,20 @@ public:
     */
    const QBrush& brush() const;
 
-   static inline bool isItemType(Item::ItemType itemType)
+   /*!
+    * \reimp
+    */
+   inline bool isContainerOf(Item::Type type) const override
    {
-      return (itemType == Item::ItemType::LinkGroup);
+      return (type == Item::Type::Link);
+   }
+
+   /*!
+    * \reimp
+    */
+   static inline bool isType(Item::Type type)
+   {
+      return (type == Item::Type::LinkGroup);
    }
 
 private:

@@ -38,7 +38,7 @@ bool SystemHotkey::registerKeySequence()
                                                                                 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC));
 
    keySequenceRegistered = ((result == nullptr) || (result->error_code == 0));
-   if (keySequenceRegistered == true)
+   if (keySequenceRegistered )
    {
       QAbstractEventDispatcher::instance()->installNativeEventFilter(this);
    }
@@ -48,8 +48,8 @@ bool SystemHotkey::registerKeySequence()
    }
 
 #elif defined(Q_OS_WIN)
-   keySequenceRegistered = (RegisterHotKey(NULL, 0, MOD_CONTROL | MOD_SHIFT, VK_SPACE) == TRUE);
-   if (keySequenceRegistered == true)
+   keySequenceRegistered = (RegisterHotKey(NULL, 0, MOD_CONTROL | MOD_SHIFT, VK_SPACE) );
+   if (keySequenceRegistered )
    {
       QAbstractEventDispatcher::instance()->installNativeEventFilter(this);
    }

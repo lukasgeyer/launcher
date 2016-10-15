@@ -52,6 +52,16 @@ public:
     */
    virtual QPoint errorPosition() const = 0;
 
+   /*!
+    * \reimp
+    */
+   inline bool isContainerOf(Item::Type type) const override
+   {
+      return ((type == Item::Type::Link) ||
+              (type == Item::Type::LinkGroup) ||
+              (type == Item::Type::ImportGroup));
+   }
+
 protected:
    /*!
     * Constructs the item source.

@@ -55,7 +55,7 @@ QModelIndex LinkItemProxyModel::index(int row, int column, const QModelIndex& /*
 {
    QModelIndex index;
 
-   if (isValid_(row, column) == true)
+   if (isValid_(row, column) )
    {
       index = createIndex(row, column);
    }
@@ -159,7 +159,7 @@ LinkItem* LinkItemProxyModel::item(const QModelIndex& proxyIndex)
    LinkItem* item = nullptr;
 
    ItemModel* itemModel = static_cast<ItemModel*>(sourceModel());
-   if ((itemModel != nullptr) && (isValid_(proxyIndex) == true))
+   if ((itemModel != nullptr) && (isValid_(proxyIndex) ))
    {
       item = Item::cast<LinkItem>(itemModel->item(cache_[proxyIndex.row()].index));
    }

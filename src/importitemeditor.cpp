@@ -12,6 +12,7 @@
 #include <QLineEdit>
 
 #include "application.h"
+#include "importitem.h"
 #include "importitemeditor.h"
 
 ImportItemEditor::ImportItemEditor(QWidget* parent) : ItemEditor(parent)

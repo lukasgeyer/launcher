@@ -23,7 +23,7 @@ public:
    /*!
     * \brief The type of the item.
     */
-   enum class ItemType
+   enum class Type
    {
       Invalid,
       Link,
@@ -44,7 +44,7 @@ public:
    /*!
     * Returns the type of the item.
     */
-   inline ItemType type() const
+   inline Type type() const
    {
       return type_;
    }
@@ -67,21 +67,24 @@ public:
    /*!
     * Returns \a true if the item \a item is of type \a type; false otherwise.
     */
-   template <typename Type, typename SourceType> static inline bool is(SourceType* item)
+   template <typename TargetType, typename SourceType>
+   static inline typename std::enable_if<std::is_base_of<Item, TargetType>::value, bool>::type is(SourceType* item)
    {
-      return ((item != nullptr) && (Type::isItemType(item->type_)));
+      return ((item != nullptr) && (TargetType::isType(item->type_)));
    }
 
    /*!
     * Casts the item \a item to the derived item type \a Type and returns a pointer to that type
     * or \a nullptr if the item is not of that type.
     */
-   template <typename Type, typename SourceType, typename ReturnType = std::conditional<std::is_const<SourceType>::value, const Type*, Type*>::type>
-   static inline typename std::enable_if<std::is_base_of<Item, Type>::value, ReturnType>::type cast(SourceType* item)
+   template <typename TargetType,
+             typename SourceType,
+             typename ReturnType = std::conditional<std::is_const<SourceType>::value, const TargetType*, TargetType*>::type>
+   static inline typename std::enable_if<std::is_base_of<Item, TargetType>::value, ReturnType>::type cast(SourceType* item)
    {
       ReturnType returnItem = nullptr;
 
-      if (is<Type>(item) == true)
+      if (Item::is<TargetType>(item))
       {
          returnItem = static_cast<decltype(returnItem)>(item);
       }
@@ -93,7 +96,7 @@ protected:
    /*!
     * Constructs an item of the type \a type.
     */
-   inline Item(ItemType type) : type_(type)
+   inline Item(Type type) : type_(type)
    {
    }
 
@@ -101,7 +104,7 @@ private:
    /*!
     * The type of the item.
     */
-   ItemType type_;
+   Type type_;
 
    /*!
     * A pointer to the parent of this item.
@@ -110,11 +113,11 @@ private:
 };
 
 /*!
- * Returns the hash for the item type \a itemType.
+ * Returns the hash for the item type \a type.
  */
-inline uint qHash(Item::ItemType itemType, uint seed = 0)
+inline uint qHash(Item::Type type, uint seed = 0)
 {
-   return qHash(static_cast<int>(itemType), seed);
+   return qHash(static_cast<int>(type), seed);
 }
 
 #endif // ITEM_H

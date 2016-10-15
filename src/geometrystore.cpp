@@ -60,14 +60,14 @@ bool GeometryStore::eventFilter(QObject* object, QEvent* event)
       // default geometry.
       //
       auto geometry = settings_->value(geometryKey(widget));
-      if (geometry.isValid() == true)
+      if (geometry.isValid() )
       {
          widget->restoreGeometry(geometry.value<QByteArray>());
       }
       else
       {
          auto defaultGeometry = settings_->value(defaultGeometryKey(widget));
-         if (defaultGeometry.isValid() == true)
+         if (defaultGeometry.isValid() )
          {
             widget->resize(defaultGeometry.value<QRect>().size());
             widget->move(defaultGeometry.value<QRect>().topLeft());

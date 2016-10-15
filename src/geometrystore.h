@@ -7,10 +7,10 @@
  *          published by the Free Software Foundation.
  */
 
-#include <QObject>
-
 #ifndef GEOMETRYSTORE_H
 #define GEOMETRYSTORE_H
+
+#include <QObject>
 
 class QWidget;
 class QSettings;
