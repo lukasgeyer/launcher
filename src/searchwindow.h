@@ -18,6 +18,7 @@
 class Indicator;
 class ItemEdit;
 class ItemView;
+class LinkItem;
 
 /*!
  * \brief An item window, listing all items, filtered by name and tags.
@@ -74,11 +75,10 @@ private:
    bool eventFilter(QObject* object, QEvent* event) override;
 
    /*!
-    * Tries to open the URL \a url with the default application and returns \a true if the URL
-    * can be opened; \a false otherwise and the error will be indicated at the error indication
-    * \a errorIndication.
+    * Tries to the item \a item with the default application and returns \a true if the item
+    * could be opened; \a false otherwise.
     */
-   bool openUrl_(const QUrl& url);
+   bool openItem_(LinkItem* item);
 };
 
 #endif // SEARCHWINDOW_H

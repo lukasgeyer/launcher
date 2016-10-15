@@ -10,16 +10,18 @@
 #ifndef ITEMMODEL_H
 #define ITEMMODEL_H
 
+#include <functional>
+
 #include <QAbstractListModel>
 #include <QString>
 #include <QThreadPool>
 
-#include "xmlitemsource.h"
+#include "groupitem.h"
 
 /*!
  * \brief An item model representing the items found in an XML-based source file.
  */
-class ItemModel : public QAbstractItemModel, public XmlItemSource
+class ItemModel : public QAbstractItemModel, public GroupItem
 {
    Q_OBJECT
 
@@ -36,7 +38,7 @@ public:
    /*!
     * \reimp
     */
-   QModelIndex index(int row, int column, const QModelIndex &parent) const override;
+   QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
    /*!
     * \reimp
     */
@@ -45,21 +47,38 @@ public:
    /*!
     * \reimp
     */
-   int rowCount(const QModelIndex& parent) const override;
+   int rowCount(const QModelIndex& parent = QModelIndex()) const override;
    /*!
     * \reimp
     */
-   int columnCount(const QModelIndex &parent) const override;
+   int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
    /*!
     * \reimp
     */
-   QVariant data(const QModelIndex& index, int role) const override;
+   QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
 
    /*!
-    * \reimp
+    * Recursively applies the function \a function to each item of type \a Type.
     */
-   bool read(QIODevice* device) override;
+   template <typename Type> void apply(const std::function<void(const QModelIndex& index, Type* item)> function, const QModelIndex& parent = QModelIndex())
+   {
+      for (int row = 0; row < rowCount(parent); ++row)
+      {
+         const QModelIndex& childIndex = index(row, 0, parent);
+         if (auto childItem = Item::cast<Type>(item(childIndex)))
+         {
+            function(childIndex, childItem);
+         }
+
+         apply<Type>(function, childIndex);
+      }
+   }
+
+   /*!
+    * Asynchronosly reads the model data from the file with the name \a fileName.
+    */
+   void read(const QString& fileName);
 
    /*!
     * Returns a pointer to the item at the index \a index or \a nullptr if there is no such item.

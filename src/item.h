@@ -12,6 +12,8 @@
 
 #include <type_traits>
 
+#include <QHash>
+
 /*!
  * \brief An item.
  */
@@ -21,8 +23,9 @@ public:
    /*!
     * \brief The type of the item.
     */
-   enum ItemType
+   enum class ItemType
    {
+      Invalid,
       Link,
       Import,
       Group,
@@ -39,12 +42,11 @@ public:
    }
 
    /*!
-    * Casts the item to the derived item type \a TargetType and returns a pointer to
-    * that type or \a nullptr if the item is not of that type.
+    * Returns the type of the item.
     */
-   template <typename TargetType> inline typename std::enable_if<std::is_base_of<Item, TargetType>::value, TargetType*>::type cast()
+   inline ItemType type() const
    {
-      return (TargetType::isItemType(type_) ? (static_cast<TargetType*>(this)) : (nullptr));
+      return type_;
    }
 
    /*!
@@ -60,6 +62,31 @@ public:
    inline Item* parent()
    {
       return parent_;
+   }
+
+   /*!
+    * Returns \a true if the item \a item is of type \a type; false otherwise.
+    */
+   template <typename Type, typename SourceType> static inline bool is(SourceType* item)
+   {
+      return ((item != nullptr) && (Type::isItemType(item->type_)));
+   }
+
+   /*!
+    * Casts the item \a item to the derived item type \a Type and returns a pointer to that type
+    * or \a nullptr if the item is not of that type.
+    */
+   template <typename Type, typename SourceType, typename ReturnType = std::conditional<std::is_const<SourceType>::value, const Type*, Type*>::type>
+   static inline typename std::enable_if<std::is_base_of<Item, Type>::value, ReturnType>::type cast(SourceType* item)
+   {
+      ReturnType returnItem = nullptr;
+
+      if (is<Type>(item) == true)
+      {
+         returnItem = static_cast<decltype(returnItem)>(item);
+      }
+
+      return returnItem;
    }
 
 protected:
@@ -81,5 +108,13 @@ private:
     */
    Item* parent_ = nullptr;
 };
+
+/*!
+ * Returns the hash for the item type \a itemType.
+ */
+inline uint qHash(Item::ItemType itemType, uint seed = 0)
+{
+   return qHash(static_cast<int>(itemType), seed);
+}
 
 #endif // ITEM_H

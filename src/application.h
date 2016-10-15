@@ -15,7 +15,8 @@
 #include <QScopedPointer>
 
 #include "geometrystore.h"
-
+#include "itemeditorfactory.h"
+#include "itemsourcefactory.h"
 
 /*!
  * \brief The application.
@@ -29,28 +30,59 @@ public:
    Application(int& argc, char** argv);
 
    /*!
-    * Returns a reference to the geometry store.
+    * Returns a pointer to the geometry store.
     */
-   GeometryStore& geometryStore();
-   /*!
-    * Returns a const reference to the geometry store.
-    */
-   const GeometryStore& geometryStore() const;
+   inline GeometryStore* geometryStore()
+   {
+      Q_ASSERT(geometryStore_.isNull() == false);
+
+      return geometryStore_.data();
+   }
 
    /*!
-    * Returns a reference to the application-wide settings.
+    * Returns a pointer to the item editor factory.
     */
-   QSettings& settings();
+   inline ItemEditorFactory* itemEditorFactory()
+   {
+      Q_ASSERT(itemEditorFactory_.isNull() == false);
+
+      return itemEditorFactory_.data();
+   }
    /*!
-    * Returns a const reference to the application-wide settings.
+    * Returns a pointer to the item source factory.
     */
-   const QSettings& settings() const;
+   inline ItemSourceFactory* itemSourceFactory()
+   {
+      Q_ASSERT(itemSourceFactory_.isNull() == false);
+
+      return itemSourceFactory_.data();
+   }
+
+   /*!
+    * Returns a pointer to the application-wide settings.
+    */
+   inline QSettings* settings()
+   {
+      Q_ASSERT(settings_.isNull() == false);
+
+      return settings_.data();
+   }
 
 private:
    /*!
     * The geometry store.
     */
    QScopedPointer<GeometryStore> geometryStore_;
+
+   /*!
+    * The item editor factory.
+    */
+   QScopedPointer<ItemEditorFactory> itemEditorFactory_;
+   /*!
+    * The item source factory.
+    */
+   QScopedPointer<ItemSourceFactory> itemSourceFactory_;
+
    /*!
     * The application-wide settings.
     */

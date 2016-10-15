@@ -10,70 +10,36 @@
 #ifndef ITEMSOURCEFACTORY_H
 #define ITEMSOURCEFACTORY_H
 
+#include <type_traits>
+
 #include <QHash>
 #include <QString>
+#include <QStringList>
 
 #include "itemsource.h"
 
 /*!
- * \brief A factory for various items sources.
+ * \brief A factory for item sources.
  */
 class ItemSourceFactory
 {
 public:
    /*!
-    * \brief A declaration for the item source type \a ItemSourceType.
-    */
-   template <typename ItemSourceType> class Declaration
-   {
-   public:
-      /*!
-       * \brief The type of the item source type.
-       */
-      typedef ItemSourceType Type;
-
-      /*!
-       * Constructs a declaration with the MIME type \a mimeType.
-       */
-      inline Declaration(const QString& mimeType) : mimeType_(mimeType)
-      {
-      }
-
-      /*!
-       * Returns the MIME type of the item source.
-       */
-      inline QString mimeType() const
-      {
-         return mimeType_;
-      }
-
-   private:
-      /*!
-       * The MIME type of the item source type.
-       */
-      QString mimeType_;
-   };
-
-   /*!
-    * Constructs an item source factory having \a ItemSourceTypes... declared.
-    */
-   template <typename DeclarationType, typename... DeclarationTypes>
-   inline ItemSourceFactory(const DeclarationType& declaration, const DeclarationTypes&... declarations) : ItemSourceFactory(declarations...)
-   {
-      declare<DeclarationType::Type>(declaration.mimeType());
-   }
-   template <typename DeclarationType>
-   inline ItemSourceFactory(const DeclarationType& declaration)
-   {
-      declare<DeclarationType::Type>(declaration.mimeType());
-   }
-
-   /*!
-    * Declares the item source \a ItemSourceType with the factory.
+    * Declares the item source \a ItemSourceType with the MIME type \a mimeType.
     */
    template <typename ItemSourceType> inline void declare(const QString& mimeType)
    {
+      static_assert(std::is_base_of<ItemSource, ItemSourceType>::value, "ItemSourceType must be an ItemSource");
+
       types_.insert(mimeType, &ItemSourceFactory::create_<ItemSourceType>);
+   }
+
+   /*!
+    * Returns the list of MIME types registered in this factory.
+    */
+   inline QList<QString> mimeTypes() const
+   {
+      return types_.keys();
    }
 
    /*!
@@ -84,10 +50,10 @@ public:
    {
       ItemSource* itemSource;
 
-      auto creator = types_.find(mimeType);
-      if (creator != types_.end())
+      auto type = types_.find(mimeType);
+      if (type != types_.end())
       {
-         itemSource = creator.value()();
+         itemSource = type.value()();
       }
 
       return itemSource;

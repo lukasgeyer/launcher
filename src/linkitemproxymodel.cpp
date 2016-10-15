@@ -7,18 +7,55 @@
  *          published by the Free Software Foundation.
  */
 
+#include <algorithm>
+#include <iterator>
+
+#include "groupitem.h"
+#include "itemmodel.h"
+#include "linkgroupitem.h"
+#include "linkitem.h"
 #include "linkitemproxymodel.h"
 
-void LinkItemProxyModel::setSourceModel(QAbstractItemModel* model)
+LinkItemProxyModel::LinkItemProxyModel(QObject* parent) : QAbstractProxyModel(parent)
 {
-   //< CONTINUE HERE
+}
+
+void LinkItemProxyModel::setSourceModel(QAbstractItemModel* sourceModel)
+{
+   if (this->sourceModel() != nullptr)
+   {
+      //
+      // If an item model was set previously disconnect from the reset signal, so the cache is
+      // no longer rebuilt when this model changes.
+      //
+      disconnect(this->sourceModel(), &QAbstractItemModel::modelReset, this, &LinkItemProxyModel::reset_);
+   }
+
+   //
+   // Set the source model.
+   //
+   QAbstractProxyModel::setSourceModel(sourceModel);
+
+   if (this->sourceModel() != nullptr)
+   {
+      //
+      // If a valid item model has been set connect to the reset signal, so the cache is rebuilt
+      // when this model changes.
+      //
+      connect(this->sourceModel(), &QAbstractItemModel::modelReset, this, &LinkItemProxyModel::reset_);
+
+      //
+      // Immediately reset the model from the set source model and rebuild the cache.
+      //
+      reset_();
+   }
 }
 
 QModelIndex LinkItemProxyModel::index(int row, int column, const QModelIndex& /* parent */) const
 {
    QModelIndex index;
 
-   if ((row >= 0) && (row < fromSourceIndexCache_.size()) && (column == 0))
+   if (isValid_(row, column) == true)
    {
       index = createIndex(row, column);
    }
@@ -33,41 +70,144 @@ QModelIndex LinkItemProxyModel::parent(const QModelIndex& /* child */) const
 
 QModelIndex LinkItemProxyModel::mapFromSource(const QModelIndex& sourceIndex) const
 {
-   QModelIndex index;
+   QModelIndex proxyIndex;
 
-   if ((sourceIndex.isValid() == true) && (sourceIndex.row() >= 0) && (sourceIndex.row() < fromSourceIndexCache_.size()) && (sourceIndex.column() == 0))
+   auto cacheEntry = std::find_if(std::cbegin(cache_), std::cend(cache_), [sourceIndex](const CacheEntry_ &cacheEntry)
    {
-      index = fromSourceIndexCache_[sourceIndex.row()];
+      return (cacheEntry.index == sourceIndex);
+   });
+
+   if (cacheEntry != std::cend(cache_))
+   {
+      proxyIndex = createIndex(std::distance(std::cbegin(cache_), cacheEntry), sourceIndex.column());
    }
 
-   return index;
+   return proxyIndex;
 }
 
 QModelIndex LinkItemProxyModel::mapToSource(const QModelIndex& proxyIndex) const
 {
-   QModelIndex index;
+   QModelIndex sourceIndex;
 
-   if ((proxyIndex.isValid() == true) && (proxyIndex.row() >= 0) && (proxyIndex.row() < toSourceIndexCache_.size()) && (proxyIndex.column() == 0))
+   if (isValid_(proxyIndex))
    {
-      index = toSourceIndexCache_[proxyIndex.row()];
+      sourceIndex = cache_[proxyIndex.row()].index;
    }
 
-   return index;
+   return sourceIndex;
 }
 
 int LinkItemProxyModel::rowCount(const QModelIndex& /* parent */) const
 {
-   return fromSourceIndexCache_.size();
+   return cache_.size();
 }
 
-int LinkItemProxyModel::columnCount(const QModelIndex& parent) const
+int LinkItemProxyModel::columnCount(const QModelIndex& /* parent */) const
 {
-   return 1;
+   return 2;
 }
 
 QVariant LinkItemProxyModel::data(const QModelIndex& proxyIndex, int role) const
 {
    QVariant data;
 
+   const LinkItem* item = this->item(proxyIndex);
+   if (item != nullptr)
+   {
+      switch (proxyIndex.column())
+      {
+      case 0:
+      {
+         switch (role)
+         {
+         case Qt::DisplayRole:
+            data = item->name();
+            break;
+         case Qt::ToolTipRole:
+         case Qt::StatusTipRole:
+            data = item->link();
+            break;
+         case Qt::ForegroundRole:
+            data = cache_[proxyIndex.row()].brush;
+            break;
+         }
+         break;
+      }
+      case 1:
+      {
+         switch(role)
+         {
+         case Qt::DisplayRole:
+         case Qt::ToolTipRole:
+         case Qt::StatusTipRole:
+            data = cache_[proxyIndex.row()].tagString;
+            break;
+         case Qt::UserRole:
+            data = cache_[proxyIndex.row()].tagStringList;
+            break;
+         }
+         break;
+      }
+      }
+   }
+
    return data;
+}
+
+LinkItem* LinkItemProxyModel::item(const QModelIndex& proxyIndex)
+{
+   LinkItem* item = nullptr;
+
+   ItemModel* itemModel = static_cast<ItemModel*>(sourceModel());
+   if ((itemModel != nullptr) && (isValid_(proxyIndex) == true))
+   {
+      item = Item::cast<LinkItem>(itemModel->item(cache_[proxyIndex.row()].index));
+   }
+
+   return item;
+}
+
+const LinkItem* LinkItemProxyModel::item(const QModelIndex& proxyIndex) const
+{
+   return const_cast<const LinkItem*>(const_cast<LinkItemProxyModel*>(this)->item(proxyIndex));
+}
+
+void LinkItemProxyModel::reset_()
+{
+   beginResetModel();
+
+   //
+   // Clear the cache.
+   //
+   cache_.clear();
+
+   //
+   // Recursively add any link items to the cache.
+   //
+   if (auto itemModel = qobject_cast<ItemModel*>(sourceModel()))
+   {
+      itemModel->apply<LinkItem>([this](const QModelIndex& index, LinkItem* item)
+      {
+         CacheEntry_ cacheEntry{index, {}, item->tags(), item->brush()};
+
+         for (auto parentItem = item->parent(); parentItem != nullptr; parentItem = parentItem->parent())
+         {
+            if (auto parentLinkGroupItem = Item::cast<LinkGroupItem>(parentItem))
+            {
+               cacheEntry.tagStringList.append(parentLinkGroupItem->tags());
+
+               if (cacheEntry.brush.style() == Qt::NoBrush)
+               {
+                  cacheEntry.brush = parentLinkGroupItem->brush();
+               }
+            }
+         }
+
+         cacheEntry.tagString = cacheEntry.tagStringList.join(QStringLiteral(", "));
+
+         cache_.append(cacheEntry);
+      });
+   }
+
+   endResetModel();
 }

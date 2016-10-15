@@ -7,6 +7,7 @@
  *          published by the Free Software Foundation.
  */
 
+#include <QFileInfo>
 #include <QObject>
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>

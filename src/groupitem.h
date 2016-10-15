@@ -22,6 +22,10 @@ class GroupItem : public Item
 {
 public:
    /*!
+    * Constructs a group item.
+    */
+   GroupItem();
+   /*!
     * Destructs the item group, deleting all owned item groups and items.
     */
    virtual ~GroupItem();
@@ -59,6 +63,11 @@ public:
    const Item* item(int index) const;
 
    /*!
+    * Returns the index of the item \a item or a negative value if there is no such item.
+    */
+   int indexOf(Item* item) const;
+
+   /*!
     * The type of the item.
     */
    static inline bool isItemType(Item::ItemType itemType)
@@ -71,7 +80,7 @@ public:
 
 protected:
    /*!
-    * Constructs an item of the type \a type.
+    * Constructs a gorup item of the type \a type.
     */
    explicit GroupItem(ItemType type);
 

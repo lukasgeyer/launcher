@@ -17,22 +17,6 @@
 #include "metatype.h"
 #include "xmlitemsource.h"
 
-namespace {
-
-/*!
- * Returns a reference to the importer local item source factory. As the factory is the same for
- * all instances of the importer this instance can be used to avoid copies of the factory.
- */
-const ItemSourceFactory& itemSourceFactory_()
-{
-   static auto itemSourceFactory = ItemSourceFactory(ItemSourceFactory::Declaration<CsvItemSource>(QStringLiteral("text/csv")),
-                                                     ItemSourceFactory::Declaration<XmlItemSource>(QStringLiteral("text/xml")));
-
-   return itemSourceFactory;
-}
-
-} // namespace
-
 Importer::Importer(ImportItem* import, const QString& identifier) : import_(import), identifier_(identifier)
 {
    Q_ASSERT(import != nullptr);

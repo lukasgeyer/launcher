@@ -29,7 +29,7 @@ public:
     */
    static inline bool isItemType(Item::ItemType itemType)
    {
-      return ((itemType == Item::ItemType::Group) || (itemType == Item::ItemType::ImportGroup));
+      return (itemType == Item::ItemType::ImportGroup);
    }
 
 private:

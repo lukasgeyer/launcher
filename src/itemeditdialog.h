@@ -22,6 +22,8 @@ class ItemModel;
  */
 class ItemEditDialog : public QDialog
 {
+   Q_OBJECT
+
 public:
    /*!
     * Constructs an item edit dialog with the parent \a parent and the flags \a windowFlags.

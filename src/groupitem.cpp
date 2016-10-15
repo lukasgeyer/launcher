@@ -11,6 +11,10 @@
 
 #include "groupitem.h"
 
+GroupItem::GroupItem() : Item(Item::ItemType::Group)
+{
+}
+
 GroupItem::~GroupItem()
 {
    qDeleteAll(items_);
@@ -59,6 +63,11 @@ Item* GroupItem::item(int index)
 const Item* GroupItem::item(int index) const
 {
    return const_cast<const Item*>(const_cast<GroupItem*>(this)->item(index));
+}
+
+int GroupItem::indexOf(Item* item) const
+{
+   return items_.indexOf(item);
 }
 
 GroupItem::GroupItem(ItemType type) : Item(type)

@@ -51,7 +51,7 @@ public:
 
    static inline bool isItemType(Item::ItemType itemType)
    {
-      return ((itemType == Item::ItemType::Group) || (itemType == Item::ItemType::LinkGroup));
+      return (itemType == Item::ItemType::LinkGroup);
    }
 
 private:

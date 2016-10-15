@@ -11,9 +11,13 @@
 #define LINKITEMPROXYMODEL_H
 
 #include <QAbstractProxyModel>
+#include <QBrush>
+#include <QModelIndex>
+#include <QStringList>
 #include <QVector>
 
-class ItemGroup;
+#include "itemmodel.h"
+#include "linkitem.h"
 
 /*!
  * \brief A proxy model providing a link item model from an item model.
@@ -22,9 +26,14 @@ class LinkItemProxyModel : public QAbstractProxyModel
 {
 public:
    /*!
+    * Constructs a proxy model with the parent \a parent.
+    */
+   LinkItemProxyModel(QObject* parent = nullptr);
+
+   /*!
     * \reimp
     */
-   void setSourceModel(QAbstractItemModel* model) override;
+   void setSourceModel(QAbstractItemModel* sourceModel);
 
    /*!
     * \reimp
@@ -47,31 +56,62 @@ public:
    /*!
     * \reimp
     */
-   int rowCount(const QModelIndex &parent) const override;
+   int rowCount(const QModelIndex &parent = QModelIndex()) const override;
    /*!
     * \reimp
     */
-   int columnCount(const QModelIndex &parent) const override;
+   int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
    /*!
     * \reimp
     */
    QVariant data(const QModelIndex &proxyIndex, int role) const override;
 
+   /*!
+    * Returns a pointer to the item at the index \a proxyIndex or \a nullptr if there is no such item.
+    */
+   LinkItem* item(const QModelIndex& proxyIndex);
+   /*!
+    * Returns a pointer to the item at the index \a proxyIndex or \a nullptr if there is no such item.
+    */
+   const LinkItem* item(const QModelIndex& proxyIndex) const;
+
 private:
    /*!
-    * An index cache, mapping a source model index to a proxy model index.
+    * An entry in the cache.
     */
-   QVector<QModelIndex> fromSourceIndexCache_;
+   struct CacheEntry_
+   {
+      QModelIndex index;
+      QString tagString;
+      QStringList tagStringList;
+      QBrush brush;
+   };
    /*!
-    * An index cache, mapping a proxy model index to a source model index.
+    * The cache mapping a source model item properties.
     */
-   QVector<QModelIndex> toSourceIndexCache_;
+   QVector<CacheEntry_> cache_;
 
    /*!
-    * Adds each link item in the item group \a item group to the cache.
+    * Resets the model, removing all groups from the cache and adding all
+    * item groups found in the source model.
     */
-   void addItemGroup_(ItemGroup* itemGroup);
+   void reset_();
+
+   /*!
+    * Returns \a true if \a row and \a column are valid; \a false otherwise.
+    */
+   inline bool isValid_(int row, int column) const
+   {
+      return ((row >= 0) && (row < cache_.size()) && (column >= 0) && (column < 2));
+   }
+   /*!
+    * Returns \a true if the model index \a proxyIndex is valid; \a false otherwise.
+    */
+   inline bool isValid_(const QModelIndex& proxyIndex) const
+   {
+      return ((proxyIndex.isValid() == true) && isValid_(proxyIndex.row(), proxyIndex.column()));
+   }
 };
 
 #endif // LINKITEMPROXYMODEL_H

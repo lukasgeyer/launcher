@@ -1,5 +1,5 @@
 /*!
- * \file filtermodel.cpp
+ * \file linkitemfiltermodel.cpp
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -7,60 +7,67 @@
  *          published by the Free Software Foundation.
  */
 
+#include <QVariant>
+
 #include "itemfiltermodel.h"
 #include "itemmodel.h"
+#include "linkitemproxymodel.h"
 #include "searchexpression.h"
 
-ItemFilterModel::ItemFilterModel(QObject* parent) : QSortFilterProxyModel(parent)
+LinkItemFilterModel::LinkItemFilterModel(QObject* parent) : QSortFilterProxyModel(parent)
 {
 }
 
-void ItemFilterModel::setSearchExpression(const QString& expression)
+LinkItem* LinkItemFilterModel::item(const QModelIndex& proxyIndex)
+{
+   return static_cast<LinkItemProxyModel*>(sourceModel())->item(mapToSource(proxyIndex));
+}
+
+const LinkItem* LinkItemFilterModel::item(const QModelIndex& proxyIndex) const
+{
+   return const_cast<const LinkItem*>(const_cast<LinkItemFilterModel*>(this)->item(proxyIndex));
+}
+
+void LinkItemFilterModel::setSearchExpression(const QString& expression)
 {
    searchExpression_.setExpression(expression);
 
    invalidateFilter();
 }
 
-bool ItemFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const
+bool LinkItemFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const
 {
    bool matches = false;
 
-//   const auto& sourceIndex = sourceModel()->index(sourceRow, 0, sourceParent);
-//   if (sourceIndex.isValid() == true)
-//   {
-//      const auto& name = sourceIndex.data(static_cast<int>(ItemModel::Role::Name)).value<QString>();
-//      const auto& tags = sourceIndex.data(static_cast<int>(ItemModel::Role::Tags)).value<QStringList>();
-
-//      matches = searchExpression_.Matches(name, tags);
-//   }
+   const LinkItemProxyModel* itemModel = static_cast<const LinkItemProxyModel*>(sourceModel());
+   if (itemModel != nullptr)
+   {
+      matches = searchExpression_.Matches(itemModel->data(itemModel->index(sourceRow, 0, sourceParent), Qt::DisplayRole).toString(),
+                                          itemModel->data(itemModel->index(sourceRow, 1, sourceParent), Qt::UserRole).toStringList());
+   }
 
    return matches;
 }
 
-bool ItemFilterModel::lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const
+bool LinkItemFilterModel::lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const
 {
    bool isLessThan = false;
 
-//   const auto& leftSourceIndex = sourceModel()->index(sourceLeft.row(), 0, sourceLeft.parent());
-//   const auto& rightSourceIndex = sourceModel()->index(sourceRight.row(), 0, sourceRight.parent());
+   const LinkItemProxyModel* itemModel = static_cast<const LinkItemProxyModel*>(sourceModel());
 
-//   if ((leftSourceIndex.isValid() == true) && (rightSourceIndex.isValid() == true))
-//   {
-//      const auto& leftName = leftSourceIndex.data(static_cast<int>(ItemModel::Role::Name)).value<QString>();
-//      const auto& leftTags = leftSourceIndex.data(static_cast<int>(ItemModel::Role::Tags)).value<QStringList>();
+   const LinkItem* itemLeft = itemModel->item(sourceLeft);
+   const LinkItem* itemRight = itemModel->item(sourceRight);
 
-//      const auto& rightName = rightSourceIndex.data(static_cast<int>(ItemModel::Role::Name)).value<QString>();
-//      const auto& rightTags = rightSourceIndex.data(static_cast<int>(ItemModel::Role::Tags)).value<QStringList>();
-
-//      //
-//      // A tagged item is sorted up, an non-tagged item is sorted down, if both are of the same
-//      // type sort lexically.
-//      //
-//      isLessThan = ((leftTags.isEmpty() == false) && (rightTags.isEmpty() == true )) ? true  :
-//                   ((leftTags.isEmpty() == true ) && (rightTags.isEmpty() == false)) ? false :
-//                   ((leftName < rightName));
-//   }
+   if ((itemLeft != nullptr) && (itemRight != nullptr))
+   {
+      //
+      // A tagged item is sorted up, an non-tagged item is sorted down, if both are of the same
+      // type sort lexically.
+      //
+      isLessThan = ((itemLeft->tags().isEmpty() == false) && (itemRight->tags().isEmpty() == true )) ? true  :
+                   ((itemLeft->tags().isEmpty() == true ) && (itemRight->tags().isEmpty() == false)) ? false :
+                   ((itemLeft->name() < itemRight->name()));
+   }
 
    return isLessThan;
 }

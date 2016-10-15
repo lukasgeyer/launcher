@@ -1,5 +1,5 @@
 /*!
- * \file itemfiltermodel.h
+ * \file linkitemfiltermodel.h
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -14,11 +14,13 @@
 
 #include "searchexpression.h"
 
+class LinkItem;
+
 /*!
  * \brief A sort filter proxy model filtering an item based on the name and tag by a regular
  *        expression, sorted by type (tagged or not tagged) and name.
  */
-class ItemFilterModel : public QSortFilterProxyModel
+class LinkItemFilterModel : public QSortFilterProxyModel
 {
    Q_OBJECT
 
@@ -26,7 +28,16 @@ public:
    /*!
     * Constructs an ItemFilterModel with the parent \a parent.
     */
-   ItemFilterModel(QObject* parent = nullptr);
+   LinkItemFilterModel(QObject* parent = nullptr);
+
+   /*!
+    * Returns a pointer to the item at the index \a proxyIndex or \a nullptr if there is no such item.
+    */
+   LinkItem* item(const QModelIndex& proxyIndex);
+   /*!
+    * Returns a pointer to the item at the index \a proxyIndex or \a nullptr if there is no such item.
+    */
+   const LinkItem* item(const QModelIndex& proxyIndex) const;
 
 public slots:
    /*!

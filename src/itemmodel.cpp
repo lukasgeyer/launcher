@@ -17,6 +17,7 @@
 #include "importgroupitem.h"
 #include "itemmodel.h"
 #include "linkgroupitem.h"
+#include "xmlitemsource.h"
 
 namespace {
 
@@ -26,38 +27,43 @@ static const std::chrono::milliseconds DEFAULT_IMPORT_RETRY_TIMEOUT_ = std::chro
 
 ItemModel::ItemModel(QObject* parent) : QAbstractItemModel(parent)
 {
+
 }
 
 ItemModel::~ItemModel()
 {
 }
 
-bool ItemModel::read(QIODevice* device)
+void ItemModel::read(const QString& fileName)
 {
-   beginResetModel();
+   QFile file(fileName);
+   if (file.open(QIODevice::ReadOnly) == true)
+   {
+      beginResetModel();
 
-   bool result = XmlItemSource::read(device);
+      auto source = new XmlItemSource;
+      source->read(&file);
 
-   endResetModel();
+      appendItem(source);
 
-   // Process import.
-
-   return result;
+      endResetModel();
+   }
 }
 
 QModelIndex ItemModel::index(int row, int column, const QModelIndex& parent) const
 {
    QModelIndex index;
 
-   GroupItem* parentItem = const_cast<ItemModel*>(this);
+   const GroupItem* groupItem = this;
    if (parent.isValid() == true)
    {
-      parentItem = static_cast<GroupItem*>(parent.internalPointer());
+      groupItem = static_cast<const GroupItem*>(parent.internalPointer());
    }
 
-   if ((row >= 0) && (row < parentItem->items().size()) && (column == 0))
+   Item* item = const_cast<Item*>(groupItem->item(row));
+   if (item != nullptr)
    {
-      index = createIndex(row, column, parentItem->item(row));
+      index = createIndex(row, column, item);
    }
 
    return index;
@@ -67,12 +73,13 @@ QModelIndex ItemModel::parent(const QModelIndex& child) const
 {
    QModelIndex index;
 
-   if (child.isValid() == true)
+   Item* item = static_cast<GroupItem*>(child.internalPointer());
+   if (item != nullptr)
    {
-      Item* parentItem = static_cast<Item*>(child.internalPointer())->parent();
-      if ((parentItem != nullptr) && (parentItem != this))
+      GroupItem* parentItem = static_cast<GroupItem*>(item->parent());
+      if (parentItem != this)
       {
-         index = createIndex(child.row(), 0, parentItem);
+         index = createIndex(0, 0, item->parent());
       }
    }
 
@@ -83,15 +90,10 @@ int ItemModel::rowCount(const QModelIndex& parent) const
 {
    int rowCount = 0;
 
-   GroupItem* parentItem = const_cast<ItemModel*>(this);
-   if (parent.isValid() == true)
+   auto item = ((parent.isValid() == false) ? (this) : (Item::cast<GroupItem>(static_cast<Item*>(parent.internalPointer()))));
+   if (item != nullptr)
    {
-      parentItem = static_cast<GroupItem*>(parent.internalPointer());
-   }
-
-   if (parentItem->cast<GroupItem>() != nullptr)
-   {
-      rowCount = parentItem->items().size();
+      rowCount = item->items().count();
    }
 
    return rowCount;
@@ -108,7 +110,7 @@ QVariant ItemModel::data(const QModelIndex &index, int role) const
 
    if (index.isValid() == true)
    {
-      if (auto item = static_cast<Item*>(index.internalPointer())->cast<LinkItem>())
+      if (auto item = Item::cast<LinkItem>(static_cast<Item*>(index.internalPointer())))
       {
          switch (role)
          {
@@ -121,7 +123,7 @@ QVariant ItemModel::data(const QModelIndex &index, int role) const
             break;
          }
       }
-      else if (auto item = static_cast<Item*>(index.internalPointer())->cast<ImportItem>())
+      else if (auto item = Item::cast<ImportItem>(static_cast<Item*>(index.internalPointer())))
       {
          switch (role)
          {
@@ -134,7 +136,7 @@ QVariant ItemModel::data(const QModelIndex &index, int role) const
             break;
          }
       }
-      else if (auto item = static_cast<Item*>(index.internalPointer())->cast<GroupItem>())
+      else if (auto item = Item::cast<GroupItem>(static_cast<Item*>(index.internalPointer())))
       {
          switch (role)
          {

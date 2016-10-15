@@ -10,7 +10,11 @@
 #include <QSettings>
 
 #include "application.h"
+#include "csvitemsource.h"
 #include "geometrystore.h"
+#include "importitemeditor.h"
+#include "linkitemeditor.h"
+#include "xmlitemsource.h"
 
 Application::Application(int& argc, char** argv) : QApplication(argc, argv)
 {
@@ -28,35 +32,21 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
    settings_.reset(new QSettings(QSettings::IniFormat, QSettings::UserScope, applicationName()));
 
    //
+   // Create item editor factory and register usable item editor types.
+   //
+   itemEditorFactory_.reset(new ItemEditorFactory);
+   itemEditorFactory_->declare<ImportItemEditor>(Item::ItemType::Import, tr("Import"));
+   itemEditorFactory_->declare<LinkItemEditor>(Item::ItemType::Link, tr("Link"));
+
+   //
+   // Create item source factory and register usable item source types.
+   //
+   itemSourceFactory_.reset(new ItemSourceFactory);
+   itemSourceFactory_->declare<CsvItemSource>("text/csv");
+   itemSourceFactory_->declare<XmlItemSource>("text/xml");
+
+   //
    // Create geometry store.
    //
    geometryStore_.reset(new GeometryStore(settings_.data()));
-}
-
-GeometryStore& Application::geometryStore()
-{
-   Q_ASSERT(geometryStore_.isNull() == false);
-
-   return *geometryStore_;
-}
-
-const GeometryStore& Application::geometryStore() const
-{
-   Q_ASSERT(geometryStore_.isNull() == false);
-
-   return *geometryStore_;
-}
-
-QSettings& Application::settings()
-{
-   Q_ASSERT(settings_.isNull() == false);
-
-   return *settings_;
-}
-
-const QSettings& Application::settings() const
-{
-   Q_ASSERT(settings_.isNull() == false);
-
-   return *settings_;
 }

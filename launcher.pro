@@ -27,7 +27,6 @@ DEFINES += ORGANIZATION_DOMAIN=\\\"\"$$QMAKE_TARGET_DOMAIN\\\"\"
 
 SOURCES += \
     src/main.cpp \
-    src/itemview.cpp \
     src/itemdelegate.cpp \
     src/itemfiltermodel.cpp \
     src/itemedit.cpp \
@@ -48,10 +47,11 @@ SOURCES += \
     src/groupitem.cpp \
     src/importgroupitem.cpp \
     src/linkgroupitem.cpp \
-    src/linkitemproxymodel.cpp
+    src/linkitemproxymodel.cpp \
+    src/linkitemeditor.cpp \
+    src/importitemeditor.cpp
 
 HEADERS += \
-    src/itemview.h \
     src/itemdelegate.h \
     src/itemfiltermodel.h \
     src/itemedit.h \
@@ -76,7 +76,11 @@ HEADERS += \
     src/groupitem.h \
     src/importgroupitem.h \
     src/linkgroupitem.h \
-    src/linkitemproxymodel.h
+    src/linkitemproxymodel.h \
+    src/itemeditor.h \
+    src/linkitemeditor.h \
+    src/importitemeditor.h \
+    src/itemeditorfactory.h
 
 RESOURCES += \
     resources/resources.qrc
