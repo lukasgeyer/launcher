@@ -12,6 +12,9 @@
 
 #include "itemeditor.h"
 
+class QComboBox;
+class QLineEdit;
+
 /*!
  * \brief An import item editor.
  */
@@ -31,6 +34,13 @@ public:
     * \reimp
     */
    void write(Item* item) override;
+
+private:
+   /*!
+    * The widgets displaying the import item.
+    */
+   QLineEdit* fileEdit_ = nullptr;
+   QComboBox* mimeTypeEdit_ = nullptr;
 };
 
 #endif // LINKITEMEDITOR_H

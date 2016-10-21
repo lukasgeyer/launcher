@@ -7,10 +7,12 @@
  *          published by the Free Software Foundation.
  */
 
+#include <QBoxLayout>
 #include <QDesktopWidget>
 #include <QDialogButtonBox>
-#include <QHBoxLayout>
+#include <QGroupBox>
 #include <QMenu>
+#include <QSplitter>
 #include <QStackedLayout>
 #include <QTreeView>
 
@@ -54,15 +56,21 @@ ItemEditDialog::ItemEditDialog(ItemModel* itemModel, QWidget* parent, Qt::Window
 
    Application* application = static_cast<Application*>(Application::instance());
 
+   ItemFactory* itemFactory = application->itemFactory();
+   ItemEditorFactory* itemEditorFactory = application->itemEditorFactory();
+
    //
    // Setup the item editor stack.
    //
    editorLayout_ = new QStackedLayout;
    editorLayout_->insertWidget(static_cast<int>(Item::Type::Invalid), new InvalidItemEditor_);
-   for (auto type : application->itemEditorFactory()->types())
+   for (auto type : itemEditorFactory->types())
    {
-      editorLayout_->insertWidget(static_cast<int>(type), application->itemEditorFactory()->create(type));
+      editorLayout_->insertWidget(static_cast<int>(type), itemEditorFactory->create(type));
    }
+
+   auto editorWidget = new QGroupBox;
+   editorWidget->setLayout(editorLayout_);
 
    //
    // Set up the item view.
@@ -72,13 +80,12 @@ ItemEditDialog::ItemEditDialog(ItemModel* itemModel, QWidget* parent, Qt::Window
    itemView->setModel(itemModel);
    itemView->expandAll();
    itemView->setContextMenuPolicy(Qt::CustomContextMenu);
-   itemView->connect(itemView, &QTreeView::customContextMenuRequested, [this, application, itemModel, itemView](const QPoint& point)
+   itemView->connect(itemView, &QTreeView::customContextMenuRequested, [this, itemFactory, itemEditorFactory, itemModel, itemView](const QPoint& point)
    {
-      //
-      // Get the item the context menu has been requested for.
-      //
-      Item* item = itemModel->item(itemView->indexAt(point));
-      if (item != nullptr)
+      QModelIndex requestedItemIndex = itemView->indexAt(point);
+
+      Item* requestedItem = itemModel->item(requestedItemIndex);
+      if (requestedItem != nullptr)
       {
          QMenu contextMenu;
 
@@ -86,63 +93,85 @@ ItemEditDialog::ItemEditDialog(ItemModel* itemModel, QWidget* parent, Qt::Window
          // If the item is a group item check if it can serve as container for a type supported by
          // an editor and offer an action to create such an item.
          //
-         if (auto groupItem = Item::cast<GroupItem>(item))
+         if (auto requestedGroupItem = Item::cast<GroupItem>(requestedItem))
          {
-            for (auto type : application->itemEditorFactory()->types())
+            QModelIndex index = itemModel->index(0, requestedItemIndex.column(), requestedItemIndex);
+
+            for (auto type : itemEditorFactory->types())
             {
-               if (groupItem->isContainerOf(type))
+               if (requestedGroupItem->isContainerOf(type))
                {
-                  contextMenu.addAction(tr("Add ").append(application->itemFactory()->typeName(type)), [application, groupItem, type]()
-                  {
-                     groupItem->appendItem(application->itemFactory()->create(type));
-                  });
+                  contextMenu.addAction(QIcon(QStringLiteral(":/images/add.png")), tr("Add ").append(itemFactory->typeName(type)),
+                                        [itemFactory, itemModel, itemView, requestedItem, index, type]()
+                                        {
+                                           itemModel->insertItem(itemFactory->create(type), index.row(), index.parent());
+                                           itemView->selectionModel()->select(index, QItemSelectionModel::ClearAndSelect);
+                                        });
                }
             }
          }
 
-         contextMenu.addAction(tr("Remove Item"), [item]()
+         //
+         // An item of the same type can be added as long as it is not an item source (which are
+         // added through adding an import item). The same applies for removing an item.
+         //
+         if (!Item::is<ItemSource>(requestedItem))
          {
-            //< CONTINUE HERE: Remove Item
-         });
+            QModelIndex index = itemModel->index(requestedItemIndex.row() + 1, requestedItemIndex.column(), requestedItemIndex.parent());
+
+            contextMenu.addAction(QIcon(QStringLiteral(":/images/add.png")), tr("Add ").append(itemFactory->typeName(requestedItem->type())),
+                                  [itemFactory, itemModel, itemView, requestedItem, index]()
+                                  {
+                                     itemModel->insertItem(itemFactory->create(requestedItem->type()), index.row(), index.parent());
+                                     itemView->selectionModel()->select(index, QItemSelectionModel::ClearAndSelect);
+                                  });
+
+            contextMenu.addAction(QIcon(QStringLiteral(":/images/remove.png")), tr("Remove Item"), [itemModel, requestedItemIndex]()
+            {
+               itemModel->removeItem(requestedItemIndex);
+            });
+         }
 
          contextMenu.exec(itemView->mapToGlobal(point));
       }
    });
-   itemView->connect(itemView->selectionModel(), &QItemSelectionModel::currentChanged,
-                     [this, itemModel](const QModelIndex& currentIndex, const QModelIndex& previousIndex)
+   itemView->connect(itemView->selectionModel(), &QItemSelectionModel::selectionChanged,
+                     [this, itemModel](const QItemSelection& selectedItems, const QItemSelection& deselectedItems)
    {
-      //
-      // Write the previous item.
-      //
-      Item* previousItem = itemModel->item(previousIndex);
-      if (auto editor = static_cast<ItemEditor*>(editorLayout_->currentWidget()))
+      for (const auto& deselectedItem : deselectedItems.indexes())
       {
-         editor->write(previousItem);
+         Item* previousItem = itemModel->item(deselectedItem);
+         if (auto editor = static_cast<ItemEditor*>(editorLayout_->currentWidget()))
+         {
+            editor->write(previousItem);
+         }
       }
 
-      //
-      // Display the editor for the item type and read the item into the editor. If there is no
-      // editor available for that type show the default editor.
-      //
-      Item* currentItem = itemModel->item(currentIndex);
-      if (auto editor = static_cast<ItemEditor*>(editorLayout_->widget(static_cast<int>(currentItem->type()))))
+      for (const auto& selectedItem : selectedItems.indexes())
       {
-         editor->read(currentItem);
+         Item* currentItem = itemModel->item(selectedItem);
+         if (auto editor = static_cast<ItemEditor*>(editorLayout_->widget(static_cast<int>(currentItem->type()))))
+         {
+            editor->read(currentItem);
 
-         editorLayout_->setCurrentWidget(editor);
-      }
-      else
-      {
-         editorLayout_->setCurrentIndex(static_cast<int>(Item::Type::Invalid));
+            editorLayout_->setCurrentWidget(editor);
+         }
+         else
+         {
+            editorLayout_->setCurrentIndex(static_cast<int>(Item::Type::Invalid));
+         }
       }
    });
 
    //
    // Set up the layout.
    //
-   auto layout = new QHBoxLayout;
-   layout->addWidget(itemView);
-   layout->addLayout(editorLayout_);
+   auto splitter = new QSplitter;
+   splitter->addWidget(itemView);
+   splitter->addWidget(editorWidget);
+
+   auto layout = new QBoxLayout(QBoxLayout::LeftToRight);
+   layout->addWidget(splitter);
 
    setLayout(layout);
 

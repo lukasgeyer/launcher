@@ -79,6 +79,23 @@ public:
     * Asynchronosly reads the model data from the file with the name \a fileName.
     */
    void read(const QString& fileName);
+   /*!
+    * Synchronously writes the model data to the file with the name \a fileName.
+    */
+   void write(const QString& fileName);
+
+   /*!
+    * Inserts the item \a item at row \a row with the parent \a parent. If \a row is -1 the item
+    * is appended last. If the item could be appended to the model \a true is returned; \a false
+    * otherwise (if for instance the parent cannot such an item type). If the item has been
+    * inserted the model takes ownership of the item.
+    */
+   bool insertItem(Item* item, int row, const QModelIndex& parent);
+   /*!
+    * Removes the item at the index \a index from the model and returns \a true if the item could
+    * be removed or \a false otherwise (if for instance the item could not be found).
+    */
+   bool removeItem(const QModelIndex& index);
 
    /*!
     * Returns a pointer to the item at the index \a index or \a nullptr if there is no such item.

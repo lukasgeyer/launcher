@@ -48,7 +48,7 @@ bool SystemHotkey::registerKeySequence()
    }
 
 #elif defined(Q_OS_WIN)
-   keySequenceRegistered = (RegisterHotKey(NULL, 0, MOD_CONTROL | MOD_SHIFT, VK_SPACE) );
+   keySequenceRegistered = (RegisterHotKey(NULL, 0, MOD_CONTROL | MOD_SHIFT, VK_SPACE));
    if (keySequenceRegistered )
    {
       QAbstractEventDispatcher::instance()->installNativeEventFilter(this);

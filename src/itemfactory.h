@@ -18,6 +18,14 @@
  */
 class ItemFactory : public Factory<Item::Type, Item, QString>
 {
+   /*!
+    * Additional information supplied with this factory.
+    */
+   enum AdditionalInformation
+   {
+      TypeNameAdditionalInformation /*< The type name of the item */
+   };
+
 public:
    /*!
     * Returns the item types registered in this factory.
@@ -32,7 +40,7 @@ public:
     */
    inline QString typeName(Item::Type type)
    {
-      return additionalInformation<0>(type);
+      return additionalInformation<TypeNameAdditionalInformation>(type);
    }
 };
 

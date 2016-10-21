@@ -52,7 +52,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    //
    // Set the window properties.
    //
-   setWindowIcon(QIcon(QStringLiteral(":/images/logo.svg")));
+   setWindowIcon(QIcon(QStringLiteral(":/images/logo.png")));
    setWindowOpacity(0.95);
 
    //
@@ -75,28 +75,33 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    itemView->setModel(linkItemFilterModel);
    itemView->setSelectionBehavior(QAbstractItemView::SelectRows);
    itemView->setShowGrid(false);
-   itemView->setStyleSheet(QStringLiteral("QTableView { background-color: transparent; border: 0px; } "
-                                          "QTableView::item { background-color: #efefefef; } "
-                                          "QTableView::item:selected { color: #e2e2e2; background-color: #18435a; }"));
+   itemView->setStyleSheet(QStringLiteral("QTableView { background-color: transparent; border: none; } "
+                                          "QTableView::item { color: #ffe2e2e2; background-color: #d018435a; padding: 8px; } "
+                                          "QTableView::item:selected { color: #ffe2e2e2; background-color: #ff18435a; padding: 8px; }"));
+
+   auto searchExpressionEditShadowEffect = new QGraphicsDropShadowEffect;
+   searchExpressionEditShadowEffect->setBlurRadius(16.0);
+   searchExpressionEditShadowEffect->setOffset(0.0);
 
    searchExpressionEdit_ = new ItemEdit(this);
    searchExpressionEdit_->installEventFilter(this);
    searchExpressionEdit_->setFocus();
    searchExpressionEdit_->setFocusPolicy(Qt::StrongFocus);
-   searchExpressionEdit_->setStyleSheet(QStringLiteral("QLineEdit { border: none; padding: 2px; }"));
+   searchExpressionEdit_->setGraphicsEffect(searchExpressionEditShadowEffect);
+   searchExpressionEdit_->setStyleSheet(QStringLiteral("QLineEdit { border: none; padding: 8px; }"));
    searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::textChanged, [this, linkItemFilterModel, itemView](const QString& text){
       linkItemFilterModel->setSearchExpression(text);
    });
    searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::returnPressed, [this, linkItemFilterModel, itemView](){
       const auto& currentIndex = itemView->currentIndex();
-      if (currentIndex.isValid() )
+      if (currentIndex.isValid())
       {
          //
          // If enter is pressed and an item is selected open the link and hide if the link
          // could be opened. In addition, the last URL open error is cleared. Remain shown
          // otherwise so the error can be seen.
          //
-         if (openItem_(linkItemFilterModel->item(currentIndex)) )
+         if (openItem_(linkItemFilterModel->item(currentIndex)))
          {
             hide();
          }
@@ -153,7 +158,14 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    //
    auto itemEditContextMenu = searchExpressionEdit_->createStandardContextMenu();
    itemEditContextMenu->addSeparator();
-   itemEditContextMenu->addAction(tr("Select font..."), [this, itemView](){
+   itemEditContextMenu->addAction(QIcon(QStringLiteral(":/images/edit.png")), tr("Edit items..."), [itemModel]()
+   {
+      ItemEditDialog itemEditDialog(itemModel);
+      itemEditDialog.setModal(true);
+      itemEditDialog.exec();
+   });
+   itemEditContextMenu->addSeparator();
+   itemEditContextMenu->addAction(QIcon(QStringLiteral(":/images/font.png")), tr("Select font..."), [this, itemView](){
       auto settings = static_cast<Application*>(Application::instance())->settings();
 
       auto fontSelected = false;
@@ -171,12 +183,6 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
          searchExpressionEdit_->setFont(font);
          itemView->setFont(font);
       }
-   });
-   itemEditContextMenu->addSeparator();
-   itemEditContextMenu->addAction(tr("Edit items..."), [itemModel](){
-      ItemEditDialog itemEditDialog(itemModel);
-      itemEditDialog.setModal(true);
-      itemEditDialog.exec();
    });
 
    //
@@ -354,7 +360,7 @@ bool SearchWindow::eventFilter(QObject* object, QEvent* event)
       auto widget = static_cast<QWidget*>(object);
       auto widgetPosition = widget->mapToGlobal(widget->pos());
 
-      if (widget->underMouse() )
+      if (widget->underMouse())
       {
          if ((widget->mapToGlobal(windowModificationOrigin_).x() >= (widgetPosition.x() - RESIZE_AREA_SIZE_)) &&
              (widget->mapToGlobal(windowModificationOrigin_).x() <= (widgetPosition.x() + RESIZE_AREA_SIZE_)))

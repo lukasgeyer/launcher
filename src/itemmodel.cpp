@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <chrono>
 
+#include <QtGlobal>
 #include <QFileInfo>
 #include <QUuid>
 
@@ -37,17 +38,73 @@ ItemModel::~ItemModel()
 void ItemModel::read(const QString& fileName)
 {
    QFile file(fileName);
-   if (file.open(QIODevice::ReadOnly) )
+   if (file.open(QIODevice::ReadOnly))
    {
       beginResetModel();
 
       auto source = new XmlItemSource;
       source->read(&file);
 
-      appendItem(source);
+      GroupItem::insertItem(source, itemCount());
 
       endResetModel();
    }
+
+   //< TODO: Implement recursive reading.
+}
+
+void ItemModel::write(const QString& fileName)
+{
+   QFile file(fileName);
+   if (file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+   {
+      for (auto item : items())
+      {
+         if (auto itemSource = Item::cast<ItemSource>(item))
+         {
+            Q_UNUSED(itemSource);
+
+            //< TODO: Implement recursive writing.
+         }
+      }
+   }
+}
+
+bool ItemModel::insertItem(Item* item, int row, const QModelIndex& parent)
+{
+   bool itemInserted = false;
+
+   if (GroupItem* groupItem = Item::cast<GroupItem>(static_cast<Item*>(parent.internalPointer())))
+   {
+      row = qMin(row, groupItem->itemCount());
+
+      beginInsertRows(parent, row, row);
+
+      groupItem->insertItem(item, row);
+
+      endInsertRows();
+   }
+
+   return itemInserted;
+}
+
+bool ItemModel::removeItem(const QModelIndex& index)
+{
+   bool itemRemoved = false;
+
+   if (auto item = static_cast<Item*>(index.internalPointer()))
+   {
+      if (auto groupItem = Item::cast<GroupItem>(item->parent()))
+      {
+         beginRemoveRows(index.parent(), index.row(), index.row());
+
+         groupItem->removeItem(item);
+
+         endRemoveRows();
+      }
+   }
+
+   return itemRemoved;
 }
 
 QModelIndex ItemModel::index(int row, int column, const QModelIndex& parent) const
@@ -55,7 +112,7 @@ QModelIndex ItemModel::index(int row, int column, const QModelIndex& parent) con
    QModelIndex index;
 
    const GroupItem* groupItem = this;
-   if (parent.isValid() )
+   if (parent.isValid())
    {
       groupItem = static_cast<const GroupItem*>(parent.internalPointer());
    }
@@ -108,7 +165,7 @@ QVariant ItemModel::data(const QModelIndex &index, int role) const
 {
    QVariant data;
 
-   if (index.isValid() )
+   if (index.isValid())
    {
       if (auto item = Item::cast<LinkItem>(static_cast<Item*>(index.internalPointer())))
       {
@@ -156,7 +213,7 @@ Item* ItemModel::item(const QModelIndex& index)
 {
    Item* item = nullptr;
 
-   if (index.isValid() )
+   if (index.isValid())
    {
       item = static_cast<Item*>(index.internalPointer());
    }

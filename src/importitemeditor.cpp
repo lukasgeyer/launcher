@@ -7,7 +7,10 @@
  *          published by the Free Software Foundation.
  */
 
-#include <QCompleter>
+#include <QAction>
+#include <QComboBox>
+#include <QFileDialog>
+#include <QFileInfo>
 #include <QFormLayout>
 #include <QLineEdit>
 
@@ -17,25 +20,48 @@
 
 ImportItemEditor::ImportItemEditor(QWidget* parent) : ItemEditor(parent)
 {
-   auto mimeTypeCompleter = new QCompleter(static_cast<Application*>(Application::instance())->itemSourceFactory()->mimeTypes(), this);
-   mimeTypeCompleter->setCompletionMode(QCompleter::PopupCompletion);
+   Application* application = static_cast<Application*>(Application::instance());
 
-   auto mimeTypeEdit = new QLineEdit;
-   mimeTypeEdit->setCompleter(mimeTypeCompleter);
+   fileEdit_ = new QLineEdit;
+
+   auto getOpenFileNameAction = fileEdit_->addAction(QIcon(":/images/folder.png"), QLineEdit::TrailingPosition);
+   getOpenFileNameAction->setVisible(true);
+   getOpenFileNameAction->connect(getOpenFileNameAction, &QAction::triggered, [this]()
+   {
+      const auto& file = QFileDialog::getOpenFileName(this, QString(), QFileInfo(fileEdit_->text()).absolutePath());
+      if (!file.isEmpty())
+      {
+         fileEdit_->setText(file);
+      }
+   });
+
+   mimeTypeEdit_ = new QComboBox;
+   mimeTypeEdit_->setEditable(true);
+   mimeTypeEdit_->addItems(application->itemSourceFactory()->mimeTypes());
 
    auto layout = new QFormLayout;
-   layout->addRow(tr("File"), new QLineEdit);
-   layout->addRow(tr("Mime Type"), mimeTypeEdit);
+   layout->addRow(tr("File"), fileEdit_);
+   layout->addRow(tr("Mime Type"), mimeTypeEdit_);
 
    setLayout(layout);
 }
 
 void ImportItemEditor::read(Item* item)
 {
-
+   ImportItem* importItem = Item::cast<ImportItem>(item);
+   if (importItem != nullptr)
+   {
+      fileEdit_->setText(importItem->file());
+      mimeTypeEdit_->setCurrentText(importItem->mimeType());
+   }
 }
 
 void ImportItemEditor::write(Item* item)
 {
-
+   ImportItem* importItem = Item::cast<ImportItem>(item);
+   if (importItem != nullptr)
+   {
+      importItem->setFile(fileEdit_->text());
+      importItem->setMimeType(mimeTypeEdit_->currentText());
+   }
 }

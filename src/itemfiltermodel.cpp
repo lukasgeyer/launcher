@@ -42,7 +42,7 @@ bool LinkItemFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex& sou
    const LinkItemProxyModel* itemModel = static_cast<const LinkItemProxyModel*>(sourceModel());
    if (itemModel != nullptr)
    {
-      matches = searchExpression_.Matches(itemModel->data(itemModel->index(sourceRow, 0, sourceParent), Qt::DisplayRole).toString(),
+      matches = searchExpression_.matches(itemModel->data(itemModel->index(sourceRow, 0, sourceParent), Qt::DisplayRole).toString(),
                                           itemModel->data(itemModel->index(sourceRow, 1, sourceParent), Qt::UserRole).toStringList());
    }
 

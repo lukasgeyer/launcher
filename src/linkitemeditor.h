@@ -12,6 +12,8 @@
 
 #include "itemeditor.h"
 
+class QLineEdit;
+
 /*!
  * \brief A link item editor.
  */
@@ -31,6 +33,15 @@ public:
     * \reimp
     */
    void write(Item* item) override;
+
+private:
+   /*!
+    * The widgets displaying the link item.
+    */
+   QLineEdit* nameEdit_ = nullptr;
+   QLineEdit* urlEdit_ = nullptr;
+   QLineEdit* tagEdit_ = nullptr;
+   QLineEdit* colorEdit_ = nullptr;
 };
 
 #endif // LINKITEMEDITOR_H

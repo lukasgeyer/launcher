@@ -48,7 +48,16 @@ public:
     * Returns \a true if the search expression matches the string \a name or
     * one of the tags found in \a tags; \a false otherwise.
     */
-   bool Matches(const QString& name, const QStringList& tags) const;
+   bool matches(const QString& name, const QStringList& tags) const;
+
+   /*!
+    * Returns the list of parameter provided with the search term since the
+    * last call to setExpression().
+    */
+   inline QStringList parameter() const
+   {
+      return parameter_;
+   }
 
 private:
    /*!
@@ -81,18 +90,23 @@ private:
    QVector<Term_> tagsTerms_;
 
    /*!
+    * A list of parameters provided with the search term.
+    */
+   QStringList parameter_;
+
+   /*!
     * Compiles the search expression \a expression.
     */
-   void Compile_(const QString &expression);
+   void compile_(const QString &expression);
 
    /*!
     * Returns \a true if the name \a name matches any name search terms.
     */
-   bool MatchesName_(const QString &name) const;
+   bool matchesName_(const QString &name) const;
    /*!
     *  Returns \a true if the tags \a tags match any tags search terms.
     */
-   bool MatchesTags_(const QStringList &tags) const;
+   bool matchesTags_(const QStringList &tags) const;
 };
 
 

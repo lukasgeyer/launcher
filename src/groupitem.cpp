@@ -30,10 +30,19 @@ QString GroupItem::name() const
    return name_;
 }
 
-void GroupItem::appendItem(Item* item)
+void GroupItem::insertItem(Item* item, int position)
 {
-   items_.append(item);
-   items_.last()->setParent(this);
+   if (item != nullptr)
+   {
+      item->setParent(this);
+   }
+
+   items_.insert(position, item);
+}
+
+bool GroupItem::removeItem(Item* item)
+{
+   return items_.removeOne(item);
 }
 
 void GroupItem::setItems(const QVector<Item*>& items)
@@ -46,6 +55,11 @@ void GroupItem::setItems(const QVector<Item*>& items)
 const QVector<Item*>& GroupItem::items() const
 {
    return items_;
+}
+
+int GroupItem::itemCount() const
+{
+   return items_.size();
 }
 
 Item* GroupItem::item(int index)

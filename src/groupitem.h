@@ -40,9 +40,15 @@ public:
    QString name() const;
 
    /*!
-    * Appends the item \a item to the item group. The group takes ownership.
+    * Inserts the item \a item into the item group at row \a row. The group takes ownership. If
+    * \a row is 0 the item is prepended, if \a row is size the item is appended.
     */
-   void appendItem(Item* item);
+   void insertItem(Item* item, int position);
+   /*!
+    * Removes the item \a item from the item group and returns \a true if the
+    * item could be removed; \a false otherwise.
+    */
+   bool removeItem(Item* item);
    /*!
     * Sets the list of items to \a items. The group takes ownership.
     */
@@ -51,6 +57,10 @@ public:
     * Returns the list of items in the item group.
     */
    const QVector<Item*>& items() const;
+   /*!
+    * Returns the number of items in the item group.
+    */
+   int itemCount() const;
    /*!
     * Returns a pointer to the item with the index \a index or \a nullptr if there is no
     * such item.

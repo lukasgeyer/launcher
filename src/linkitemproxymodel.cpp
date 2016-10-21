@@ -28,6 +28,8 @@ void LinkItemProxyModel::setSourceModel(QAbstractItemModel* sourceModel)
       // If an item model was set previously disconnect from the reset signal, so the cache is
       // no longer rebuilt when this model changes.
       //
+      disconnect(this->sourceModel(), &QAbstractItemModel::rowsInserted, this, &LinkItemProxyModel::reset_);
+      disconnect(this->sourceModel(), &QAbstractItemModel::rowsRemoved, this, &LinkItemProxyModel::reset_);
       disconnect(this->sourceModel(), &QAbstractItemModel::modelReset, this, &LinkItemProxyModel::reset_);
    }
 
@@ -42,6 +44,8 @@ void LinkItemProxyModel::setSourceModel(QAbstractItemModel* sourceModel)
       // If a valid item model has been set connect to the reset signal, so the cache is rebuilt
       // when this model changes.
       //
+      connect(this->sourceModel(), &QAbstractItemModel::rowsInserted, this, &LinkItemProxyModel::reset_);
+      connect(this->sourceModel(), &QAbstractItemModel::rowsRemoved, this, &LinkItemProxyModel::reset_);
       connect(this->sourceModel(), &QAbstractItemModel::modelReset, this, &LinkItemProxyModel::reset_);
 
       //
@@ -55,7 +59,7 @@ QModelIndex LinkItemProxyModel::index(int row, int column, const QModelIndex& /*
 {
    QModelIndex index;
 
-   if (isValid_(row, column) )
+   if (isValid_(row, column))
    {
       index = createIndex(row, column);
    }
@@ -145,6 +149,9 @@ QVariant LinkItemProxyModel::data(const QModelIndex& proxyIndex, int role) const
          case Qt::UserRole:
             data = cache_[proxyIndex.row()].tagStringList;
             break;
+         case Qt::TextAlignmentRole:
+            data = QVariant::fromValue(Qt::AlignRight | Qt::AlignVCenter);
+            break;
          }
          break;
       }
@@ -159,7 +166,7 @@ LinkItem* LinkItemProxyModel::item(const QModelIndex& proxyIndex)
    LinkItem* item = nullptr;
 
    ItemModel* itemModel = static_cast<ItemModel*>(sourceModel());
-   if ((itemModel != nullptr) && (isValid_(proxyIndex) ))
+   if ((itemModel != nullptr) && (isValid_(proxyIndex)))
    {
       item = Item::cast<LinkItem>(itemModel->item(cache_[proxyIndex.row()].index));
    }

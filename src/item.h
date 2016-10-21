@@ -35,6 +35,15 @@ public:
    };
 
    /*!
+    * \brief The access of the item.
+    */
+   enum class Access
+   {
+      ReadOnly,
+      ReadWrite
+   };
+
+   /*!
     * Destructs the item.
     */
    inline virtual ~Item()
@@ -47,6 +56,14 @@ public:
    inline Type type() const
    {
       return type_;
+   }
+
+   /*!
+    * Returns the access of the item.
+    */
+   inline Access access() const
+   {
+      return access_;
    }
 
    /*!
@@ -96,7 +113,7 @@ protected:
    /*!
     * Constructs an item of the type \a type.
     */
-   inline Item(Type type) : type_(type)
+   inline Item(Type type, Access access = Access::ReadWrite) : type_(type), access_(access)
    {
    }
 
@@ -105,6 +122,11 @@ private:
     * The type of the item.
     */
    Type type_;
+
+   /*!
+    * The access of the item.
+    */
+   Access access_;
 
    /*!
     * A pointer to the parent of this item.

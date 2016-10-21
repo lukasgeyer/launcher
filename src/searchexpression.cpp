@@ -7,6 +7,8 @@
  *          published by the Free Software Foundation.
  */
 
+#include <QObject>
+
 #include "searchexpression.h"
 
 SearchExpression::SearchExpression()
@@ -15,22 +17,26 @@ SearchExpression::SearchExpression()
 
 SearchExpression::SearchExpression(const QString& expression)
 {
-   Compile_(expression);
+   compile_(expression);
 }
 
 void SearchExpression::setExpression(const QString& expression)
 {
-   Compile_(expression);
+   compile_(expression);
 }
 
-bool SearchExpression::Matches(const QString& name, const QStringList& tags) const
+bool SearchExpression::matches(const QString& name, const QStringList& tags) const
 {
-   return (((!nameTerms_.isEmpty()) || (!tagsTerms_.isEmpty())) && ((nameTerms_.isEmpty()) || ( MatchesName_(name))) &&
-                                                                   ((tagsTerms_.isEmpty()) || ( MatchesTags_(tags))));
+   return (((!nameTerms_.isEmpty()) || (!tagsTerms_.isEmpty())) && ((nameTerms_.isEmpty()) || ( matchesName_(name))) &&
+                                                                   ((tagsTerms_.isEmpty()) || ( matchesTags_(tags))));
 }
 
-void SearchExpression::Compile_(const QString& expression)
+void SearchExpression::compile_(const QString& expression)
 {
+   const auto& conjunctPredicate = QObject::tr("and", "search expression predicate");
+   const auto& disjunctPredicate = QObject::tr("or", "search expression predicate");
+   const auto& negationPredicate = QObject::tr("not", "search expression predicate");
+
    auto operation = Term_::Operation::Conjunct;
    auto negation = Term_::Negation::NotNegated;
 
@@ -40,43 +46,53 @@ void SearchExpression::Compile_(const QString& expression)
    auto expressionTokens = expression.split(' ', QString::SkipEmptyParts);
    for (auto expressionToken : expressionTokens)
    {
-      if (expressionToken.compare("AND", Qt::CaseInsensitive) == 0)
+      if (expressionToken.compare(conjunctPredicate, Qt::CaseInsensitive) == 0)
       {
          operation = Term_::Operation::Conjunct;
       }
-      else if (expressionToken.compare("OR", Qt::CaseInsensitive) == 0)
+      else if (expressionToken.compare(disjunctPredicate, Qt::CaseInsensitive) == 0)
       {
          operation = Term_::Operation::Disjunct;
       }
-      else if (expressionToken.compare("NOT", Qt::CaseInsensitive) == 0)
+      else if (expressionToken.compare(negationPredicate, Qt::CaseInsensitive) == 0)
       {
          negation = Term_::Negation::Negated;
       }
       else
       {
-         expressionToken.replace("?", ".");
-         expressionToken.replace("*", ".*");
-
-         if (!expressionToken.startsWith('@'))
+         if (expressionToken.startsWith(':'))
          {
-            expressionToken.prepend('^');
-
-            nameTerms_.append({QRegularExpression(expressionToken, QRegularExpression::CaseInsensitiveOption), operation, negation});
+            parameter_.append(expressionToken.right(expressionToken.length() - 1 /* ':' */));
          }
-         else if (expressionToken.size() >= 2)
+         else
          {
-            expressionToken.replace(0, 1, '^');
+            expressionToken.replace("?", ".");
+            expressionToken.replace("*", ".*");
 
-            tagsTerms_.append({QRegularExpression(expressionToken, QRegularExpression::CaseInsensitiveOption), operation, negation});
+            if (expressionToken.startsWith('@'))
+            {
+               if (expressionToken.size() >= 2)
+               {
+                  expressionToken.replace(0, 1, '^');
+
+                  tagsTerms_.append({QRegularExpression(expressionToken, QRegularExpression::CaseInsensitiveOption), operation, negation});
+               }
+            }
+            else
+            {
+               expressionToken.prepend('^');
+
+               nameTerms_.append({QRegularExpression(expressionToken, QRegularExpression::CaseInsensitiveOption), operation, negation});
+            }
+
+            operation = Term_::Operation::Conjunct;
+            negation = Term_::Negation::NotNegated;
          }
-
-         operation = Term_::Operation::Conjunct;
-         negation = Term_::Negation::NotNegated;
       }
    }
 }
 
-bool SearchExpression::MatchesName_(const QString& name) const
+bool SearchExpression::matchesName_(const QString& name) const
 {
    bool isConjunctMatch = false;
    bool isConjunctMatchInitialization = true;
@@ -101,7 +117,7 @@ bool SearchExpression::MatchesName_(const QString& name) const
    return ((isConjunctMatch ) || (isDisjunctMatch ));
 }
 
-bool SearchExpression::MatchesTags_(const QStringList& tags) const
+bool SearchExpression::matchesTags_(const QStringList& tags) const
 {
    bool isConjunctMatch = false;
    bool isConjunctMatchInitialization = true;

@@ -29,7 +29,7 @@ void ItemEdit::addInidication(const QString& id, const QString& indication)
 
 void ItemEdit::removeIndication(const QString& id)
 {
-   if (id.endsWith('*') )
+   if (id.endsWith('*'))
    {
       //
       // If the ID ends in an asterisk wildcard matching shall occur and any indication, whose
@@ -40,7 +40,7 @@ void ItemEdit::removeIndication(const QString& id)
       bool indicationMatches = false;
       for (auto indication = std::begin(indications_); indication != std::end(indications_); )
       {
-         if (indication.key().startsWith(idWithoutWildcard) )
+         if (indication.key().startsWith(idWithoutWildcard))
          {
             indicationMatches = true;
             indication = indications_.erase(indication);

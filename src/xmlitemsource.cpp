@@ -36,7 +36,7 @@ bool XmlItemSource::read(QIODevice* device)
    if (device != nullptr)
    {
       QXmlStreamReader deviceReader(device);
-      if ((deviceReader.readNextStartElement() ) && (deviceReader.name() == "items"))
+      if ((deviceReader.readNextStartElement()) && (deviceReader.name() == "items"))
       {
          while (deviceReader.readNextStartElement())
          {
@@ -78,21 +78,21 @@ bool XmlItemSource::write(QIODevice* device) const
 {
    bool result = false;
 
-//   if (device != nullptr)
-//   {
-//      QXmlStreamWriter deviceWriter(device);
-//      deviceWriter.setAutoFormatting(true);
-//      deviceWriter.setAutoFormattingIndent(DEFAULT_INDENT_);
+   if (device != nullptr)
+   {
+      QXmlStreamWriter deviceWriter(device);
+      deviceWriter.setAutoFormatting(true);
+      deviceWriter.setAutoFormattingIndent(DEFAULT_INDENT_);
 
-//      deviceWriter.writeStartDocument();
-//      deviceWriter.writeStartElement(QStringLiteral("items"));
+      deviceWriter.writeStartDocument();
+      deviceWriter.writeStartElement(QStringLiteral("items"));
 
 //      for (const auto& itemGroup : itemGroups_)
 //      {
 //         if (&itemGroup != &itemGroups_.first())
 //         {
 //            deviceWriter.writeStartElement(QStringLiteral("group"));
-//            if (itemGroup.brush().color().isValid() )
+//            if (itemGroup.brush().color().isValid())
 //            {
 //               deviceWriter.writeTextElement(QStringLiteral("color"), itemGroup.brush().color().name());
 //            }
@@ -109,7 +109,7 @@ bool XmlItemSource::write(QIODevice* device) const
 
 //            deviceWriter.writeTextElement(QStringLiteral("name"), item.name());
 //            deviceWriter.writeTextElement(QStringLiteral("url"), item.link());
-//            if (item.brush().color().isValid() )
+//            if (item.brush().color().isValid())
 //            {
 //               deviceWriter.writeTextElement(QStringLiteral("color"), item.brush().color().name());
 //            }
@@ -131,13 +131,13 @@ bool XmlItemSource::write(QIODevice* device) const
 //      deviceWriter.writeEndElement();
 //      deviceWriter.writeEndDocument();
 
-//      result = (deviceWriter.hasError() == false);
-//      if (result == false)
-//      {
-//         errorString_ = device->errorString();
-//         errorPosition_ = {0, 0};
-//      }
-//   }
+      result = (deviceWriter.hasError() == false);
+      if (result == false)
+      {
+         errorString_ = device->errorString();
+         errorPosition_ = {0, 0};
+      }
+   }
 
    return result;
 }
@@ -183,7 +183,7 @@ void XmlItemSource::readItem_(QXmlStreamReader* reader, GroupItem* parent)
       }
    }
 
-   parent->appendItem(item);
+   parent->insertItem(item, parent->itemCount());
 }
 
 void XmlItemSource::readGroup_(QXmlStreamReader* reader, GroupItem* parent)
@@ -220,7 +220,7 @@ void XmlItemSource::readGroup_(QXmlStreamReader* reader, GroupItem* parent)
       }
    }
 
-   parent->appendItem(itemGroup);
+   parent->insertItem(itemGroup, parent->itemCount());
 }
 
 void XmlItemSource::readImport_(QXmlStreamReader* reader)
@@ -233,10 +233,10 @@ void XmlItemSource::readImport_(QXmlStreamReader* reader)
    {
       if (reader->name() == "file")
       {
-         itemGroup->appendItem(new ImportItem(reader->readElementText().trimmed(),
+         itemGroup->insertItem(new ImportItem(reader->readElementText().trimmed(),
                                               reader->attributes().hasAttribute(QStringLiteral("contentType")) ?
                                               reader->attributes().value(QStringLiteral("contentType")).toString().trimmed() :
-                                              QStringLiteral("text/xml")));
+                                              QStringLiteral("text/xml")), itemGroup->itemCount());
       }
       else
       {
@@ -244,5 +244,5 @@ void XmlItemSource::readImport_(QXmlStreamReader* reader)
       }
    }
 
-   appendItem(itemGroup);
+   insertItem(itemGroup, itemCount());
 }

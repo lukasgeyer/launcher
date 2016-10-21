@@ -110,7 +110,7 @@ private:
     */
    inline bool isValid_(const QModelIndex& proxyIndex) const
    {
-      return ((proxyIndex.isValid() ) && isValid_(proxyIndex.row(), proxyIndex.column()));
+      return ((proxyIndex.isValid()) && isValid_(proxyIndex.row(), proxyIndex.column()));
    }
 };
 

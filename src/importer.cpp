@@ -30,7 +30,7 @@ void Importer::run()
 //   QPoint errorPosition;
 
 //   QFile itemSourceFile(import_.file());
-//   if (itemSourceFile.open(QIODevice::ReadOnly) )
+//   if (itemSourceFile.open(QIODevice::ReadOnly))
 //   {
 //      auto itemSource = itemSourceFactory_().create(import_->mimeType(), QFileInfo(import_->file()).absoluteFilePath());
 //      if (itemSource != nullptr)
