@@ -25,13 +25,14 @@ public:
     */
    enum class Type
    {
-      Invalid,
       Link,
       Import,
       Group,
        LinkGroup,
        ImportGroup,
-       Source
+       Source,
+
+      Count
    };
 
    /*!

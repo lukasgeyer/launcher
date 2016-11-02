@@ -7,6 +7,8 @@
  *          published by the Free Software Foundation.
  */
 
+#include <limits>
+
 #include <QApplication>
 #include <QDebug>
 #include <QDesktopServices>
@@ -67,17 +69,17 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    linkItemFilterModel->setSourceModel(linkItemProxyModel);
    linkItemFilterModel->sort(0);
 
-   auto itemView = new QTableView(this);
-   itemView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-   itemView->horizontalHeader()->hide();
-   itemView->verticalHeader()->hide();
-   itemView->setFocusPolicy(Qt::NoFocus);
-   itemView->setModel(linkItemFilterModel);
-   itemView->setSelectionBehavior(QAbstractItemView::SelectRows);
-   itemView->setShowGrid(false);
-   itemView->setStyleSheet(QStringLiteral("QTableView { background-color: transparent; border: none; } "
-                                          "QTableView::item { color: #ffe2e2e2; background-color: #d018435a; padding: 8px; } "
-                                          "QTableView::item:selected { color: #ffe2e2e2; background-color: #ff18435a; padding: 8px; }"));
+   auto linkItemView = new QTableView(this);
+   linkItemView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+   linkItemView->horizontalHeader()->hide();
+   linkItemView->verticalHeader()->hide();
+   linkItemView->setFocusPolicy(Qt::NoFocus);
+   linkItemView->setModel(linkItemFilterModel);
+   linkItemView->setSelectionBehavior(QAbstractItemView::SelectRows);
+   linkItemView->setShowGrid(false);
+   linkItemView->setStyleSheet(QStringLiteral("QTableView { background-color: transparent; border: none; margin-left: 2px; margin-right: 2px; } "
+                                          "QTableView::item { color: #ffe2e2e2; background-color: #d018435a; padding: 4px; } "
+                                          "QTableView::item:selected { color: #ffe2e2e2; background-color: #ff18435a; padding: 4px; }"));
 
    auto searchExpressionEditShadowEffect = new QGraphicsDropShadowEffect;
    searchExpressionEditShadowEffect->setBlurRadius(16.0);
@@ -88,12 +90,13 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    searchExpressionEdit_->setFocus();
    searchExpressionEdit_->setFocusPolicy(Qt::StrongFocus);
    searchExpressionEdit_->setGraphicsEffect(searchExpressionEditShadowEffect);
-   searchExpressionEdit_->setStyleSheet(QStringLiteral("QLineEdit { border: none; padding: 8px; }"));
-   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::textChanged, [this, linkItemFilterModel, itemView](const QString& text){
+   searchExpressionEdit_->setStyleSheet(QStringLiteral("QLineEdit { border: none; padding: 4px; }"));
+   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::textChanged, [this, linkItemFilterModel, linkItemView](const QString& text){
       linkItemFilterModel->setSearchExpression(text);
+      linkItemView->resizeRowsToContents();
    });
-   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::returnPressed, [this, linkItemFilterModel, itemView](){
-      const auto& currentIndex = itemView->currentIndex();
+   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::returnPressed, [this, linkItemFilterModel, linkItemView](){
+      const auto& currentIndex = linkItemView->currentIndex();
       if (currentIndex.isValid())
       {
          //
@@ -101,20 +104,31 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
          // could be opened. In addition, the last URL open error is cleared. Remain shown
          // otherwise so the error can be seen.
          //
-         if (openItem_(linkItemFilterModel->item(currentIndex)))
+         if (openItem_(linkItemFilterModel->item(currentIndex), linkItemFilterModel->searchExpression().parameters()))
          {
             hide();
          }
       }
    });
-   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::keyUpPressed, [itemView](){
-      const auto& currentIndex = itemView->currentIndex();
-      itemView->setCurrentIndex(itemView->model()->index(qMax(-1, currentIndex.row() - 1), 0));
+   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::keyUpPressed, [linkItemView](){
+      const auto& currentIndex = linkItemView->currentIndex();
+      linkItemView->setCurrentIndex(linkItemView->model()->index(qMax(-1, currentIndex.row() - 1), 0));
    });
-   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::keyDownPressed, [itemView](){
-      const auto& currentIndex = itemView->currentIndex();
-      itemView->setCurrentIndex(currentIndex.isValid() ? itemView->model()->index(qMin(itemView->model()->rowCount() - 1, currentIndex.row() + 1), 0) :
-                                                         itemView->model()->index(0, 0));
+   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::keyDownPressed, [linkItemView](){
+      const auto& currentIndex = linkItemView->currentIndex();
+      linkItemView->setCurrentIndex(currentIndex.isValid() ?
+                                    linkItemView->model()->index(qMin(linkItemView->model()->rowCount() - 1, currentIndex.row() + 10), 0) :
+                                    linkItemView->model()->index(0, 0));
+   });
+   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::keyPageUpPressed, [linkItemView](){
+      const auto& currentIndex = linkItemView->currentIndex();
+      linkItemView->setCurrentIndex(linkItemView->model()->index(qMax(-1, currentIndex.row() - 5), 0));
+   });
+   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::keyPageDownPressed, [linkItemView](){
+      const auto& currentIndex = linkItemView->currentIndex();
+      linkItemView->setCurrentIndex(currentIndex.isValid() ?
+                                    linkItemView->model()->index(qMin(linkItemView->model()->rowCount() - 1, currentIndex.row() + 10), 0) :
+                                    linkItemView->model()->index(0, 0));
    });
    searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::escapePressed, [this](){
       //
@@ -123,12 +137,12 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
       hide();
    });
 
-   itemView->connect(itemView, &QTableView::clicked, [this, linkItemFilterModel](const QModelIndex& index)
+   linkItemView->connect(linkItemView, &QTableView::clicked, [this, linkItemFilterModel](const QModelIndex& index)
    {
       //
       // If an item is clicked open the link and remain shown (so multiple items can be clicked).
       //
-      openItem_(linkItemFilterModel->item(index));
+      openItem_(linkItemFilterModel->item(index), linkItemFilterModel->searchExpression().parameters());
    });
 
    setFocusPolicy(Qt::NoFocus);
@@ -165,7 +179,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
       itemEditDialog.exec();
    });
    itemEditContextMenu->addSeparator();
-   itemEditContextMenu->addAction(QIcon(QStringLiteral(":/images/font.png")), tr("Select font..."), [this, itemView](){
+   itemEditContextMenu->addAction(QIcon(QStringLiteral(":/images/font.png")), tr("Select font..."), [this, linkItemView](){
       auto settings = static_cast<Application*>(Application::instance())->settings();
 
       auto fontSelected = false;
@@ -181,7 +195,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
          settings->setValue(QStringLiteral("font/italic"), font.italic());
 
          searchExpressionEdit_->setFont(font);
-         itemView->setFont(font);
+         linkItemView->setFont(font);
       }
    });
 
@@ -198,7 +212,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    //
    auto itemLayout = new QVBoxLayout;
    itemLayout->addWidget(searchExpressionEdit_);
-   itemLayout->addWidget(itemView);
+   itemLayout->addWidget(linkItemView);
    itemLayout->addStretch();
    itemLayout->setSpacing(0);
 
@@ -244,7 +258,7 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
                      settings->value(QStringLiteral("font/italic"), defaultFont.italic()).value<bool>());
 
    searchExpressionEdit_->setFont(font);
-   itemView->setFont(font);
+   linkItemView->setFont(font);
 
    //
    // Update the source model. Be aware that this must be done after creating the UI, so that
@@ -387,17 +401,52 @@ bool SearchWindow::eventFilter(QObject* object, QEvent* event)
    return consumeEvent;
 }
 
-bool SearchWindow::openItem_(LinkItem* item)
+bool SearchWindow::openItem_(LinkItem* item, const QStringList& parameters)
 {
-   qInfo() << "open item:" << item->link();
+   bool result = false;
 
    //
-   // Open the link with the registered default application.
+   // Replace parameter within link.
    //
-   bool result = QDesktopServices::openUrl(QUrl::fromUserInput(item->link()));
-   if (!result)
+   QString link = item->link();
+
+   int parameterNumber = 0;
+   for (; parameterNumber < std::numeric_limits<int>::max(); ++parameterNumber)
    {
-      searchExpressionEdit_->addInidication(QStringLiteral("openUrlError"), tr("Failed to open URL ").append(item->link()));
+      const QString& parameterPlaceholder = (QStringLiteral("{") + QString::number(parameterNumber + 1) + QStringLiteral("}"));
+      if (link.indexOf(parameterPlaceholder) >= 0)
+      {
+         if (parameterNumber < parameters.size())
+         {
+            link.replace(parameterPlaceholder, parameters.at(parameterNumber));
+         }
+      }
+      else
+      {
+         break;
+      }
+   }
+
+   if (parameterNumber == parameters.size())
+   {
+      searchExpressionEdit_->removeIndication(QStringLiteral("parameterError"));
+
+      //
+      // Open the link with the registered default application.
+      //
+      result = QDesktopServices::openUrl(QUrl::fromUserInput(link));
+      if (!result)
+      {
+         searchExpressionEdit_->addInidication(QStringLiteral("openUrlError"), tr("Failed to open URL ").append(item->link()));
+      }
+   }
+   else if (parameterNumber > parameters.size())
+   {
+      searchExpressionEdit_->addInidication(QStringLiteral("parameterError"), tr("Insufficient parameter provided"));
+   }
+   else if (parameterNumber < parameters.size())
+   {
+      searchExpressionEdit_->addInidication(QStringLiteral("parameterError"), tr("Extraneous parameter provided"));
    }
 
    return result;

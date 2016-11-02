@@ -63,10 +63,15 @@ ItemEditDialog::ItemEditDialog(ItemModel* itemModel, QWidget* parent, Qt::Window
    // Setup the item editor stack.
    //
    editorLayout_ = new QStackedLayout;
-   editorLayout_->insertWidget(static_cast<int>(Item::Type::Invalid), new InvalidItemEditor_);
-   for (auto type : itemEditorFactory->types())
+   for (std::size_t type = 0; type < static_cast<std::size_t>(Item::Type::Count); ++type)
    {
-      editorLayout_->insertWidget(static_cast<int>(type), itemEditorFactory->create(type));
+      auto itemEditor = itemEditorFactory->create(static_cast<Item::Type>(type));
+      if (itemEditor == nullptr)
+      {
+         itemEditor = new InvalidItemEditor_;
+      }
+
+      editorLayout_->addWidget(itemEditor);
    }
 
    auto editorWidget = new QGroupBox;
@@ -89,43 +94,35 @@ ItemEditDialog::ItemEditDialog(ItemModel* itemModel, QWidget* parent, Qt::Window
       {
          QMenu contextMenu;
 
-         //
-         // If the item is a group item check if it can serve as container for a type supported by
-         // an editor and offer an action to create such an item.
-         //
-         if (auto requestedGroupItem = Item::cast<GroupItem>(requestedItem))
+         for (auto type : itemEditorFactory->types())
          {
-            QModelIndex index = itemModel->index(0, requestedItemIndex.column(), requestedItemIndex);
+            QModelIndex index;
 
-            for (auto type : itemEditorFactory->types())
+            GroupItem* requestedGroupItemParent = Item::cast<GroupItem>(requestedItem->parent());
+            if ((requestedGroupItemParent != nullptr) && (requestedGroupItemParent->isContainerOf(type)))
             {
-               if (requestedGroupItem->isContainerOf(type))
-               {
-                  contextMenu.addAction(QIcon(QStringLiteral(":/images/add.png")), tr("Add ").append(itemFactory->typeName(type)),
-                                        [itemFactory, itemModel, itemView, requestedItem, index, type]()
-                                        {
-                                           itemModel->insertItem(itemFactory->create(type), index.row(), index.parent());
-                                           itemView->selectionModel()->select(index, QItemSelectionModel::ClearAndSelect);
-                                        });
-               }
+               index = itemModel->index(requestedItemIndex.row() + 1, requestedItemIndex.column(), requestedItemIndex.parent());
+            }
+
+            GroupItem* requestedGroupItem = Item::cast<GroupItem>(requestedItem);
+            if ((requestedGroupItem != nullptr) && (requestedGroupItem->isContainerOf(type)))
+            {
+               index = itemModel->index(0, requestedItemIndex.column(), requestedItemIndex);
+            }
+
+            if (index.isValid())
+            {
+               contextMenu.addAction(QIcon(QStringLiteral(":/images/add.png")), tr("Add ").append(itemFactory->typeName(type)),
+                                     [itemFactory, itemModel, itemView, index, type]()
+                                     {
+                                        itemModel->insertItem(itemFactory->create(type), index.row(), index.parent());
+                                        itemView->selectionModel()->select(index, QItemSelectionModel::ClearAndSelect);
+                                     });
             }
          }
 
-         //
-         // An item of the same type can be added as long as it is not an item source (which are
-         // added through adding an import item). The same applies for removing an item.
-         //
          if (!Item::is<ItemSource>(requestedItem))
          {
-            QModelIndex index = itemModel->index(requestedItemIndex.row() + 1, requestedItemIndex.column(), requestedItemIndex.parent());
-
-            contextMenu.addAction(QIcon(QStringLiteral(":/images/add.png")), tr("Add ").append(itemFactory->typeName(requestedItem->type())),
-                                  [itemFactory, itemModel, itemView, requestedItem, index]()
-                                  {
-                                     itemModel->insertItem(itemFactory->create(requestedItem->type()), index.row(), index.parent());
-                                     itemView->selectionModel()->select(index, QItemSelectionModel::ClearAndSelect);
-                                  });
-
             contextMenu.addAction(QIcon(QStringLiteral(":/images/remove.png")), tr("Remove Item"), [itemModel, requestedItemIndex]()
             {
                itemModel->removeItem(requestedItemIndex);
@@ -147,19 +144,12 @@ ItemEditDialog::ItemEditDialog(ItemModel* itemModel, QWidget* parent, Qt::Window
          }
       }
 
-      for (const auto& selectedItem : selectedItems.indexes())
+      Item* currentItem = itemModel->item(selectedItems.indexes().value(0));
+      if (auto editor = static_cast<ItemEditor*>(editorLayout_->widget(static_cast<int>(currentItem->type()))))
       {
-         Item* currentItem = itemModel->item(selectedItem);
-         if (auto editor = static_cast<ItemEditor*>(editorLayout_->widget(static_cast<int>(currentItem->type()))))
-         {
-            editor->read(currentItem);
+         editor->read(currentItem);
 
-            editorLayout_->setCurrentWidget(editor);
-         }
-         else
-         {
-            editorLayout_->setCurrentIndex(static_cast<int>(Item::Type::Invalid));
-         }
+         editorLayout_->setCurrentWidget(editor);
       }
    });
 

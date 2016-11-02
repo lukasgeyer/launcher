@@ -21,9 +21,9 @@ class ItemFactory : public Factory<Item::Type, Item, QString>
    /*!
     * Additional information supplied with this factory.
     */
-   enum AdditionalInformation
+   enum class AdditionalInformation
    {
-      TypeNameAdditionalInformation /*< The type name of the item */
+      TypeName /*< The type name of the item */
    };
 
 public:
@@ -40,7 +40,7 @@ public:
     */
    inline QString typeName(Item::Type type)
    {
-      return additionalInformation<TypeNameAdditionalInformation>(type);
+      return additionalInformation<static_cast<std::size_t>(AdditionalInformation::TypeName)>(type);
    }
 };
 

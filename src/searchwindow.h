@@ -78,7 +78,7 @@ private:
     * Tries to the item \a item with the default application and returns \a true if the item
     * could be opened; \a false otherwise.
     */
-   bool openItem_(LinkItem* item);
+   bool openItem_(LinkItem* item, const QStringList& parameters);
 };
 
 #endif // SEARCHWINDOW_H

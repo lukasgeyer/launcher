@@ -39,6 +39,14 @@ public:
     */
    const LinkItem* item(const QModelIndex& proxyIndex) const;
 
+   /*!
+    * Returns the current search expression.
+    */
+   inline const SearchExpression& searchExpression() const
+   {
+      return searchExpression_;
+   }
+
 public slots:
    /*!
     * Sets the regular pattern filter to \a regularExpressionPattern.

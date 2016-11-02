@@ -49,7 +49,8 @@ SOURCES += \
     src/linkgroupitem.cpp \
     src/linkitemproxymodel.cpp \
     src/linkitemeditor.cpp \
-    src/importitemeditor.cpp
+    src/importitemeditor.cpp \
+    src/linkgroupitemeditor.cpp
 
 HEADERS += \
     src/itemdelegate.h \
@@ -82,7 +83,8 @@ HEADERS += \
     src/importitemeditor.h \
     src/itemeditorfactory.h \
     src/itemfactory.h \
-    src/factory.h
+    src/factory.h \
+    src/linkgroupitemeditor.h
 
 RESOURCES += \
     resources/resources.qrc

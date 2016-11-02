@@ -54,9 +54,9 @@ public:
     * Returns the list of parameter provided with the search term since the
     * last call to setExpression().
     */
-   inline QStringList parameter() const
+   inline QStringList parameters() const
    {
-      return parameter_;
+      return parameters_;
    }
 
 private:
@@ -69,6 +69,7 @@ private:
 
       enum class Operation
       {
+         None,
          Conjunct,
          Disjunct,
       } operation;
@@ -92,7 +93,7 @@ private:
    /*!
     * A list of parameters provided with the search term.
     */
-   QStringList parameter_;
+   QStringList parameters_;
 
    /*!
     * Compiles the search expression \a expression.

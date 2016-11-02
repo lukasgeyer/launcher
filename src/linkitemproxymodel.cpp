@@ -150,7 +150,7 @@ QVariant LinkItemProxyModel::data(const QModelIndex& proxyIndex, int role) const
             data = cache_[proxyIndex.row()].tagStringList;
             break;
          case Qt::TextAlignmentRole:
-            data = QVariant::fromValue(Qt::AlignRight | Qt::AlignVCenter);
+            data = Qt::AlignRight + Qt::AlignVCenter;
             break;
          }
          break;

@@ -16,6 +16,7 @@
 #include "importitem.h"
 #include "importitemeditor.h"
 #include "linkgroupitem.h"
+#include "linkgroupitemeditor.h"
 #include "linkitem.h"
 #include "linkitemeditor.h"
 #include "xmlitemsource.h"
@@ -36,6 +37,7 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv),
 
    itemEditorFactory_.declare<ImportItemEditor>(Item::Type::Import);
    itemEditorFactory_.declare<LinkItemEditor>(Item::Type::Link);
+   itemEditorFactory_.declare<LinkGroupItemEditor>(Item::Type::LinkGroup);
 
    itemSourceFactory_.declare<CsvItemSource>("text/csv");
    itemSourceFactory_.declare<XmlItemSource>("text/xml");

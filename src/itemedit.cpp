@@ -119,6 +119,12 @@ bool ItemEdit::event(QEvent* event)
       case Qt::Key_Down:
          emit keyDownPressed();
          break;
+      case Qt::Key_PageUp:
+         emit keyPageUpPressed();
+         break;
+      case Qt::Key_PageDown:
+         emit keyPageDownPressed();
+         break;
       case Qt::Key_Escape:
          emit escapePressed();
          break;

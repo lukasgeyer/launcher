@@ -18,7 +18,7 @@ LinkItemEditor::LinkItemEditor(QWidget* parent) : ItemEditor(parent)
    auto layout = new QFormLayout;
    layout->addRow(tr("Name"), nameEdit_ = new QLineEdit);
    layout->addRow(tr("Url"), urlEdit_ = new QLineEdit);
-   layout->addRow(tr("Tag"), tagEdit_ = new QLineEdit);
+   layout->addRow(tr("Tags"), tagEdit_ = new QLineEdit);
    layout->addRow(tr("Color"), colorEdit_= new QLineEdit);
 
    setLayout(layout);

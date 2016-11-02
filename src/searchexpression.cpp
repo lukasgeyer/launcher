@@ -33,9 +33,9 @@ bool SearchExpression::matches(const QString& name, const QStringList& tags) con
 
 void SearchExpression::compile_(const QString& expression)
 {
-   const auto& conjunctPredicate = QObject::tr("and", "search expression predicate");
-   const auto& disjunctPredicate = QObject::tr("or", "search expression predicate");
-   const auto& negationPredicate = QObject::tr("not", "search expression predicate");
+   const auto& conjunctPredicates = QStringList{QObject::tr("and"), "&&", "&"};
+   const auto& disjunctPredicates = QStringList{QObject::tr("or"),  "||", "|"};
+   const auto& negationPredicates = QStringList{QObject::tr("not"), "!!", "!"};
 
    auto operation = Term_::Operation::Conjunct;
    auto negation = Term_::Negation::NotNegated;
@@ -43,26 +43,28 @@ void SearchExpression::compile_(const QString& expression)
    nameTerms_.clear();
    tagsTerms_.clear();
 
+   parameters_.clear();
+
    auto expressionTokens = expression.split(' ', QString::SkipEmptyParts);
    for (auto expressionToken : expressionTokens)
    {
-      if (expressionToken.compare(conjunctPredicate, Qt::CaseInsensitive) == 0)
+      if (conjunctPredicates.contains(expressionToken, Qt::CaseInsensitive))
       {
          operation = Term_::Operation::Conjunct;
       }
-      else if (expressionToken.compare(disjunctPredicate, Qt::CaseInsensitive) == 0)
+      else if (disjunctPredicates.contains(expressionToken, Qt::CaseInsensitive))
       {
          operation = Term_::Operation::Disjunct;
       }
-      else if (expressionToken.compare(negationPredicate, Qt::CaseInsensitive) == 0)
+      else if (negationPredicates.contains(expressionToken, Qt::CaseInsensitive))
       {
          negation = Term_::Negation::Negated;
       }
       else
       {
-         if (expressionToken.startsWith(':'))
+         if (operation == Term_::Operation::None)
          {
-            parameter_.append(expressionToken.right(expressionToken.length() - 1 /* ':' */));
+            parameters_.append(expressionToken);
          }
          else
          {
@@ -85,7 +87,7 @@ void SearchExpression::compile_(const QString& expression)
                nameTerms_.append({QRegularExpression(expressionToken, QRegularExpression::CaseInsensitiveOption), operation, negation});
             }
 
-            operation = Term_::Operation::Conjunct;
+            operation = Term_::Operation::None;
             negation = Term_::Negation::NotNegated;
          }
       }
