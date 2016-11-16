@@ -78,8 +78,8 @@ SearchWindow::SearchWindow(QWidget *parent) : QWidget(parent, Qt::FramelessWindo
    linkItemView->setSelectionBehavior(QAbstractItemView::SelectRows);
    linkItemView->setShowGrid(false);
    linkItemView->setStyleSheet(QStringLiteral("QTableView { background-color: transparent; border: none; margin-left: 2px; margin-right: 2px; } "
-                                          "QTableView::item { color: #ffe2e2e2; background-color: #d018435a; padding: 4px; } "
-                                          "QTableView::item:selected { color: #ffe2e2e2; background-color: #ff18435a; padding: 4px; }"));
+                                              "QTableView::item { color: #ffe2e2e2; background-color: #d018435a; padding: 4px; } "
+                                              "QTableView::item:selected { color: #ffe2e2e2; background-color: #ff18435a; padding: 4px; }"));
 
    auto searchExpressionEditShadowEffect = new QGraphicsDropShadowEffect;
    searchExpressionEditShadowEffect->setBlurRadius(16.0);
@@ -404,6 +404,12 @@ bool SearchWindow::eventFilter(QObject* object, QEvent* event)
 bool SearchWindow::openItem_(LinkItem* item, const QStringList& parameters)
 {
    bool result = false;
+
+   //
+   // TODO: Also support optional parameter ({?1}) that may not be present and allow for opening items that
+   //       would otherwise raise an error (or be filtered out). In addition a wildcard parameter shall be
+   //       supported ({*}), which allows for matching any (for instance to pass something to Google).
+   //
 
    //
    // Replace parameter within link.
