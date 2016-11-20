@@ -109,7 +109,9 @@ void ItemModel::read(const QString& file)
    // Discard any existing items.
    //
 
+   beginResetModel();
    GroupItem::removeItems();
+   endResetModel();
 
    //
    // Read the item source.
