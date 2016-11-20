@@ -188,6 +188,20 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
 
       hide();
    });
+   searchExpressionEdit_->connect(itemModel_, &ItemModel::sourceFailedToLoad,
+                                  [this](const QString& source, const QString& errorString)
+   {
+      searchExpressionEdit_->addInidication(QStringLiteral("sourceError:").append(source),
+                                            tr("Source failed to load: %1: %2").arg(source).arg(errorString));
+   });
+   searchExpressionEdit_->connect(itemModel_, &ItemModel::sourceLoaded, [this](const QString& source)
+   {
+      searchExpressionEdit_->removeIndication(QStringLiteral("sourceError:").append(source));
+   });
+   searchExpressionEdit_->connect(itemModel_, &ItemModel::modelReset, [this]()
+   {
+      searchExpressionEdit_->removeIndication(QStringLiteral("sourceError:*"));
+   });
 
    searchResultView_->connect(searchResultView_, &QTableView::clicked, [this, searchItemFilterModel](const QModelIndex& index)
    {
