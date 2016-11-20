@@ -12,12 +12,16 @@
 
 #include <QEvent>
 
+namespace Event {
+
 /*!
  * Returns the event \a event as \a EventType if the type is \a type; \a nullptr otherwise.
  */
-template <typename EventType> EventType* eventAs(QEvent* event, QEvent::Type type)
+template <typename EventType> EventType* cast(QEvent* event, QEvent::Type type)
 {
    return ((event != nullptr) ? ((event->type() == type) ? (static_cast<EventType*>(event)) : (nullptr)) : (nullptr));
 }
+
+} // namespace Event
 
 #endif // EVENT_H

@@ -7,14 +7,19 @@
  *          published by the Free Software Foundation.
  */
 
+#include <QCommandLineParser>
 #include <QDateTime>
 #include <QDebug>
 #include <QFile>
+#include <QMessageBox>
 #include <QTextStream>
+#include <QThreadPool>
 
 #include "application.h"
 #include "systemlock.h"
 #include "searchwindow.h"
+
+#include "itemmodel.h"
 
 namespace {
 
@@ -50,41 +55,87 @@ int main(int argc, char *argv[])
    //
    // Set up the application.
    //
+
    Application application(argc, argv);
 
    //
-   // Try to acquire the application lock and exit immediately if it cannot be acquired (so that
-   // just a single instance of the application is running at a time).
+   // Parse command line.
    //
-   SystemLock lock;
-   if (lock.tryLock() == true)
+
+   QCommandLineParser commandLineParser;
+   const auto& helpCommandLineOption = commandLineParser.addHelpOption();
+   const auto& versionCommandLineOption = commandLineParser.addVersionOption();
+
+   QCommandLineOption sourceCommandLineOption(QStringLiteral("source"));
+   sourceCommandLineOption.setDescription(QObject::tr("The XML-file items should be read from"));
+   sourceCommandLineOption.setValueName(QObject::tr("file"));
+   sourceCommandLineOption.setDefaultValue(QStringLiteral("launcher.xml"));
+   commandLineParser.addOption(sourceCommandLineOption);
+
+
+   if (commandLineParser.parse(application.arguments()))
    {
-      //
-      // Set up logging. If the log file cannot be openend (just) the default message handler is used.
-      //
-      QFile logFile(QStringLiteral("launcher.log"));
-      if (logFile.open(QIODevice::Text | QIODevice::Truncate | QIODevice::WriteOnly) == true)
+      if (commandLineParser.isSet(helpCommandLineOption))
       {
-         logFileStream_.setDevice(&logFile);
-
-         logMessageHandler_ = qInstallMessageHandler(logFileHandler);
+         QMessageBox::information(nullptr, "Help", commandLineParser.helpText());
       }
+      else if (commandLineParser.isSet(versionCommandLineOption))
+      {
+         QMessageBox::information(nullptr, "Version", application.applicationVersion());
+      }
+      else
+      {
+         //
+         // Try to acquire the application lock and exit immediately if it cannot be acquired (so that
+         // just a single instance of the application is running at a time).
+         //
 
-      //
-      // Print application name and version.
-      //
-      qInfo().noquote() << application.applicationName() << application.applicationVersion();
+         SystemLock lock;
+         if (lock.tryLock())
+         {
+            //
+            // Set up logging. If the log file cannot be openend (just) the default message handler is used.
+            //
 
-      //
-      // Set up the item window.
-      //
-      SearchWindow itemWindow;
-      itemWindow.show();
+            QFile logFile(QStringLiteral("launcher.log"));
+            if (logFile.open(QIODevice::Text | QIODevice::Truncate | QIODevice::WriteOnly))
+            {
+               logFileStream_.setDevice(&logFile);
 
-      //
-      // Execute the application.
-      //
-      result = application.exec();
+               logMessageHandler_ = qInstallMessageHandler(logFileHandler);
+            }
+
+            qInfo().noquote() << application.applicationName() << application.applicationVersion();
+
+
+            //
+            // Show the search window.
+            //
+
+            ItemModel itemModel;
+
+            SearchWindow searchWindow(&itemModel);
+            searchWindow.show();
+
+            //
+            // Update the item model. Be aware that this must be done after creating the UI, so that
+            // possible errors during the model update are properly indicated.
+            //
+
+            itemModel.read(commandLineParser.value(sourceCommandLineOption));
+
+
+            //
+            // Execute the application.
+            //
+
+            result = application.exec();
+         }
+      }
+   }
+   else
+   {
+      QMessageBox::critical(nullptr, QObject::tr("Invalid parameter"), commandLineParser.errorText());
    }
 
    return result;

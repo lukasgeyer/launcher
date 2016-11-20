@@ -10,6 +10,8 @@
 #ifndef XMLITEMSOURCE_H
 #define XMLITEMSOURCE_H
 
+#include <memory>
+
 #include "itemsource.h"
 
 class QXmlStreamReader;
@@ -21,33 +23,13 @@ class XmlItemSource : public ItemSource
 {
 public:
    /*!
-    * Constructs an empty XML item source with the identifier \a identifier.
-    */
-   explicit XmlItemSource(const QString& identifier);
-
-   /*!
     * \reimp
     */
-   bool read(QIODevice* device) override;
+   bool read(QIODevice* device, const QString& identifier) override;
    /*!
     * \reimp
     */
    bool write(QIODevice* device) const override;
-
-   /*!
-    * \reimp
-    */
-   void reset() override;
-
-   /*!
-    * \reimp
-    */
-   const ItemGroups& itemGroups() const override;
-
-   /*!
-    * \reimp
-    */
-   const Imports& imports() const override;
 
    /*!
     * \reimp
@@ -60,17 +42,6 @@ public:
 
 private:
    /*!
-    * The item groups in the source. Any item that is not in a group is represented in an
-    * surrogate group, which is the first group in this list.
-    */
-   ItemGroups itemGroups_;
-
-   /*!
-    * The imports in the source.
-    */
-   Imports imports_;
-
-   /*!
     * The XML document error.
     */
    mutable QString errorString_;
@@ -82,11 +53,11 @@ private:
    /*!
     * Reads an item from the XML stream \a reader and adds it to the list of items.
     */
-   void readItem_(QXmlStreamReader* reader, ItemGroup* itemGroup);
+   void readItem_(QXmlStreamReader* reader, GroupItem* parent);
    /*!
     * Reads a group from the XML stream \a reader and add it to the list of items.
     */
-   void readGroup_(QXmlStreamReader* reader);
+   void readGroup_(QXmlStreamReader* reader, GroupItem* parent);
    /*!
     * Reads an imported source from the XML stream \a stream.
     */

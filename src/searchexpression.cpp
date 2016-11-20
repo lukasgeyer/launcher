@@ -7,6 +7,8 @@
  *          published by the Free Software Foundation.
  */
 
+#include <QObject>
+
 #include "searchexpression.h"
 
 SearchExpression::SearchExpression()
@@ -15,69 +17,150 @@ SearchExpression::SearchExpression()
 
 SearchExpression::SearchExpression(const QString& expression)
 {
-   Compile_(expression);
+   compile_(expression);
 }
 
 void SearchExpression::setExpression(const QString& expression)
 {
-   Compile_(expression);
+   compile_(expression);
 }
 
-bool SearchExpression::Matches(const QString& name, const QStringList& tags) const
+bool SearchExpression::matches(const QString& name, const QStringList& tags) const
 {
-   return (((nameTerms_.isEmpty() == false) || (tagsTerms_.isEmpty() == false)) &&
-           ((nameTerms_.isEmpty() == true) || (MatchesName_(name) == true)) &&
-           ((tagsTerms_.isEmpty() == true) || (MatchesTags_(tags) == true)));
+   bool matches = true;
+
+   matches &= (nameTerms_.isEmpty() || matchesName_(name));
+   matches &= (tagsTerms_.isEmpty() || matchesTags_(tags));
+
+   return matches;
 }
 
-void SearchExpression::Compile_(const QString& expression)
+void SearchExpression::compile_(const QString& expression)
 {
-   auto operation = Term_::Operation::Conjunct;
-   auto negation = Term_::Negation::NotNegated;
+   //
+   // The predicates used to match an operation or negation.
+   //
+
+   static const auto& conjunctPredicates = QStringList{QObject::tr("and"), "&&", "&"};
+   static const auto& disjunctPredicates = QStringList{QObject::tr("or"),  "||", "|"};
+   static const auto& negationPredicates = QStringList{QObject::tr("not"), "!!", "!"};
+
+   //
+   // The type of the token currently being parsed.
+   //
+
+   enum class TokenType { Operator, Name, Tag, Parameter } tokenType = TokenType::Name;
+
+   //
+   // The term currently being parsed. Be aware that the first term is conjunct by default.
+   //
+
+   Term_ term;
+   term.operation = Term_::Operation::Conjunct;
+   term.negation = Term_::Negation::NotNegated;
+
+   //
+   // Parse the expression, token by token, term by term.
+   //
 
    nameTerms_.clear();
    tagsTerms_.clear();
 
-   auto expressionTokens = expression.split(' ', QString::SkipEmptyParts);
-   for (auto expressionToken : expressionTokens)
+   parameters_.clear();
+
+   auto tokens = expression.split(' ', QString::SkipEmptyParts);
+   for (auto token : tokens)
    {
-      if (expressionToken.compare("AND", Qt::CaseInsensitive) == 0)
+      //
+      // Determine token type.
+      //
+
+      if (conjunctPredicates.contains(token, Qt::CaseInsensitive))
       {
-         operation = Term_::Operation::Conjunct;
+         tokenType = TokenType::Operator;
+         term.operation = Term_::Operation::Conjunct;
       }
-      else if (expressionToken.compare("OR", Qt::CaseInsensitive) == 0)
+      else if (disjunctPredicates.contains(token, Qt::CaseInsensitive))
       {
-         operation = Term_::Operation::Disjunct;
+         tokenType = TokenType::Operator;
+         term.operation = Term_::Operation::Disjunct;
       }
-      else if (expressionToken.compare("NOT", Qt::CaseInsensitive) == 0)
+      else if (negationPredicates.contains(token, Qt::CaseInsensitive))
       {
-         negation = Term_::Negation::Negated;
+         tokenType = TokenType::Operator;
+         term.negation = Term_::Negation::Negated;
+      }
+      else if (token.startsWith('@'))
+      {
+         tokenType = TokenType::Tag;
+      }
+      else if (term.operation != Term_::Operation::None)
+      {
+         tokenType = TokenType::Name;
       }
       else
       {
-         expressionToken.replace("?", ".");
-         expressionToken.replace("*", ".*");
+         tokenType = TokenType::Parameter;
+      }
 
-         if (expressionToken.startsWith('@') == false)
+      //
+      // Determine term (given that enough tokens have been parsed).
+      //
+
+      switch (tokenType)
+      {
+      case TokenType::Operator:
+      {
+         break;
+      }
+      case TokenType::Name:
+      {
+         token.prepend('^');
+         token.replace("?", ".");
+         token.replace("*", ".*");
+
+         term.expression.setPattern(token);
+         term.expression.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+
+         nameTerms_.append(term);
+
+         term.operation = Term_::Operation::None;
+         term.negation = Term_::Negation::NotNegated;
+
+         break;
+      }
+      case TokenType::Tag:
+      {
+         token.replace(0, 1, '^');
+         token.replace("?", ".");
+         token.replace("*", ".*");
+
+         term.expression.setPattern(token);
+         term.expression.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+
+         if (term.operation == Term_::Operation::None)
          {
-            expressionToken.prepend('^');
-
-            nameTerms_.append({QRegularExpression(expressionToken, QRegularExpression::CaseInsensitiveOption), operation, negation});
-         }
-         else if (expressionToken.size() >= 2)
-         {
-            expressionToken.replace(0, 1, '^');
-
-            tagsTerms_.append({QRegularExpression(expressionToken, QRegularExpression::CaseInsensitiveOption), operation, negation});
+            term.operation = Term_::Operation::Conjunct;
          }
 
-         operation = Term_::Operation::Conjunct;
-         negation = Term_::Negation::NotNegated;
+         tagsTerms_.append(term);
+
+         term.operation = Term_::Operation::None;
+         term.negation = Term_::Negation::NotNegated;
+
+         break;
+      }
+      case TokenType::Parameter:
+      {
+         parameters_.append(token);
+
+         break;
+      }
       }
    }
 }
 
-bool SearchExpression::MatchesName_(const QString& name) const
+bool SearchExpression::matchesName_(const QString& name) const
 {
    bool isConjunctMatch = false;
    bool isConjunctMatchInitialization = true;
@@ -99,10 +182,10 @@ bool SearchExpression::MatchesName_(const QString& name) const
       }
    }
 
-   return ((isConjunctMatch == true) || (isDisjunctMatch == true));
+   return (isConjunctMatch || isDisjunctMatch);
 }
 
-bool SearchExpression::MatchesTags_(const QStringList& tags) const
+bool SearchExpression::matchesTags_(const QStringList& tags) const
 {
    bool isConjunctMatch = false;
    bool isConjunctMatchInitialization = true;
@@ -112,7 +195,7 @@ bool SearchExpression::MatchesTags_(const QStringList& tags) const
    for (const auto &tagsTerm : tagsTerms_)
    {
       bool isTermMatch = false;
-      for (auto tag = std::begin(tags); ((tag != std::end(tags)) && (isTermMatch == false)); ++tag)
+      for (auto tag = std::begin(tags); ((tag != std::end(tags)) && (!isTermMatch)); ++tag)
       {
          isTermMatch = (tagsTerm.expression.match(*tag).hasMatch() ^ (tagsTerm.negation == Term_::Negation::Negated));
       }
@@ -128,5 +211,35 @@ bool SearchExpression::MatchesTags_(const QStringList& tags) const
       }
    }
 
-   return ((isConjunctMatch == true) || (isDisjunctMatch == true));
+   return (isConjunctMatch || isDisjunctMatch);
 }
+
+QDebug operator<<(QDebug stream, const SearchExpression::Term_& searchExpressionTerm)
+{
+   switch (searchExpressionTerm.operation)
+   {
+   case SearchExpression::Term_::Operation::None: break;
+   case SearchExpression::Term_::Operation::Conjunct: stream << "&"; break;
+   case SearchExpression::Term_::Operation::Disjunct: stream << "|"; break;
+   }
+
+   switch (searchExpressionTerm.negation)
+   {
+   case SearchExpression::Term_::Negation::NotNegated: break;
+   case SearchExpression::Term_::Negation::Negated: stream << "!"; break;
+   }
+
+   stream << searchExpressionTerm.expression.pattern();
+
+   return stream;
+}
+
+QDebug operator<<(QDebug stream, const SearchExpression& searchExpression)
+{
+   stream << "name" << searchExpression.nameTerms_;
+   stream << "tags" << searchExpression.tagsTerms_;
+   stream << "parameter" << searchExpression.parameters_;
+
+   return stream;
+}
+

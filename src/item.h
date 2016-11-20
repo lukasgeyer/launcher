@@ -10,81 +10,157 @@
 #ifndef ITEM_H
 #define ITEM_H
 
-#include <QBrush>
-#include <QDebug>
-#include <QString>
-#include <QUrl>
+#include <type_traits>
 
-#include "tag.h"
-#include "tags.h"
+#include <QHash>
 
 /*!
- * An item as found in a source.
+ * \brief An item.
  */
 class Item
 {
 public:
    /*!
-    * Sets the name of the item to \a name.
+    * \brief Returns \a true if the item is a or is a base of \a type.
     */
-   void setName(const QString& name);
-   /*!
-    * Returns the name of the item.
-    */
-   QString name() const;
+   enum class Type
+   {
+      Link,
+      Import,
+      Group,
+       LinkGroup,
+       ImportGroup,
+       Source,
+
+      Count
+   };
 
    /*!
-    * Sets the link the item refers to to \a link.
+    * \brief The access of the item.
     */
-   void setLink(const QUrl& link);
-   /*!
-    * Returns the link the item refers to.
-    */
-   QUrl link() const;
+   enum class Access
+   {
+      ReadOnly,
+      ReadWrite
+   };
 
    /*!
-    * Sets the brush of the item to \a brush.
+    * Destructs the item.
     */
-   void setBrush(const QBrush& brush);
-   /*!
-    * Returns the bursh of the item or an Qt::NoBrush if no brush is set.
-    */
-   QBrush brush() const;
+   virtual ~Item()
+   {
+   }
 
    /*!
-    * Appends the tag \a tag to the list of tags for the item.
+    * Returns the type of the item.
     */
-   void appendTag(const Tag& tag);
+   Type type() const
+   {
+      return type_;
+   }
+
    /*!
-    * Returns the tags attached to the item.
+    * Returns the access of the item.
     */
-   const Tags& tags() const;
+   Access access() const
+   {
+      return access_;
+   }
+
+   /*!
+    * Sets the parent to \a parent.
+    */
+   void setParent(Item* parent)
+   {
+      parent_ = parent;
+   }
+   /*!
+    * Returns the parent of this item.
+    */
+   Item* parent()
+   {
+      return parent_;
+   }
+   /*!
+    * Returns the parent of this item.
+    */
+   Item* parent() const
+   {
+      return parent_;
+   }
+   /*!
+    * Returns the recursive-next parent of the item which is of type \a Type.
+    */
+   template <typename Type> const Type* parent() const
+   {
+      const Item* parent = parent_;
+
+      for (; ((parent != nullptr) && (!Item::is<Type>(parent))); parent = parent->parent_)
+      {
+      }
+
+      return static_cast<const Type*>(parent);
+   }
+
+   /*!
+    * Returns \a true if the item \a item is of type \a type; false otherwise.
+    */
+   template <typename TargetType, typename SourceType>
+   static typename std::enable_if<std::is_base_of<Item, TargetType>::value, bool>::type is(SourceType* item)
+   {
+      return ((item != nullptr) && (TargetType::isBaseOf(item->type_)));
+   }
+
+   /*!
+    * Casts the item \a item to the derived item type \a Type and returns a pointer to that type
+    * or \a nullptr if the item is not of that type.
+    */
+   template <typename TargetType,
+             typename SourceType,
+             typename ReturnType = std::conditional<std::is_const<SourceType>::value, const TargetType*, TargetType*>::type>
+   static typename std::enable_if<std::is_base_of<Item, TargetType>::value, ReturnType>::type cast(SourceType* item)
+   {
+      ReturnType returnItem = nullptr;
+
+      if (Item::is<TargetType>(item))
+      {
+         returnItem = static_cast<decltype(returnItem)>(item);
+      }
+
+      return returnItem;
+   }
+
+protected:
+   /*!
+    * Constructs an item of the type \a type.
+    */
+   Item(Type type, Access access = Access::ReadWrite) : type_(type), access_(access)
+   {
+   }
 
 private:
    /*!
-    * The name of the item.
+    * Returns \a true if the item is a or is a base of \a type.
     */
-   QString name_;
-   /*!
-    * The link the item refers to.
-    */
-   QUrl link_;
+   Type type_;
 
    /*!
-    * The brush that shall be used to represent the item.
+    * The access of the item.
     */
-   QBrush brush_;
+   Access access_;
 
    /*!
-    * The tags attached to the item.
+    * A pointer to the parent of this item.
     */
-   Tags tags_;
-
-   /*!
-    * Inserts the item \a item into the stream \a stream and returns the stream.
-    */
-   friend QDebug operator<<(QDebug stream, const Item& item);
+   Item* parent_ = nullptr;
 };
 
+/*!
+ * Returns the hash for the item type \a type.
+ */
+inline uint qHash(Item::Type type, uint seed = 0)
+{
+   return qHash(static_cast<int>(type), seed);
+}
 
 #endif // ITEM_H

@@ -10,130 +10,147 @@
 #ifndef ITEMMODEL_H
 #define ITEMMODEL_H
 
-#include <memory>
-#include <utility>
-#include <vector>
+#include <chrono>
+#include <functional>
 
 #include <QAbstractListModel>
+#include <QFileSystemWatcher>
 #include <QString>
-#include <QThreadPool>
+#include <QTimer>
+#include <QUuid>
 
-#include "imports.h"
-#include "itemsource.h"
+#include "groupitem.h"
+
+class ImportItem;
+class ImportItemReader;
 
 /*!
  * \brief An item model representing the items found in an XML-based source file.
  */
-class ItemModel : public QAbstractListModel
+class ItemModel : public QAbstractItemModel, public GroupItem
 {
    Q_OBJECT
 
 public:
    /*!
-    * The identifier for a model.
-    */
-   typedef QString Identifier;
-
-   /*!
-    * The custom roles provided by this model.
-    */
-   enum Role
-   {
-      NameRole = Qt::DisplayRole, /*< The name for the item of type QString. */
-      BrushRole = Qt::ForegroundRole, /*< The brush for the item of type QBrush. */
-      LinkRole = Qt::UserRole, /*< The link for the item of type QString. */
-      TagsRole /*< The tags for the item of type QStringList. */
-   };
-
-   /*!
     * Constructs an ItemModel with the parent \a parent.
     */
    ItemModel(QObject* parent = nullptr);
+   /*!
+    * Destructs an ItemModel.
+    */
+   ~ItemModel();
 
    /*!
-    * Reads the item model from the file \a file.
+    * \reimp
+    */
+   QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
+   /*!
+    * \reimp
+    */
+   QModelIndex parent(const QModelIndex &child) const override;
+
+   /*!
+    * \reimp
+    */
+   int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+   /*!
+    * \reimp
+    */
+   int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+
+   /*!
+    * \reimp
+    */
+   QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+
+   /*!
+    * Recursively applies the function \a function to each item of type \a Type.
+    */
+   template <typename Type> void apply(const std::function<void(const QModelIndex& index, Type* item)> function, const QModelIndex& parent = QModelIndex())
+   {
+      for (int row = 0; row < rowCount(parent); ++row)
+      {
+         const QModelIndex& childIndex = index(row, 0, parent);
+
+         if (auto childItem = Item::cast<Type>(item(childIndex)))
+         {
+            function(childIndex, childItem);
+         }
+
+         apply<Type>(function, childIndex);
+      }
+   }
+
+   /*!
+    * Asynchronosly reads the model data from the file with the name \a fileName.
     */
    void read(const QString& file);
+   /*!
+    * Synchronously writes the model data to the file with the name \a fileName.
+    */
+   void write(const QString& fileName);
 
    /*!
-    * Resets the item model, by clearing all data and emitting the required signals to trigger
-    * an update of any connected views.
+    * Returns a pointer to the item at the index \a index or \a nullptr if there is no such item.
     */
-   void reset();
+   Item* item(const QModelIndex& index);
+   /*!
+    * Returns a pointer to the item at the index \a index or \a nullptr if there is no such item.
+    */
+   const Item* item(const QModelIndex& index) const;
 
    /*!
-    * \reimp
+    * Returns the identifier the model war read from.
     */
-   int rowCount(const QModelIndex& parent) const override;
-
-   /*!
-    * \reimp
-    */
-   QVariant data(const QModelIndex& index, int role) const override;
+   QString itemSourceIdentifier() const
+   {
+      return itemSourceFile_;
+   }
 
 signals:
    /*!
-    * Is emitted when the import \a import has been added to the model.
+    * Is emitted when a source has been loaded.
     */
-   void importSucceeded(const Import& import);
+   void sourceLoaded(const QString& source);
    /*!
-    * Is emitted when the import \a import has not been added to the model because of the
-    * error \a errorString at the position \a errorPosition.
+    * Is emitted when a source failed to load.
     */
-   void importFailed(const Import& import, const QString& errorString, const QPoint& errorPosition);
-   /*!
-    * Is emitted when the import list has been reset.
-    */
-   void importReset();
-
-protected:
-   /*!
-    * \reimp
-    */
-   void timerEvent(QTimerEvent *event) override;
+   void sourceFailedToLoad(const QString& source, const QString& errorString = QString(), const QPoint& errorPosition = QPoint());
 
 private:
    /*!
+    * The file the model was originally populated from.
+    */
+   QString itemSourceFile_;
+
+   /*!
+    * The file system watcher checking for changes in any item source files.
+    */
+   QFileSystemWatcher itemSourceWatcher_;
+
+   /*!
+    * The list of import items to be reloaded asynchronously.
+    */
+   QVector<QPair<ImportItemReader*, std::chrono::steady_clock::time_point>> itemSourceReaderQueue_;
+   /*!
+    *
     * The opaque identifier of the model. This identifier is unique and is regenerated each time
     * the model is reset. The main use is to relate an in-flight asnychronous import with the
     * correct epoch of a model (each time the model is reset a new epoch is dawn, and the result
     * of an asynchronous import of an older epoch must not be used to avoid incorrect entries).
     */
-   Identifier identifier_;
+   QUuid itemSourceReaderQueueIdentifier_;
+   /*!
+    * The timer triggering the processing of the item source reader queue.
+    */
+   QTimer itemSourceReaderQueueTimer_;
 
    /*!
-    * The sources of this model.
+    * Asynchronously reads the import item \a item and returns \a true if the item read process
+    * could be started; \a false otherwise.
     */
-   std::vector<std::shared_ptr<ItemSource>> itemSources_;
-
-   /*!
-    * The row cache for the model, mapping a row to the repsective item within an item group.
-    */
-   std::vector<std::pair<ItemGroup*, Item*>> itemSourcesCache_;
-
-   /*!
-    * The list of imports that are required to be loaded asynchronously.
-    */
-   Imports imports_;
-   /*!
-    * The thread pool used to asynchronously load the imports.
-    */
-   QThreadPool importsThreadPool_;
-
-   /*!
-    * Adds the item source \a item source to the list of item sources, updates the row cache and
-    * emits the required signals to trigger an update of any connected views.
-    */
-   void addItemSource_(const std::shared_ptr<ItemSource>& itemSource);
-
-   /*!
-    * Adds the import \a import to the list of imports required to be loaded asynchronously.
-    */
-   void addImport_(const Import& import);
-   /*!
-    * Starts the asynchronous import of the import \a import.
-    */
-   void startImport_(const Import& import);
+   bool readItemSource_(const ImportItem& item);
 };
 
 #endif // ITEMMODEL_H

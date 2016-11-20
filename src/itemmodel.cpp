@@ -11,169 +11,348 @@
 #include <chrono>
 
 #include <QFileInfo>
-#include <QUuid>
+#include <QThreadPool>
 
 #include "application.h"
-#include "import.h"
-#include "importer.h"
+#include "importgroupitem.h"
 #include "itemmodel.h"
-#include "itemsource.h"
-#include "metatype.h"
-
-REGISTER_METATYPE(ItemModel::Identifier)
+#include "importitemreader.h"
+#include "linkgroupitem.h"
+#include "xmlitemsource.h"
 
 namespace {
 
+/*!
+ * The default timeout for retrying failed sources.
+ */
 static const std::chrono::milliseconds DEFAULT_IMPORT_RETRY_TIMEOUT_ = std::chrono::seconds(10);
 
 } // namespace
 
-ItemModel::ItemModel(QObject* parent) : QAbstractListModel(parent)
+ItemModel::ItemModel(QObject* parent) : QAbstractItemModel(parent)
 {
-   startTimer(static_cast<int>(DEFAULT_IMPORT_RETRY_TIMEOUT_.count()));
+   itemSourceWatcher_.connect(&itemSourceWatcher_, &QFileSystemWatcher::fileChanged, [this](const QString& file)
+   {
+      //
+      // If the item source has changed reload the whole item model. It would be possible to
+      // reload just the item source that has changed, but this requires a dependency tree
+      // to be maintained, as the reloaded item source may have removed an import item, which
+      // prevented the load of a former duplicate item source.
+      //
+
+      qInfo() << "item source changed" << file;
+
+      read(itemSourceFile_);
+   });
+
+   itemSourceReaderQueueTimer_.start(1000);
+   itemSourceReaderQueueTimer_.connect(&itemSourceReaderQueueTimer_, &QTimer::timeout, [this]()
+   {
+      //
+      // The item source reader queue contains readers, which failed to load their source, either
+      // because there was a parsing error or the file did not exist. Schedule this failed readers
+      // periodically, so any files that have been added are reloaded. The file system watcher
+      // cannot be used for this task, as it cannot be used to monitor files which do not exist.
+      // In addition, it may be very possible that the file indeed exists, but is not yet reachable
+      // because it resides for instance on a network share.
+      //
+
+      auto now = std::chrono::steady_clock::now();
+
+      for (auto itemSourceReader = std::begin(itemSourceReaderQueue_); itemSourceReader != std::end(itemSourceReaderQueue_); )
+      {
+         if (std::chrono::duration_cast<std::chrono::milliseconds>(now - itemSourceReader->second) > DEFAULT_IMPORT_RETRY_TIMEOUT_)
+         {
+            qInfo() << "retry item source" << itemSourceReader->first->importItem();
+
+            QThreadPool::globalInstance()->start(itemSourceReader->first);
+
+            itemSourceReader = itemSourceReaderQueue_.erase(itemSourceReader);
+         }
+         else
+         {
+            ++itemSourceReader;
+         }
+      }
+   });
+}
+
+ItemModel::~ItemModel()
+{
 }
 
 void ItemModel::read(const QString& file)
 {
-   qDebug() << "read:" << file;
+   //
+   // Store the item source file.
+   //
 
-   startImport_(Import(file, QStringLiteral("text/xml")));
+   itemSourceFile_ = file;
+
+   //
+   // Discard any item source watcher.
+   //
+
+   if (!itemSourceWatcher_.files().isEmpty())
+   {
+      itemSourceWatcher_.removePaths(itemSourceWatcher_.files());
+   }
+
+   //
+   // Discard any pending asynchronous item read operations,
+   //
+
+   itemSourceReaderQueue_.clear();
+   itemSourceReaderQueueIdentifier_ = QUuid::createUuid();
+
+   //
+   // Discard any existing items.
+   //
+
+   GroupItem::removeItems();
+
+   //
+   // Read the item source.
+   //
+
+   readItemSource_(ImportItem(file, QStringLiteral("text/xml")));
 }
 
-void ItemModel::reset()
+void ItemModel::write(const QString& /* fileName */)
 {
-   qDebug() << "reset";
+}
 
-   beginResetModel();
+QModelIndex ItemModel::index(int row, int column, const QModelIndex& parent) const
+{
+   QModelIndex index;
 
-   identifier_ = QUuid().toString();
+   const GroupItem* groupItem = this;
+   if (parent.isValid())
+   {
+      groupItem = static_cast<const GroupItem*>(parent.internalPointer());
+   }
 
-   itemSources_.clear();
-   itemSourcesCache_.clear();
+   Item* item = const_cast<Item*>(groupItem->item(row));
+   if (item != nullptr)
+   {
+      index = createIndex(row, column, item);
+   }
 
-   imports_.clear();
-   importsThreadPool_.clear();
+   return index;
+}
 
-   endResetModel();
+QModelIndex ItemModel::parent(const QModelIndex& child) const
+{
+   QModelIndex index;
 
-   emit importReset();
+   Item* item = static_cast<GroupItem*>(child.internalPointer());
+   if (item != nullptr)
+   {
+      GroupItem* parentItem = static_cast<GroupItem*>(item->parent());
+      if (parentItem != this)
+      {
+         index = createIndex(0, 0, item->parent());
+      }
+   }
+
+   return index;
+}
+
+int ItemModel::rowCount(const QModelIndex& parent) const
+{
+   int rowCount = 0;
+
+   auto item = ((!parent.isValid()) ? (this) : (Item::cast<GroupItem>(static_cast<Item*>(parent.internalPointer()))));
+   if (item != nullptr)
+   {
+      rowCount = item->items().count();
+   }
+
+   return rowCount;
+}
+
+int ItemModel::columnCount(const QModelIndex& /* parent */) const
+{
+   return 1;
 }
 
 QVariant ItemModel::data(const QModelIndex &index, int role) const
 {
    QVariant data;
 
-   if ((index.isValid() == true) && (index.row() >= 0) && (index.row() < static_cast<int>(itemSourcesCache_.size())) && (index.column() == 0))
+   if (index.isValid())
    {
-      switch (static_cast<Role>(role))
+      if (auto item = Item::cast<LinkItem>(static_cast<Item*>(index.internalPointer())))
       {
-      case NameRole:
-         data = itemSourcesCache_[index.row()].second->name();
-         break;
-      case BrushRole:
-         data = itemSourcesCache_[index.row()].second->brush();
-         break;
-      case LinkRole:
-         data = itemSourcesCache_[index.row()].second->link();
-         break;
-      case TagsRole:
-         data = itemSourcesCache_[index.row()].first->tags() + itemSourcesCache_[index.row()].second->tags();
-         break;
+         switch (role)
+         {
+         case Qt::DisplayRole:
+            data = item->name();
+            break;
+         case Qt::ToolTipRole:
+         case Qt::StatusTipRole:
+            data = item->link();
+            break;
+         }
+      }
+      else if (auto item = Item::cast<ImportItem>(static_cast<Item*>(index.internalPointer())))
+      {
+         switch (role)
+         {
+         case Qt::DisplayRole:
+            data = QFileInfo(item->file()).fileName();
+            break;
+         case Qt::ToolTipRole:
+         case Qt::StatusTipRole:
+            data = item->file();
+            break;
+         }
+      }
+      else if (auto item = Item::cast<GroupItem>(static_cast<Item*>(index.internalPointer())))
+      {
+         switch (role)
+         {
+         case Qt::DisplayRole:
+         case Qt::ToolTipRole:
+         case Qt::StatusTipRole:
+            data = item->name();
+            break;
+         }
       }
    }
 
    return data;
 }
 
-void ItemModel::timerEvent(QTimerEvent* /* event */)
+Item* ItemModel::item(const QModelIndex& index)
 {
-   for (const auto& import : imports_)
-   {
-      qDebug() << "retry import:" << import;
+   Item* item = nullptr;
 
-      startImport_(import);
+   if (index.isValid())
+   {
+      item = static_cast<Item*>(index.internalPointer());
    }
+
+   return item;
 }
 
-int ItemModel::rowCount(const QModelIndex & /* parent */) const
+const Item* ItemModel::item(const QModelIndex& index) const
 {
-   return static_cast<int>(itemSourcesCache_.size());
+   return const_cast<const Item*>(const_cast<ItemModel*>(this)->item(index));
 }
 
-void ItemModel::addItemSource_(const std::shared_ptr<ItemSource>& itemSource)
+bool ItemModel::readItemSource_(const ImportItem& item)
 {
-   Q_ASSERT(itemSource);
+   bool result = false;
 
-   beginResetModel();
+   //
+   // Asynchronosly read the import item. If the item cannot be created because of an invalid MIME
+   // time do not create an periodically retried item source reader for it, as there is no chance
+   // of the item being loaded successfully ever.
+   //
 
-   for (const auto &itemGroup : itemSource->itemGroups())
+   qInfo() << "read item source" << item;
+
+   auto itemSource = static_cast<Application*>(Application::instance())->itemSourceFactory()->create(item.mimeType());
+   if (itemSource)
    {
-      for (const auto &item : itemGroup.items())
+      auto itemSourceReader = new ImportItemReader(item, std::move(itemSource), itemSourceReaderQueueIdentifier_);
+      if (itemSourceReader)
       {
-         qDebug() << "add item:" << item;
+         itemSourceReader->setAutoDelete(false);
+         itemSourceReader->connect(itemSourceReader, &ImportItemReader::sourceLoaded, this, [this, itemSourceReader]()
+         {
+            auto itemSource = itemSourceReader->releaseItemSource();
 
-         itemSourcesCache_.push_back(std::make_pair(const_cast<ItemGroup*>(&itemGroup), const_cast<Item*>(&item)));
+            //
+            // If the item has been loaded successfully check if it is part of the current mode
+            // epoch and add it to the item model if not already present (to avoid duplicate or
+            // recursive entries). This has to be done after the file has been loaded, as the
+            // canonical path (which is the required identifier to check for a duplicate) is
+            // available for an existing file only (which must be the case if the item was read
+            // successfully).
+            //
+
+            qDebug() << "item source loaded" << itemSourceReader->importItem() << itemSource->items().length();
+
+            if (itemSourceReader->identifier() == itemSourceReaderQueueIdentifier_)
+            {
+               auto canonicalImportFilePath = QFileInfo(itemSourceReader->importItem().file()).canonicalFilePath();
+               if (!itemSourceWatcher_.files().contains(canonicalImportFilePath))
+               {
+                  //
+                  // Add the canonical file path to the file system watcher so any change is
+                  // detected and a duplicate check can be performed (based on the fact if
+                  // the file is already being watched).
+                  //
+
+                  itemSourceWatcher_.addPath(canonicalImportFilePath);
+
+                  //
+                  // Recursively parse the imported item for any other import item.
+                  //
+
+                  itemSource->apply<ImportItem, ImportGroupItem>([this](ImportItem* item) { readItemSource_(*item); });
+
+                  //
+                  // Release the item from the import item reader and add it to the model.
+                  //
+
+                  beginResetModel();
+                  GroupItem::insertItem(itemSource.release(), itemCount());
+                  endResetModel();
+
+                  emit sourceLoaded(itemSourceReader->importItem().file());
+               }
+               else
+               {
+                  qInfo() << "duplicate item source discarded" << canonicalImportFilePath;
+               }
+
+               itemSourceReader->deleteLater();
+            }
+            else
+            {
+               qDebug() << "obsolete item source discarded" << itemSourceReader->identifier() << itemSourceReaderQueueIdentifier_;
+
+               itemSourceReader->deleteLater();
+            }
+         }, Qt::QueuedConnection);
+         itemSourceReader->connect(itemSourceReader, &ImportItemReader::sourceFailedToLoad, this,
+                                   [this, itemSourceReader](const QString& errorString, const QPoint& errorPosition)
+         {
+            qInfo() << "item source failed to load" << itemSourceReader->importItem();
+
+            if (itemSourceReader->identifier() == itemSourceReaderQueueIdentifier_)
+            {
+               //
+               // If the item cannot be loaded successfully add it to the queue of readers to
+               // be retried at some later point in time,
+               //
+
+               qInfo() << "item source retry scheduled";
+
+               itemSourceReaderQueue_.append(qMakePair(itemSourceReader, std::chrono::steady_clock::now()));
+
+               emit sourceFailedToLoad(itemSourceReader->importItem().file(), errorString, errorPosition);
+            }
+            else
+            {
+               qDebug() << "obsolete item source discarded" << itemSourceReader->identifier() << itemSourceReaderQueueIdentifier_;
+
+               itemSourceReader->deleteLater();
+            }
+         }, Qt::QueuedConnection);
+
+         QThreadPool::globalInstance()->start(itemSourceReader);
       }
    }
-
-   itemSources_.push_back(std::move(itemSource));
-
-   endResetModel();
-}
-
-void ItemModel::addImport_(const Import& import)
-{
-   imports_.append(import);
-}
-
-void ItemModel::startImport_(const Import& import)
-{
-   auto importer = new Importer(import, identifier_);
-   if (importer != nullptr)
+   else
    {
-      connect(importer, &Importer::suceeded, this,
-              [this](const Import& import, const Identifier& identifier, const std::shared_ptr<ItemSource>& itemSource)
-              {
-                 if (identifier == identifier_)
-                 {
-                    qDebug() << "import succeeded:" << import;
+      qWarning() << "invalid MIME type" << item;
 
-                    addItemSource_(itemSource);
-
-                    for (const auto& import : itemSource->imports())
-                    {
-                       if (std::find_if(std::cbegin(itemSources_), std::cend(itemSources_),
-                                        [this, import](const std::shared_ptr<ItemSource>& itemSource){
-                                           return (QFileInfo(import.file()).absoluteFilePath() == itemSource->identifier());
-                                        }) == std::cend(itemSources_))
-                       {
-                          startImport_(import);
-                       }
-                       else
-                       {
-                          qDebug() << "recursive import: " << import;
-                       }
-                    }
-
-                    emit importSucceeded(import);
-                 }
-              }, Qt::QueuedConnection);
-
-      connect(importer, &Importer::failed, this,
-              [this](const Import &import, const Identifier& identifier, const QString& errorString, const QPoint& errorPosition)
-              {
-                 if (identifier == identifier_)
-                 {
-                    qDebug() << "import failed:" << import << errorString << errorPosition;
-
-                    addImport_(import);
-
-                    emit importFailed(import, errorString, errorPosition);
-                 }
-              }, Qt::QueuedConnection);
-
-      qDebug() << "start import:" << import;
-
-      importsThreadPool_.start(importer);
+      emit sourceFailedToLoad(item.file(), tr("Invalid MIME type: ").append(item.mimeType()));
    }
+
+   return result;
 }

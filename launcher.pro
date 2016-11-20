@@ -27,52 +27,50 @@ DEFINES += ORGANIZATION_DOMAIN=\\\"\"$$QMAKE_TARGET_DOMAIN\\\"\"
 
 SOURCES += \
     src/main.cpp \
-    src/itemview.cpp \
     src/itemdelegate.cpp \
-    src/itemfiltermodel.cpp \
     src/itemedit.cpp \
-    src/geometrystore.cpp \
     src/application.cpp \
-    src/item.cpp \
     src/itemmodel.cpp \
     src/systemlock.cpp \
     src/systemhotkey.cpp \
-    src/import.cpp \
     src/searchexpression.cpp \
-    src/itemsource.cpp \
     src/xmlitemsource.cpp \
-    src/itemgroup.cpp \
-    src/importer.cpp \
     src/csvitemsource.cpp \
-    src/searchwindow.cpp
+    src/searchwindow.cpp \
+    src/linkitem.cpp \
+    src/importitem.cpp \
+    src/groupitem.cpp \
+    src/linkgroupitem.cpp \
+    src/importitemreader.cpp \
+    src/searchitemproxymodel.cpp \
+    src/searchitemfiltermodel.cpp
 
 HEADERS += \
-    src/itemview.h \
     src/itemdelegate.h \
-    src/itemfiltermodel.h \
     src/itemedit.h \
-    src/geometrystore.h \
     src/event.h \
     src/application.h \
-    src/item.h \
-    src/items.h \
     src/itemmodel.h \
     src/systemlock.h \
     src/systemhotkey.h \
     src/searchexpression.h \
     src/itemsource.h \
     src/xmlitemsource.h \
-    src/import.h \
-    src/imports.h \
     src/itemsourcefactory.h \
-    src/itemgroup.h \
-    src/tag.h \
-    src/tags.h \
-    src/itemgroups.h \
-    src/importer.h \
     src/csvitemsource.h \
     src/searchwindow.h \
-    src/metatype.h
+    src/linkitem.h \
+    src/item.h \
+    src/importitem.h \
+    src/groupitem.h \
+    src/importgroupitem.h \
+    src/linkgroupitem.h \
+    src/itemeditor.h \
+    src/itemfactory.h \
+    src/factory.h \
+    src/importitemreader.h \
+    src/searchitemproxymodel.h \
+    src/searchitemfiltermodel.h
 
 RESOURCES += \
     resources/resources.qrc

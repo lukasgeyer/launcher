@@ -57,6 +57,14 @@ signals:
     */
    void keyDownPressed();
    /*!
+    * Is emitted when the page-up-key is pressed.
+    */
+   void keyPageUpPressed();
+   /*!
+    * Is emitted when the page-down-key is pressed.
+    */
+   void keyPageDownPressed();
+   /*!
     * Is emitted when the escape-key is pressed.
     */
    void escapePressed();

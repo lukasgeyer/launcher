@@ -7,10 +7,17 @@
  *          published by the Free Software Foundation.
  */
 
+#include <QFileInfo>
 #include <QObject>
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
 
+#include "importitem.h"
+#include "importgroupitem.h"
+#include "item.h"
+#include "groupitem.h"
+#include "linkitem.h"
+#include "linkgroupitem.h"
 #include "xmlitemsource.h"
 
 namespace {
@@ -22,31 +29,26 @@ static const int DEFAULT_INDENT_ = 3;
 
 } // namespace
 
-XmlItemSource::XmlItemSource(const QString& identifier) : ItemSource(identifier)
+bool XmlItemSource::read(QIODevice* device, const QString& identifier)
 {
-   reset();
-}
-
-bool XmlItemSource::read(QIODevice* device)
-{
-   Q_ASSERT(itemGroups_.isEmpty() == false);
-
    bool result = false;
+
+   ItemSource::setIdentifier(identifier);
 
    if (device != nullptr)
    {
       QXmlStreamReader deviceReader(device);
-      if ((deviceReader.readNextStartElement() == true) && (deviceReader.name() == "items"))
+      if ((deviceReader.readNextStartElement()) && (deviceReader.name() == "items"))
       {
          while (deviceReader.readNextStartElement())
          {
             if (deviceReader.name() == "item")
             {
-               readItem_(&deviceReader, &itemGroups_.first());
+               readItem_(&deviceReader, this);
             }
             else if (deviceReader.name() == "group")
             {
-               readGroup_(&deviceReader);
+               readGroup_(&deviceReader, this);
             }
             else if (deviceReader.name() == "import")
             {
@@ -63,8 +65,8 @@ bool XmlItemSource::read(QIODevice* device)
          deviceReader.raiseError(QObject::tr("No root element found"));
       }
 
-      result = (deviceReader.hasError() == false);
-      if (result == false)
+      result = (!deviceReader.hasError());
+      if (!result)
       {
          errorString_ = deviceReader.errorString();
          errorPosition_ = {static_cast<int>(deviceReader.lineNumber()), static_cast<int>(deviceReader.columnNumber())};
@@ -74,88 +76,9 @@ bool XmlItemSource::read(QIODevice* device)
    return result;
 }
 
-bool XmlItemSource::write(QIODevice* device) const
+bool XmlItemSource::write(QIODevice* /* device */) const
 {
-   Q_ASSERT(itemGroups_.isEmpty() == false);
-
-   bool result = false;
-
-   if (device != nullptr)
-   {
-      QXmlStreamWriter deviceWriter(device);
-      deviceWriter.setAutoFormatting(true);
-      deviceWriter.setAutoFormattingIndent(DEFAULT_INDENT_);
-
-      deviceWriter.writeStartDocument();
-      deviceWriter.writeStartElement("items");
-
-      for (const auto& itemGroup : itemGroups_)
-      {
-         if (&itemGroup != &itemGroups_.first())
-         {
-            deviceWriter.writeStartElement("group");
-
-            for (const auto& tag : itemGroup.tags())
-            {
-               deviceWriter.writeTextElement("tag", tag);
-            }
-         }
-
-         for(const auto& item : itemGroup.items())
-         {
-            deviceWriter.writeStartElement("item");
-
-            deviceWriter.writeTextElement("name", item.name());
-            deviceWriter.writeTextElement("url", item.link().toString());
-            deviceWriter.writeTextElement("color", item.brush().color().name());
-
-            for (const auto& tag : item.tags())
-            {
-               deviceWriter.writeTextElement("tag", tag);
-            }
-
-            deviceWriter.writeEndElement();
-         }
-
-         if (&itemGroup != &itemGroups_.first())
-         {
-            deviceWriter.writeEndElement();
-         }
-      }
-
-      deviceWriter.writeEndElement();
-      deviceWriter.writeEndDocument();
-
-      result = (deviceWriter.hasError() == false);
-      if (result == false)
-      {
-         errorString_ = device->errorString();
-         errorPosition_ = {0, 0};
-      }
-   }
-
-   return result;
-}
-
-void XmlItemSource::reset()
-{
-   //
-   // There is at least one item group, the global item group, which contains any items
-   // outside of an explicit item group and a list of imports. This item group is always
-   // the first item group.
-   //
-   itemGroups_.clear();
-   itemGroups_.append(ItemGroup{});
-}
-
-const ItemGroups& XmlItemSource::itemGroups() const
-{
-   return itemGroups_;
-}
-
-const Imports& XmlItemSource::imports() const
-{
-   return imports_;
+   return false;
 }
 
 QString XmlItemSource::errorString() const
@@ -168,30 +91,30 @@ QPoint XmlItemSource::errorPosition() const
    return errorPosition_;
 }
 
-void XmlItemSource::readItem_(QXmlStreamReader* reader, ItemGroup *itemGroup)
+void XmlItemSource::readItem_(QXmlStreamReader* reader, GroupItem* parent)
 {
    Q_ASSERT(reader != nullptr);
-   Q_ASSERT(itemGroup != nullptr);
+   Q_ASSERT(parent != nullptr);
 
-   Item item;
+   auto item = new LinkItem;
 
    while (reader->readNextStartElement())
    {
       if (reader->name() == "name")
       {
-         item.setName(reader->readElementText().trimmed());
+         item->setName(reader->readElementText().trimmed());
       }
       else if (reader->name() == "url")
       {
-         item.setLink(QUrl::fromUserInput(reader->readElementText().trimmed()));
+         item->setLink(reader->readElementText().trimmed());
       }
       else if (reader->name() == "color")
       {
-         item.setBrush(QBrush(QColor(reader->readElementText().trimmed())));
+         item->setBrush(QBrush(QColor(reader->readElementText().trimmed())));
       }
       else if (reader->name() == "tag")
       {
-         item.appendTag(Tag(reader->readElementText().trimmed()));
+         item->appendTag(reader->readElementText().trimmed());
       }
       else
       {
@@ -199,51 +122,66 @@ void XmlItemSource::readItem_(QXmlStreamReader* reader, ItemGroup *itemGroup)
       }
    }
 
-   itemGroup->appendItem(item);
+   parent->insertItem(item, parent->itemCount());
 }
 
-void XmlItemSource::readGroup_(QXmlStreamReader* reader)
+void XmlItemSource::readGroup_(QXmlStreamReader* reader, GroupItem* parent)
 {
    Q_ASSERT(reader != nullptr);
 
-   itemGroups_.append(ItemGroup{});
+   auto itemGroup = new LinkGroupItem;
 
    while (reader->readNextStartElement())
    {
       if (reader->name() == "item")
       {
-         readItem_(reader, &itemGroups_.last());
+         readItem_(reader, itemGroup);
+      }
+      else if (reader->name() == "name")
+      {
+         itemGroup->setName(reader->readElementText().trimmed());
       }
       else if (reader->name() == "color")
       {
-         itemGroups_.last().setBrush(QBrush(QColor(reader->readElementText().trimmed())));
+         itemGroup->setBrush(QBrush(QColor(reader->readElementText().trimmed())));
       }
       else if (reader->name() == "tag")
       {
-         itemGroups_.last().appendTag(reader->readElementText().trimmed());
+         itemGroup->appendTag(reader->readElementText().trimmed());
+      }
+      else if (reader->name() == "group")
+      {
+         readGroup_(reader, parent);
       }
       else
       {
          reader->skipCurrentElement();
       }
    }
+
+   parent->insertItem(itemGroup, parent->itemCount());
 }
 
 void XmlItemSource::readImport_(QXmlStreamReader* reader)
 {
    Q_ASSERT(reader != nullptr);
 
+   auto itemGroup = new ImportGroupItem;
+
    while (reader->readNextStartElement())
    {
       if (reader->name() == "file")
       {
-         imports_.append(Import(reader->readElementText().trimmed(), reader->attributes().hasAttribute("contentType") ?
-                                                                     reader->attributes().value("contentType").toString().trimmed() :
-                                                                     QStringLiteral("text/xml")));
+         itemGroup->insertItem(new ImportItem(reader->readElementText().trimmed(),
+                                              reader->attributes().hasAttribute(QStringLiteral("contentType")) ?
+                                              reader->attributes().value(QStringLiteral("contentType")).toString().trimmed() :
+                                              QStringLiteral("text/xml")), itemGroup->itemCount());
       }
       else
       {
          reader->skipCurrentElement();
       }
    }
+
+   insertItem(itemGroup, itemCount());
 }

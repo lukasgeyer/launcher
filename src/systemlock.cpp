@@ -30,13 +30,13 @@ bool SystemLock::tryLock()
 
 #if defined(Q_OS_LINUX)
    isLocked = (lockFileDescriptor_ >= 0);
-   if (isLocked == false)
+   if (!isLocked)
    {
       lockFileDescriptor_ = open(qApp->applicationFilePath().toLocal8Bit().data(), O_RDONLY, 0);
       if (lockFileDescriptor_ >= 0)
       {
          isLocked = (flock(lockFileDescriptor_, LOCK_EX | LOCK_NB) == 0);
-         if (isLocked == false)
+         if (!isLocked)
          {
             close(lockFileDescriptor_);
 
@@ -46,7 +46,7 @@ bool SystemLock::tryLock()
    }
 #elif defined(Q_OS_WIN)
    isLocked = (lockFileHandle_ != nullptr);
-   if (isLocked == false)
+   if (!isLocked)
    {
       lockFileHandle_ = CreateFileA(qApp->applicationFilePath().toLocal8Bit().data(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
       if (lockFileHandle_ >= 0)

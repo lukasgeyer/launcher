@@ -12,66 +12,44 @@
 
 #include <QPoint>
 #include <QString>
+#include <QVector>
 
-#include "imports.h"
-#include "itemgroups.h"
+#include "groupitem.h"
 
 class QIODevice;
 
 /*!
  * \brief An abstract item source.
  */
-class ItemSource
+class ItemSource : public GroupItem
 {
 public:
    /*!
-    * \brief An opaque identifier.
-    */
-   typedef QString Identifier;
-
-   /*!
-    * Constructs the item source with an opaque identifier of \a identifier.
-    */
-   explicit ItemSource(const Identifier& identifier);
-   /*!
     * Destructs the item source.
     */
-   virtual ~ItemSource();
+   virtual ~ItemSource()
+   {
+   }
 
    /*!
-    * Sets the opaque identifier for this source to \a identifier.
+    * Resets the item source, discarding all of its content.
     */
-   void setIdentifier(const QString& identifier);
-   /*!
-    * Returns the opaque identifier for this item source.
-    */
-   QString identifier() const;
+   virtual void reset()
+   {
+      GroupItem::removeItems();
+   }
 
    /*!
     * Read the item source from the device \a device and returns \a true if the source could be
     * successfully read; \a false otherwise. The device must be already opened for reading. The
     * item group is not reset before reading, use \a reset().
     */
-   virtual bool read(QIODevice *device) = 0;
+   virtual bool read(QIODevice *device, const QString& identifier) = 0;
    /*!
     * Writes the item source to the device \a device and returns \a true if the source could be
     * successfully written; \a false otherwise. The device must be already opened for writing.
     */
    virtual bool write(QIODevice *device) const = 0;
-
-   /*!
-    * Resets the item source, clearing all information.
-    */
-   virtual void reset() = 0;
-
-   /*!
-    * Returns the list of item groups represented by this item source.
-    */
-   virtual const ItemGroups& itemGroups() const = 0;
-   /*!
-    * Returns the list of imports represented by this item source.
-    */
-   virtual const Imports& imports() const = 0;
 
    /*!
     * Returns the string representation of the last error that occurred. The behaviour is undefined
@@ -84,11 +62,53 @@ public:
     */
    virtual QPoint errorPosition() const = 0;
 
+   /*!
+    * Returns the identifier or an empty string if no identifier is set.
+    */
+   QString identifier() const
+   {
+      return identifier_;
+   }
+
+   /*!
+    * \reimp
+    */
+   bool isContainerOf(Item::Type type) const override
+   {
+      return ((type == Item::Type::Link) ||
+              (type == Item::Type::LinkGroup) ||
+              (type == Item::Type::ImportGroup));
+   }
+
+   /*!
+    * Returns \a true if the item is a or is a base of \a type.
+    */
+   static bool isBaseOf(Item::Type type)
+   {
+      return (type == Item::Type::Source);
+   }
+
+protected:
+   /*!
+    * Constructs the item source.
+    */
+   ItemSource() : GroupItem(Item::Type::Source)
+   {
+   }
+
+   /*!
+    * Sets the identifier to \a identifier.
+    */
+   void setIdentifier(const QString& identifier)
+   {
+      identifier_ = identifier;
+   }
+
 private:
    /*!
-    * The opaque identifier of the source.
+    * The identifier of the item source.
     */
-   Identifier identifier_;
+   QString identifier_;
 };
 
 #endif // ITEMSOURCE_H

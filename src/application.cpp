@@ -7,56 +7,79 @@
  *          published by the Free Software Foundation.
  */
 
+#include <QHideEvent>
 #include <QSettings>
+#include <QShowEvent>
 
 #include "application.h"
-#include "geometrystore.h"
+#include "csvitemsource.h"
+#include "event.h"
+#include "importgroupitem.h"
+#include "importitem.h"
+#include "linkgroupitem.h"
+#include "linkitem.h"
+#include "xmlitemsource.h"
 
-Application::Application(int& argc, char** argv) : QApplication(argc, argv)
+Application::Application(int& argc, char** argv) : QApplication(argc, argv),
+   settings_(QSettings::IniFormat, QSettings::UserScope, QStringLiteral(APPLICATION_NAME))
 {
-   //
-   // Set up application data (the actual values are defined in the .pro file).
-   //
    setApplicationName(QStringLiteral(APPLICATION_NAME));
    setApplicationVersion(QStringLiteral(APPLICATION_VERSION));
    setOrganizationName(QStringLiteral(ORGANIZATION_NAME));
    setOrganizationDomain(QStringLiteral(ORGANIZATION_DOMAIN));
 
-   //
-   // Create settings.
-   //
-   settings_.reset(new QSettings(QSettings::IniFormat, QSettings::UserScope, applicationName()));
+   itemFactory_.declare<ImportItem>(Item::Type::Import, tr("Import Item"));
+   itemFactory_.declare<ImportGroupItem>(Item::Type::ImportGroup, tr("Import Group Item"));
+   itemFactory_.declare<LinkItem>(Item::Type::Link, tr("Link Item"));
+   itemFactory_.declare<LinkGroupItem>(Item::Type::LinkGroup, tr("Link Group Item"));
 
-   //
-   // Create geometry store.
-   //
-   geometryStore_.reset(new GeometryStore(settings_.data()));
+   itemSourceFactory_.declare<CsvItemSource>(QStringLiteral("text/csv"));
+   itemSourceFactory_.declare<XmlItemSource>(QStringLiteral("text/xml"));
 }
 
-GeometryStore& Application::geometryStore()
+void Application::updateGeometry(QWidget* widget, const QRect& defaultGeometry)
 {
-   Q_ASSERT(geometryStore_.isNull() == false);
+   Q_ASSERT(widget);
 
-   return *geometryStore_;
+   //
+   // Update the geometry if none is present.
+   //
+
+   const auto& geometry = setting<QByteArray>(widget, QStringLiteral("geometry"));
+   if (!geometry.isNull())
+   {
+      widget->restoreGeometry(geometry);
+   }
+   else
+   {
+      widget->resize(defaultGeometry.size());
+      widget->move(defaultGeometry.topLeft());
+   }
+
+   //
+   // Install an event filter for the tracked widget so the the geometry can be automatically
+   // stored and restored.
+   //
+
+   widget->installEventFilter(this);
 }
 
-const GeometryStore& Application::geometryStore() const
+bool Application::eventFilter(QObject* object, QEvent* event)
 {
-   Q_ASSERT(geometryStore_.isNull() == false);
+   if (Event::cast<QEvent>(event, QEvent::Close))
+   {
+      //
+      // Store the current geometry.
+      //
 
-   return *geometryStore_;
-}
+      setSetting(object, QStringLiteral("geometry"), static_cast<QWidget*>(object)->saveGeometry());
 
-QSettings& Application::settings()
-{
-   Q_ASSERT(settings_.isNull() == false);
+      //
+      // Remove the widget as it has been destroyed.
+      //
 
-   return *settings_;
-}
+      object->removeEventFilter(this);
+   }
 
-const QSettings& Application::settings() const
-{
-   Q_ASSERT(settings_.isNull() == false);
-
-   return *settings_;
+   return false;
 }

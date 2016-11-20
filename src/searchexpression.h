@@ -14,6 +14,8 @@
 #include <QString>
 #include <QVector>
 
+#include "linkitem.h"
+
 /*!
  * \brief A search expression.
  *
@@ -22,10 +24,11 @@
  * is disjunct. A search term matches an item name by default, if it is
  * preceded with an "@" it matches any item tag. A '?' can be used to match
  * any character, a '*' can be used to match any string. The "NOT" keyword
- * can be used to negate the next search term (so it must not match).
+ * can be used to negate the next search term (so it must not match). If
+ * no operator is specified the term is interpreted as parameter.
  *
  * Creating a search expression is an expensive operation, so it should be
- * created once and used to Match() often.
+ * created once and used to match() often.
  */
 class SearchExpression
 {
@@ -33,7 +36,7 @@ public:
    /*!
     * Constructs a search expression.
     */
-   explicit SearchExpression();
+   SearchExpression();
    /*!
     * Constructs a search expression from the string \a expression.
     */
@@ -45,10 +48,27 @@ public:
    void setExpression(const QString& expression);
 
    /*!
+    * Returns \a true if the expression is \a empty; \a false otherwise.
+    */
+   bool isEmpty() const
+   {
+      return (nameTerms_.isEmpty() && tagsTerms_.isEmpty() && parameters_.isEmpty());
+   }
+
+   /*!
     * Returns \a true if the search expression matches the string \a name or
     * one of the tags found in \a tags; \a false otherwise.
     */
-   bool Matches(const QString& name, const QStringList& tags) const;
+   bool matches(const QString& name, const QStringList& tags) const;
+
+   /*!
+    * Returns the list of parameter provided with the search term since the
+    * last call to setExpression().
+    */
+   QStringList parameters() const
+   {
+      return parameters_;
+   }
 
 private:
    /*!
@@ -60,15 +80,16 @@ private:
 
       enum class Operation
       {
+         None,
          Conjunct,
          Disjunct,
-      } operation;
+      } operation = Operation::None;
 
       enum class Negation
       {
          NotNegated,
          Negated
-      } negation;
+      } negation = Negation::NotNegated;
    };
 
    /*!
@@ -81,19 +102,32 @@ private:
    QVector<Term_> tagsTerms_;
 
    /*!
+    * A list of parameters provided with the search term.
+    */
+   QStringList parameters_;
+
+   /*!
     * Compiles the search expression \a expression.
     */
-   void Compile_(const QString &expression);
+   void compile_(const QString &expression);
 
    /*!
     * Returns \a true if the name \a name matches any name search terms.
     */
-   bool MatchesName_(const QString &name) const;
+   bool matchesName_(const QString &name) const;
    /*!
     *  Returns \a true if the tags \a tags match any tags search terms.
     */
-   bool MatchesTags_(const QStringList &tags) const;
-};
+   bool matchesTags_(const QStringList &tags) const;
 
+   /*!
+    * Inserts the search expression term  \a searchExpressionTerm into the stream \a stream and returns the stream.
+    */
+   friend QDebug operator<<(QDebug stream, const SearchExpression::Term_& searchExpressionTerm);
+   /*!
+    * Inserts the search expression \a searchExpression into the stream \a stream and returns the stream.
+    */
+   friend QDebug operator<<(QDebug stream, const SearchExpression& searchExpression);
+};
 
 #endif // SEARCHEXPRESSION_H

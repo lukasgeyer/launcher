@@ -11,11 +11,13 @@
 #define APPLICATION_H
 
 #include <QApplication>
+#include <QDebug>
 #include <QSettings>
 #include <QScopedPointer>
+#include <QWidget>
 
-#include "geometrystore.h"
-
+#include "itemfactory.h"
+#include "itemsourcefactory.h"
 
 /*!
  * \brief The application.
@@ -29,32 +31,89 @@ public:
    Application(int& argc, char** argv);
 
    /*!
-    * Returns a reference to the geometry store.
+    * Returns a pointer to the item factory.
     */
-   GeometryStore& geometryStore();
+   ItemFactory* itemFactory()
+   {
+      return &itemFactory_;
+   }
    /*!
-    * Returns a const reference to the geometry store.
+    * Returns a pointer to the item source factory.
     */
-   const GeometryStore& geometryStore() const;
+   ItemSourceFactory* itemSourceFactory()
+   {
+      return &itemSourceFactory_;
+   }
 
    /*!
-    * Returns a reference to the application-wide settings.
+    * Sets the setting with the key \a key to the value \a value.
     */
-   QSettings& settings();
+   void setSetting(const QString& key, const QVariant& value)
+   {
+      settings_.setValue(key, value);
+   }
    /*!
-    * Returns a const reference to the application-wide settings.
+    * Sets the setting for the object \a object and the key \a key to the value \a value.
     */
-   const QSettings& settings() const;
+   void setSetting(QObject* object, const QString& key, const QVariant& value)
+   {
+      setSetting(settingKey_(object, key), value);
+   }
+   /*!
+    * Returns the setting with the key \a key as the type \a Type or the default value
+    * \a defaultValue if there is no such setting. If the setting cannot be converted
+    * to \a Type a default-constructed value wil be returned.
+    */
+   template <typename Type> Type setting(const QString &key, const QVariant& defaultValue = QVariant()) const
+   {
+      return settings_.value(key, defaultValue).value<Type>();
+   }
+   /*!
+    * Returns the setting for the object \a object with the key \a key as the type \a Type
+    * or the default value \a defaultValue if there is no such setting. If the setting cannot
+    * be converted to \a Type a default-constructed value wil be returned.
+    */
+   template <typename Type> Type setting(QObject* object, const QString& key, const QVariant& defaultValue = QVariant()) const
+   {
+      return setting<Type>(settingKey_(object, key), defaultValue);
+   }
+
+   /*!
+    * Updates the geometry for the widget \a widget to the stored geometry or the default
+    * geometry \a defaultGeometry if no geometry is stored.
+    */
+   void updateGeometry(QWidget* widget, const QRect& defaultGeometry);
 
 private:
    /*!
-    * The geometry store.
-    */
-   QScopedPointer<GeometryStore> geometryStore_;
-   /*!
     * The application-wide settings.
     */
-   QScopedPointer<QSettings> settings_;
+   QSettings settings_;
+
+   /*!
+    * The item factory.
+    */
+   ItemFactory itemFactory_;
+   /*!
+    * The item source factory.
+    */
+   ItemSourceFactory itemSourceFactory_;
+
+   /*!
+    * \reimp
+    */
+   bool eventFilter(QObject* object, QEvent* event) override;
+
+   /*!
+    * Returns the setting key for the object \a object.
+    */
+   static QString settingKey_(QObject* object, const QString& key)
+   {
+      Q_ASSERT(object);
+      Q_ASSERT(object->metaObject());
+
+      return (object->metaObject()->className() + QStringLiteral("/") + key);
+   }
 };
 
 #endif // APPLICATION_H

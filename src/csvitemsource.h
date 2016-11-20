@@ -21,33 +21,13 @@ class CsvItemSource : public ItemSource
 {
 public:
    /*!
-    * Constructs an empty CSV item source with the identifier \a identifier.
-    */
-   explicit CsvItemSource(const QString& identifier);
-
-   /*!
     * \reimp
     */
-   bool read(QIODevice* device) override;
+   bool read(QIODevice* device, const QString& identifier) override;
    /*!
     * \reimp
     */
    bool write(QIODevice* device) const override;
-
-   /*!
-    * \reimp
-    */
-   void reset() override;
-
-   /*!
-    * \reimp
-    */
-   const ItemGroups& itemGroups() const override;
-
-   /*!
-    * \reimp
-    */
-   const Imports& imports() const override;
 
    /*!
     * \reimp

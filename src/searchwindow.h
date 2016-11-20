@@ -15,9 +15,9 @@
 
 #include "itemmodel.h"
 
-class Indicator;
 class ItemEdit;
-class ItemView;
+class LinkItem;
+class QTableView;
 
 /*!
  * \brief An item window, listing all items, filtered by name and tags.
@@ -30,7 +30,7 @@ public:
    /*!
     * Constructs an ItemWindow with the parent \a parent.
     */
-   SearchWindow(QWidget* parent = nullptr);
+   SearchWindow(ItemModel* itemModel, QWidget* parent = nullptr);
    /*!
     * Destructs the ItemWindow.
     */
@@ -64,9 +64,18 @@ private:
    QPoint windowModificationOrigin_ = {};
 
    /*!
+    * The item model.
+    */
+   ItemModel* itemModel_ = nullptr;
+
+   /*!
     * The item edit used to enter a search expression.
     */
    ItemEdit* searchExpressionEdit_ = nullptr;
+   /*!
+    * The view used to display the search result.
+    */
+   QTableView* searchResultView_ = nullptr;
 
    /*!
     * \reimp
@@ -74,11 +83,15 @@ private:
    bool eventFilter(QObject* object, QEvent* event) override;
 
    /*!
-    * Tries to open the URL \a url with the default application and returns \a true if the URL
-    * can be opened; \a false otherwise and the error will be indicated at the error indication
-    * \a errorIndication.
+    * Tries to open the URL \a urle with the default application and returns \a true if the URL
+    * could be opened; \a false otherwise (in addition an indication will be shown).
     */
    bool openUrl_(const QUrl& url);
+   /*!
+    * Tries to open the item \a item with the default application and returns \a true if the item
+    * could be opened; \a false otherwise  (in addition an indication will be shown).
+    */
+   bool openUrl_(LinkItem* item, const QStringList& parameters);
 };
 
 #endif // SEARCHWINDOW_H

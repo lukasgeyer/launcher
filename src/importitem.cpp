@@ -7,36 +7,33 @@
  *          published by the Free Software Foundation.
  */
 
-#include "import.h"
-#include "metatype.h"
+#include "importitem.h"
 
-REGISTER_METATYPE(Import)
-
-Import::Import(const QString& file, const QString& mimeType) : file_(file), mimeType_(mimeType)
+ImportItem::ImportItem(const QString& file, const QString& mimeType) : Item(Item::Type::Import), file_(file), mimeType_(mimeType)
 {
 }
 
-void Import::setFile(const QString& file)
+void ImportItem::setFile(const QString& file)
 {
     file_ = file;
 }
 
-QString Import::file() const
+QString ImportItem::file() const
 {
     return file_;
 }
 
-void Import::setMimeType(const QString& type)
+void ImportItem::setMimeType(const QString& type)
 {
     mimeType_ = type;
 }
 
-QString Import::mimeType() const
+QString ImportItem::mimeType() const
 {
    return mimeType_;
 }
 
-QDebug operator<<(QDebug stream, const Import& import)
+QDebug operator<<(QDebug stream, const ImportItem& import)
 {
    return (stream << import.file() << import.mimeType());
 }
