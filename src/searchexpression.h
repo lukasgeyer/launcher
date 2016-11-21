@@ -52,7 +52,7 @@ public:
     */
    bool isEmpty() const
    {
-      return (nameTerms_.isEmpty() && tagsTerms_.isEmpty() && parameters_.isEmpty());
+      return (terms_.isEmpty() && parameters_.isEmpty());
    }
 
    /*!
@@ -78,6 +78,12 @@ private:
    {
       QRegularExpression expression;
 
+      enum class Type
+      {
+         Name,
+         Tag
+      } type = Type::Name;
+
       enum class Operation
       {
          None,
@@ -93,14 +99,9 @@ private:
    };
 
    /*!
-    * A list of search terms to be applied to the name of an item.
+    * A list of search terms to be applied.
     */
-   QVector<Term_> nameTerms_;
-   /*!
-    * A list of search terms to be applied to the tags of an item.
-    */
-   QVector<Term_> tagsTerms_;
-
+   QVector<Term_> terms_;
    /*!
     * A list of parameters provided with the search term.
     */
@@ -112,13 +113,9 @@ private:
    void compile_(const QString &expression);
 
    /*!
-    * Returns \a true if the name \a name matches any name search terms.
+    * Returns \a true if the name \a name and the tags \a tags match any name search terms.
     */
-   bool matchesName_(const QString &name) const;
-   /*!
-    *  Returns \a true if the tags \a tags match any tags search terms.
-    */
-   bool matchesTags_(const QStringList &tags) const;
+   bool matches_(const QString &name, const QStringList& tags) const;
 
    /*!
     * Inserts the search expression term  \a searchExpressionTerm into the stream \a stream and returns the stream.
