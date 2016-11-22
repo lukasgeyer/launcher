@@ -106,7 +106,16 @@ void XmlItemSource::readItem_(QXmlStreamReader* reader, GroupItem* parent)
       }
       else if (reader->name() == "url")
       {
-         item->setLink(reader->readElementText().trimmed());
+         ItemSourcePosition linkPosition;
+         linkPosition.setLineNumber(reader->lineNumber());
+         linkPosition.setColumnNumber(reader->columnNumber());
+
+         const auto& elementText = reader->readElementText();
+
+         linkPosition.setSize(elementText.size());
+
+         item->setLink(elementText);
+         item->setLinkPosition(linkPosition);
       }
       else if (reader->name() == "color")
       {

@@ -7,5 +7,6 @@
         <file>images/font.png</file>
         <file>images/remove.png</file>
         <file>images/edit.png</file>
+        <file>images/reload.png</file>
     </qresource>
 </RCC>

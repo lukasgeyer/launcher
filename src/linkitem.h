@@ -17,6 +17,7 @@
 #include <QString>
 
 #include "item.h"
+#include "itemsourceposition.h"
 
 class LinkGroupItem;
 
@@ -69,6 +70,21 @@ public:
    LinkMatch linkMatches(const QStringList& parameters) const;
 
    /*!
+    * Sets the item source position of the link to \a position.
+    */
+   void setLinkPosition(const ItemSourcePosition& linkPosition)
+   {
+      linkPosition_ = linkPosition;
+   }
+   /*!
+    * Returns the item source position of the link.
+    */
+   ItemSourcePosition linkPosition() const
+   {
+      return linkPosition_;
+   }
+
+   /*!
     * Sets the brush of the item to \a brush.
     */
    void setBrush(const QBrush& brush);
@@ -108,6 +124,10 @@ private:
     * The link the item refers to.
     */
    QString link_;
+   /*!
+    * The item source position of the link.
+    */
+   ItemSourcePosition linkPosition_;
    /*!
     * The parameter count for the link. If 0, the link has no parameter (expect wildcard).
     */

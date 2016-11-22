@@ -288,6 +288,8 @@ bool ItemModel::readItemSource_(const ImportItem& item)
                   // the file is already being watched).
                   //
 
+                  qInfo() << "add file system watcher" << canonicalImportFilePath;
+
                   itemSourceWatcher_.addPath(canonicalImportFilePath);
 
                   //

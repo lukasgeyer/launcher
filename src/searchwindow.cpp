@@ -29,6 +29,7 @@
 #include "itemedit.h"
 #include "searchitemfiltermodel.h"
 #include "itemmodel.h"
+#include "itemsourceeditor.h"
 #include "searchitemproxymodel.h"
 #include "searchwindow.h"
 #include "systemhotkey.h"
@@ -97,9 +98,9 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
          if (auto itemSource = item->parent<ItemSource>())
          {
             QMenu searchResultViewContextMenu;
-            searchResultViewContextMenu.addAction(QIcon(QStringLiteral(":/images/edit.png")), tr("Edit item..."), [this, itemSource]()
+            searchResultViewContextMenu.addAction(QIcon(QStringLiteral(":/images/edit.png")), tr("Edit item..."), [this, item, itemSource]()
             {
-               openUrl_(QUrl::fromLocalFile(itemSource->identifier()));
+               openSource_(itemSource->identifier(), item->linkPosition());
             });
             searchResultViewContextMenu.exec(searchResultView_->mapToGlobal(position));
          }
@@ -248,7 +249,11 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    searchExpressionEditContextMenu->addSeparator();
    searchExpressionEditContextMenu->addAction(QIcon(QStringLiteral(":/images/edit.png")), tr("Edit items..."), [this]()
    {
-      openUrl_(QUrl::fromLocalFile(itemModel_->itemSourceIdentifier()));
+      openSource_(itemModel_->itemSourceIdentifier());
+   });
+   searchExpressionEditContextMenu->addAction(QIcon(QStringLiteral(":/images/reload.png")), tr("Reload items..."), [this]()
+   {
+      itemModel_->read(itemModel_->itemSourceIdentifier());
    });
    searchExpressionEditContextMenu->addSeparator();
    searchExpressionEditContextMenu->addAction(QIcon(QStringLiteral(":/images/font.png")), tr("Select font..."), [this, application]()
@@ -468,16 +473,31 @@ bool SearchWindow::eventFilter(QObject* object, QEvent* event)
    return consumeEvent;
 }
 
-bool SearchWindow::openUrl_(const QUrl& url)
+bool SearchWindow::openSource_(const QString& source, const ItemSourcePosition& position)
 {
-   bool result = false;
+   qInfo() << "open source" << source << position.lineNumber() << position.columnNumber() << position.size();
 
-   qInfo() << "open url" << url;
+   //
+   // Open an editor for the source.
+   //
 
-   result = QDesktopServices::openUrl(url);
-   if (!result)
+   auto itemSourceEditor = new ItemSourceEditor(this);
+   bool result = itemSourceEditor->openSource(new QFile(source, this));
+   if (result == true)
    {
-      searchExpressionEdit_->addInidication(QStringLiteral("openUrlError:").append(url.toString()), tr("Failed to open URL ").append(url.toString()));
+      itemSourceEditor->setAttribute(Qt::WA_DeleteOnClose);
+      itemSourceEditor->setWindowModality(Qt::ApplicationModal);
+
+      itemSourceEditor->selectSource(position.lineNumber(), position.columnNumber(), position.size());
+
+      itemSourceEditor->show();
+      itemSourceEditor->activateWindow();
+   }
+   else
+   {
+      itemSourceEditor->deleteLater();
+
+      searchExpressionEdit_->addInidication(QStringLiteral("openSourceError:").append(source), tr("Failed to open source ").append(source));
    }
 
    return result;
@@ -491,7 +511,15 @@ bool SearchWindow::openUrl_(LinkItem* item, const QStringList& parameters)
    {
    case LinkItem::LinkMatch::SufficientParameters:
    {
-      result = openUrl_(QUrl::fromUserInput(item->link(parameters)));
+      auto url = QUrl::fromUserInput(item->link(parameters));
+
+      qInfo() << "open url" << url;
+
+      result = QDesktopServices::openUrl(url);
+      if (!result)
+      {
+         searchExpressionEdit_->addInidication(QStringLiteral("openUrlError:").append(url.toString()), tr("Failed to open URL ").append(url.toString()));
+      }
 
       break;
    }

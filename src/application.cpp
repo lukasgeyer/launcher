@@ -66,7 +66,10 @@ void Application::updateGeometry(QWidget* widget, const QRect& defaultGeometry)
 
 bool Application::eventFilter(QObject* object, QEvent* event)
 {
-   if (Event::cast<QEvent>(event, QEvent::Close))
+   switch (event->type())
+   {
+   case QEvent::Close:
+   case QEvent::Hide:
    {
       //
       // Store the current geometry.
@@ -79,6 +82,13 @@ bool Application::eventFilter(QObject* object, QEvent* event)
       //
 
       object->removeEventFilter(this);
+
+      break;
+   }
+   default:
+   {
+      break;
+   }
    }
 
    return false;

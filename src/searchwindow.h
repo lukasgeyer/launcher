@@ -14,6 +14,7 @@
 #include <QWidget>
 
 #include "itemmodel.h"
+#include "itemsourceposition.h"
 
 class ItemEdit;
 class LinkItem;
@@ -83,10 +84,10 @@ private:
    bool eventFilter(QObject* object, QEvent* event) override;
 
    /*!
-    * Tries to open the URL \a urle with the default application and returns \a true if the URL
-    * could be opened; \a false otherwise (in addition an indication will be shown).
+    * Opens the source \a source at position \a position.
     */
-   bool openUrl_(const QUrl& url);
+   bool openSource_(const QString& source, const ItemSourcePosition& position = ItemSourcePosition());
+
    /*!
     * Tries to open the item \a item with the default application and returns \a true if the item
     * could be opened; \a false otherwise  (in addition an indication will be shown).
