@@ -12,7 +12,7 @@ QT += core gui widgets
 TARGET = launcher
 TEMPLATE = app
 
-VERSION = 1.1.0
+VERSION = 1.1.1
 QMAKE_TARGET_PRODUCT = "Launcher"
 QMAKE_TARGET_COMPANY = "Lukas Geyer"
 QMAKE_TARGET_COPYRIGHT = "Copyright (C) 2016 Lukas Geyer. All rights reserved."
