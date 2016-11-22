@@ -187,8 +187,6 @@ bool SearchExpression::matches_(const QString& name, const QStringList& tags) co
       }
    }
 
-   qDebug() << (*this);
-
    return (isConjunctMatch || isDisjunctMatch);
 }
 
