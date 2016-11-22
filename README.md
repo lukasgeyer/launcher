@@ -62,7 +62,7 @@ The following options can be supplied on the command line:
 | `--source <file>` | Use `<file>` as configuration file (instead of `launcher.xml`) |
 
 ## Searching
-The key sequence `STRG + ALT + Space` will bring up the search bar, which allows for entering a series of space-separated words used to define the (case-insensitive) filter expression. The first word is always treated as the name of an item, that should be displayed. Any subsequent word will be treated as parameter to that item. If a word starts with `@` it is interpreted as tag (instead of the name). The words `and`, `or` and `not` can be used to formulate a kind-of boolean expression (to satisfy the developer in all of us `&&`, `||` and `!` can be used alternatively).
+The key sequence `STRG + SHIFT + Space` will bring up the search bar, which allows for entering a series of space-separated words used to define the (case-insensitive) filter expression. The first word is always treated as the name of an item, that should be displayed. Any subsequent word will be treated as parameter to that item. If a word starts with `@` it is interpreted as tag (instead of the name). The words `and`, `or` and `not` can be used to formulate a kind-of boolean expression (to satisfy the developer in all of us `&&`, `||` and `!` can be used alternatively).
 
 Within a word the wildcards `?` and `*` can be used to match a single or any character.
 
