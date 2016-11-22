@@ -12,7 +12,7 @@ QT += core gui widgets
 TARGET = launcher
 TEMPLATE = app
 
-VERSION = 1.1.1
+VERSION = 1.1.2
 QMAKE_TARGET_PRODUCT = "Launcher"
 QMAKE_TARGET_COMPANY = "Lukas Geyer"
 QMAKE_TARGET_COPYRIGHT = "Copyright (C) 2016 Lukas Geyer. All rights reserved."
@@ -43,7 +43,10 @@ SOURCES += \
     src/linkgroupitem.cpp \
     src/importitemreader.cpp \
     src/searchitemproxymodel.cpp \
-    src/searchitemfiltermodel.cpp
+    src/searchitemfiltermodel.cpp \
+    src/itemsourceeditor.cpp \
+    src/itemsourcehighlighter.cpp \
+    src/itemsourceposition.cpp
 
 HEADERS += \
     src/itemdelegate.h \
@@ -70,7 +73,10 @@ HEADERS += \
     src/factory.h \
     src/importitemreader.h \
     src/searchitemproxymodel.h \
-    src/searchitemfiltermodel.h
+    src/searchitemfiltermodel.h \
+    src/itemsourceeditor.h \
+    src/itemsourcehighlighter.h \
+    src/itemsourceposition.h
 
 RESOURCES += \
     resources/resources.qrc
