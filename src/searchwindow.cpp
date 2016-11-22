@@ -99,7 +99,7 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
             QMenu searchResultViewContextMenu;
             searchResultViewContextMenu.addAction(QIcon(QStringLiteral(":/images/edit.png")), tr("Edit item..."), [this, itemSource]()
             {
-               openUrl_(itemSource->identifier());
+               openUrl_(QUrl::fromLocalFile(itemSource->identifier()));
             });
             searchResultViewContextMenu.exec(searchResultView_->mapToGlobal(position));
          }
@@ -248,7 +248,7 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    searchExpressionEditContextMenu->addSeparator();
    searchExpressionEditContextMenu->addAction(QIcon(QStringLiteral(":/images/edit.png")), tr("Edit items..."), [this]()
    {
-      openUrl_(itemModel_->itemSourceIdentifier());
+      openUrl_(QUrl::fromLocalFile(itemModel_->itemSourceIdentifier()));
    });
    searchExpressionEditContextMenu->addSeparator();
    searchExpressionEditContextMenu->addAction(QIcon(QStringLiteral(":/images/font.png")), tr("Select font..."), [this, application]()
