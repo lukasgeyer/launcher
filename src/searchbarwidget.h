@@ -1,5 +1,5 @@
 /*!
- * \file itemedit.h
+ * \file searchbarwidget.h
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -7,8 +7,8 @@
  *          published by the Free Software Foundation.
  */
 
-#ifndef ITEMEDIT_H
-#define ITEMEDIT_H
+#ifndef SEARCHBARWIDGET_H
+#define SEARCHBARWIDGET_H
 
 #include <QAction>
 #include <QEvent>
@@ -20,7 +20,7 @@
 /*!
  * \brief A line edit providing additional up-key, down-key or escape-key pressed signals.
  */
-class ItemEdit : public QLineEdit
+class SearchBarWidget : public QLineEdit
 {
    Q_OBJECT
 
@@ -28,7 +28,7 @@ public:
    /*!
     * Constructs an ItemEdit with the parent \a parent.
     */
-   ItemEdit(QWidget* parent = nullptr);
+   SearchBarWidget(QWidget* parent = nullptr);
 
 public slots:
    /*!
@@ -90,4 +90,4 @@ private:
    bool event(QEvent* event);
 };
 
-#endif // ITEMEDIT_H
+#endif // SEARCHBARWIDGET_H

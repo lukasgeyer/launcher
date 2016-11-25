@@ -1,5 +1,5 @@
 /*!
- * \file itemedit.cpp
+ * \file searchbarwidget.cpp
  *
  * \copyright 2016 Lukas Geyer. All rights reseverd.
  * \license This program is free software; you can redistribute it and/or modify
@@ -11,23 +11,23 @@
 #include <QIcon>
 #include <QKeyEvent>
 
-#include "itemedit.h"
+#include "searchbarwidget.h"
 
-ItemEdit::ItemEdit(QWidget *parent) : QLineEdit(parent)
+SearchBarWidget::SearchBarWidget(QWidget *parent) : QLineEdit(parent)
 {
    indicationsAction_ = addAction(QIcon(QStringLiteral(":/images/error.png")), QLineEdit::TrailingPosition);
    indicationsAction_->setVisible(false);
-   indicationsAction_->connect(indicationsAction_, &QAction::triggered, this, &ItemEdit::removeIndications);
+   indicationsAction_->connect(indicationsAction_, &QAction::triggered, this, &SearchBarWidget::removeIndications);
 }
 
-void ItemEdit::addInidication(const QString& id, const QString& indication)
+void SearchBarWidget::addInidication(const QString& id, const QString& indication)
 {
    indications_.insert(id, indication);
 
    updateIndicationsAction_();
 }
 
-void ItemEdit::removeIndication(const QString& id)
+void SearchBarWidget::removeIndication(const QString& id)
 {
    if (id.endsWith('*'))
    {
@@ -71,14 +71,14 @@ void ItemEdit::removeIndication(const QString& id)
    }
 }
 
-void ItemEdit::removeIndications()
+void SearchBarWidget::removeIndications()
 {
    indications_.clear();
 
    updateIndicationsAction_();
 }
 
-void ItemEdit::updateIndicationsAction_()
+void SearchBarWidget::updateIndicationsAction_()
 {
    if (indications_.isEmpty())
    {
@@ -106,7 +106,7 @@ void ItemEdit::updateIndicationsAction_()
   }
 }
 
-bool ItemEdit::event(QEvent* event)
+bool SearchBarWidget::event(QEvent* event)
 {
    if (event->type() == QEvent::KeyPress)
    {

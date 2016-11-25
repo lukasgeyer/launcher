@@ -7,8 +7,6 @@
  *          published by the Free Software Foundation.
  */
 
-#include <limits>
-
 #include <QApplication>
 #include <QAction>
 #include <QActionGroup>
@@ -22,18 +20,20 @@
 #include <QKeyEvent>
 #include <QMenu>
 #include <QMouseEvent>
+#include <QScrollBar>
 #include <QTableView>
 #include <QUrl>
 #include <QVBoxLayout>
 
 #include "application.h"
 #include "event.h"
-#include "itemedit.h"
 #include "itemmodel.h"
 #include "itemsourceeditor.h"
 #include "metatype.h"
+#include "searchbarwidget.h"
 #include "searchitemfiltermodel.h"
 #include "searchitemproxymodel.h"
+#include "searchresultwidget.h"
 #include "searchwindow.h"
 #include "systemhotkey.h"
 
@@ -46,8 +46,6 @@ namespace {
 const int RESIZE_AREA_SIZE_ = 16;
 
 } // namespace
-
-#include <QStandardItemModel>
 
 SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(parent, Qt::FramelessWindowHint | Qt::WindowSystemMenuHint), itemModel_(itemModel)
 {
@@ -81,25 +79,32 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    searchItemFilterModel_->setSourceModel(searchItemProxyModel_);
    searchItemFilterModel_->sort(sortAlgorithm);
 
-   searchResultView_ = new QTableView(this);
-   searchResultView_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-   searchResultView_->horizontalHeader()->hide();
-   searchResultView_->verticalHeader()->hide();
-   searchResultView_->setContextMenuPolicy(Qt::CustomContextMenu);
-   searchResultView_->setFocusPolicy(Qt::NoFocus);
-   searchResultView_->setModel(searchItemFilterModel_);
-   searchResultView_->setSelectionBehavior(QAbstractItemView::SelectRows);
-   searchResultView_->setShowGrid(false);
-   searchResultView_->setStyleSheet(QStringLiteral("QTableView { background-color: transparent; border: none; margin-left: 2px; margin-right: 2px; } "
-                                                   "QTableView::item { background-color: #ffffffff; padding: 4px; } "
-                                                   "QTableView::item:selected { background-color: #ff5bc0de; padding: 4px; }"));
-   searchResultView_->connect(searchResultView_, &QTableView::customContextMenuRequested, [this](const QPoint& position)
+   auto searchResultWidgetShadowEffect = new QGraphicsDropShadowEffect;
+   searchResultWidgetShadowEffect->setColor(QColor(QStringLiteral("#1f3242")));
+   searchResultWidgetShadowEffect->setBlurRadius(16.0);
+   searchResultWidgetShadowEffect->setOffset(0.0);
+
+   searchResultWidget_ = new SearchResultWidget(this);
+   searchResultWidget_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+   searchResultWidget_->horizontalHeader()->hide();
+   searchResultWidget_->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+   searchResultWidget_->verticalHeader()->hide();
+   searchResultWidget_->setContextMenuPolicy(Qt::CustomContextMenu);
+   searchResultWidget_->setGraphicsEffect(searchResultWidgetShadowEffect);
+   searchResultWidget_->setFocusPolicy(Qt::NoFocus);
+   searchResultWidget_->setModel(searchItemFilterModel_);
+   searchResultWidget_->setSelectionBehavior(QAbstractItemView::SelectRows);
+   searchResultWidget_->setShowGrid(false);
+   searchResultWidget_->setStyleSheet(QStringLiteral("SearchResultWidget { border: none; margin-left: 2px; margin-right: 2px; } "
+                                                     "SearchResultWidget::item { border: none; padding-left: 2px; padding-right: 2px; } "
+                                                     "SearchResultWidget::item:selected { background-color: #7ba8ce; } "));
+   searchResultWidget_->connect(searchResultWidget_, &QTableView::customContextMenuRequested, [this](const QPoint& position)
    {
       //
       // Show the item-specific context menu if a valid item has been selected.
       //
 
-      if (auto item = searchItemFilterModel_->item(searchResultView_->indexAt(position)))
+      if (auto item = searchItemFilterModel_->item(searchResultWidget_->indexAt(position)))
       {
          if (auto itemSource = item->parent<ItemSource>())
          {
@@ -108,29 +113,28 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
             {
                openSource_(itemSource->identifier(), item->linkPosition());
             });
-            searchResultViewContextMenu.exec(searchResultView_->mapToGlobal(position));
+            searchResultViewContextMenu.exec(searchResultWidget_->mapToGlobal(position));
          }
       }
    });
 
-   auto searchExpressionEditShadowEffect = new QGraphicsDropShadowEffect;
-   searchExpressionEditShadowEffect->setColor(QColor(QStringLiteral("#428bca")));
-   searchExpressionEditShadowEffect->setBlurRadius(24.0);
-   searchExpressionEditShadowEffect->setOffset(0.0);
+   auto searchBarWidgetShadowEffect = new QGraphicsDropShadowEffect;
+   searchBarWidgetShadowEffect->setColor(QColor(QStringLiteral("#335675")));
+   searchBarWidgetShadowEffect->setBlurRadius(16.0);
+   searchBarWidgetShadowEffect->setOffset(0.0);
 
-   searchExpressionEdit_ = new ItemEdit(this);
-   searchExpressionEdit_->installEventFilter(this);
-   searchExpressionEdit_->setFocus();
-   searchExpressionEdit_->setFocusPolicy(Qt::StrongFocus);
-   searchExpressionEdit_->setGraphicsEffect(searchExpressionEditShadowEffect);
-   searchExpressionEdit_->setStyleSheet(QStringLiteral("QLineEdit { border: none; padding: 4px; }"));
-   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::textChanged, [this](const QString& text)
+   searchBarWidget_ = new SearchBarWidget(this);
+   searchBarWidget_->installEventFilter(this);
+   searchBarWidget_->setFocus();
+   searchBarWidget_->setFocusPolicy(Qt::StrongFocus);
+   searchBarWidget_->setGraphicsEffect(searchBarWidgetShadowEffect);
+   searchBarWidget_->setStyleSheet(QStringLiteral("QLineEdit { border: none; padding: 4px; }"));
+   searchBarWidget_->connect(searchBarWidget_, &SearchBarWidget::textChanged, [this](const QString& text)
    {
       searchItemFilterModel_->setSearchExpression(text);
-      searchResultView_->resizeRowsToContents();
    });
-   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::returnPressed, [this](){
-      const auto& currentIndex = searchResultView_->currentIndex();
+   searchBarWidget_->connect(searchBarWidget_, &SearchBarWidget::returnPressed, [this](){
+      const auto& currentIndex = searchResultWidget_->currentIndex();
       if (currentIndex.isValid())
       {
          //
@@ -140,7 +144,7 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
 
          if (openUrl_(searchItemFilterModel_->item(currentIndex), searchItemFilterModel_->searchExpression().parameters()))
          {
-            searchExpressionEdit_->removeIndication(QStringLiteral("openUrlError:*"));
+            searchBarWidget_->removeIndication(QStringLiteral("openUrlError:*"));
 
             hide();
          }
@@ -162,55 +166,55 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
 
          if (openUrlSucceeded == true)
          {
-            searchExpressionEdit_->removeIndication(QStringLiteral("openUrlError:*"));
+            searchBarWidget_->removeIndication(QStringLiteral("openUrlError:*"));
 
             hide();
          }
       }
    });
-   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::keyUpPressed, [this](){
-      const auto& currentIndex = searchResultView_->currentIndex();
-      searchResultView_->setCurrentIndex(searchResultView_->model()->index(qMax(-1, currentIndex.row() - 1), 0));
+   searchBarWidget_->connect(searchBarWidget_, &SearchBarWidget::keyUpPressed, [this](){
+      const auto& currentIndex = searchResultWidget_->currentIndex();
+      searchResultWidget_->setCurrentIndex(searchResultWidget_->model()->index(qMax(-1, currentIndex.row() - 1), 0));
    });
-   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::keyDownPressed, [this](){
-      const auto& currentIndex = searchResultView_->currentIndex();
-      searchResultView_->setCurrentIndex(currentIndex.isValid() ?
-                                    searchResultView_->model()->index(qMin(searchResultView_->model()->rowCount() - 1, currentIndex.row() + 1), 0) :
-                                    searchResultView_->model()->index(0, 0));
+   searchBarWidget_->connect(searchBarWidget_, &SearchBarWidget::keyDownPressed, [this](){
+      const auto& currentIndex = searchResultWidget_->currentIndex();
+      searchResultWidget_->setCurrentIndex(currentIndex.isValid() ?
+                                    searchResultWidget_->model()->index(qMin(searchResultWidget_->model()->rowCount() - 1, currentIndex.row() + 1), 0) :
+                                    searchResultWidget_->model()->index(0, 0));
    });
-   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::keyPageUpPressed, [this](){
-      const auto& currentIndex = searchResultView_->currentIndex();
-      searchResultView_->setCurrentIndex(searchResultView_->model()->index(qMax(-1, currentIndex.row() - 5), 0));
+   searchBarWidget_->connect(searchBarWidget_, &SearchBarWidget::keyPageUpPressed, [this](){
+      const auto& currentIndex = searchResultWidget_->currentIndex();
+      searchResultWidget_->setCurrentIndex(searchResultWidget_->model()->index(qMax(-1, currentIndex.row() - 5), 0));
    });
-   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::keyPageDownPressed, [this](){
-      const auto& currentIndex = searchResultView_->currentIndex();
-      searchResultView_->setCurrentIndex(currentIndex.isValid() ?
-                                    searchResultView_->model()->index(qMin(searchResultView_->model()->rowCount() - 1, currentIndex.row() + 10), 0) :
-                                    searchResultView_->model()->index(0, 0));
+   searchBarWidget_->connect(searchBarWidget_, &SearchBarWidget::keyPageDownPressed, [this](){
+      const auto& currentIndex = searchResultWidget_->currentIndex();
+      searchResultWidget_->setCurrentIndex(currentIndex.isValid() ?
+                                    searchResultWidget_->model()->index(qMin(searchResultWidget_->model()->rowCount() - 1, currentIndex.row() + 10), 0) :
+                                    searchResultWidget_->model()->index(0, 0));
    });
-   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::escapePressed, [this](){
+   searchBarWidget_->connect(searchBarWidget_, &SearchBarWidget::escapePressed, [this](){
       //
       // If escaped is pressed hide.
       //
 
       hide();
    });
-   searchExpressionEdit_->connect(itemModel_, &ItemModel::sourceFailedToLoad,
+   searchBarWidget_->connect(itemModel_, &ItemModel::sourceFailedToLoad,
                                   [this](const QString& source, const QString& errorString)
    {
-      searchExpressionEdit_->addInidication(QStringLiteral("sourceError:").append(source),
+      searchBarWidget_->addInidication(QStringLiteral("sourceError:").append(source),
                                             tr("Source failed to load: %1: %2").arg(source).arg(errorString));
    });
-   searchExpressionEdit_->connect(itemModel_, &ItemModel::sourceLoaded, [this](const QString& source)
+   searchBarWidget_->connect(itemModel_, &ItemModel::sourceLoaded, [this](const QString& source)
    {
-      searchExpressionEdit_->removeIndication(QStringLiteral("sourceError:").append(source));
+      searchBarWidget_->removeIndication(QStringLiteral("sourceError:").append(source));
    });
-   searchExpressionEdit_->connect(itemModel_, &ItemModel::modelReset, [this, application]()
+   searchBarWidget_->connect(itemModel_, &ItemModel::modelReset, [this, application]()
    {
-      searchExpressionEdit_->removeIndication(QStringLiteral("sourceError:*"));
+      searchBarWidget_->removeIndication(QStringLiteral("sourceError:*"));
    });
 
-   searchResultView_->connect(searchResultView_, &QTableView::clicked, [this](const QModelIndex& index)
+   searchResultWidget_->connect(searchResultWidget_, &QTableView::clicked, [this](const QModelIndex& index)
    {
       //
       // If an item is clicked open the link and remain shown (so multiple items can be clicked).
@@ -224,7 +228,7 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    //
 
    setFocusPolicy(Qt::NoFocus);
-   setFocusProxy(searchExpressionEdit_);
+   setFocusProxy(searchBarWidget_);
 
    //
    // Hide the application if it loses focus, as it cannot be activated programatically for
@@ -237,7 +241,7 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    {
       if (applicationState == Qt::ApplicationActive)
       {
-         searchExpressionEdit_->selectAll();
+         searchBarWidget_->selectAll();
 
          activateWindow();
       }
@@ -251,7 +255,7 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    // Decorate the standard context menu with the additional actions.
    //
 
-   auto searchExpressionEditContextMenu = searchExpressionEdit_->createStandardContextMenu();
+   auto searchExpressionEditContextMenu = searchBarWidget_->createStandardContextMenu();
    searchExpressionEditContextMenu->addSeparator();
    searchExpressionEditContextMenu->addAction(QIcon(QStringLiteral(":/images/edit.png")), tr("Edit items..."), [this]()
    {
@@ -297,8 +301,8 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
       {
          application->setSetting(this, QStringLiteral("font"), font);
 
-         searchExpressionEdit_->setFont(application->setting<QFont>(this, QStringLiteral("font"), application->font()));
-         searchResultView_->setFont(application->setting<QFont>(this, QStringLiteral("font"), application->font()));
+         searchBarWidget_->setFont(application->setting<QFont>(this, QStringLiteral("font"), application->font()));
+         searchResultWidget_->setFont(application->setting<QFont>(this, QStringLiteral("font"), application->font()));
       }
    });
 
@@ -306,23 +310,22 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    // Show the decorated context menu instead of the standard context menu.
    //
 
-   searchExpressionEdit_->setContextMenuPolicy(Qt::CustomContextMenu);
-   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::customContextMenuRequested, [this, searchExpressionEditContextMenu](const QPoint& position)
+   searchBarWidget_->setContextMenuPolicy(Qt::CustomContextMenu);
+   searchBarWidget_->connect(searchBarWidget_, &SearchBarWidget::customContextMenuRequested, [this, searchExpressionEditContextMenu](const QPoint& position)
    {
-      searchExpressionEditContextMenu->exec(searchExpressionEdit_->mapToGlobal(position));
+      searchExpressionEditContextMenu->exec(searchBarWidget_->mapToGlobal(position));
    });
 
    //
    // Set layout.
    //
 
-   auto itemLayout = new QVBoxLayout;
-   itemLayout->addWidget(searchExpressionEdit_);
-   itemLayout->addWidget(searchResultView_);
-   itemLayout->addStretch();
-   itemLayout->setSpacing(0);
+   auto layout = new QVBoxLayout;
+   layout->addWidget(searchBarWidget_);
+   layout->addWidget(searchResultWidget_);
+   layout->setSpacing(0);
 
-   setLayout(itemLayout);
+   setLayout(layout);
 
    //
    // Create the hotkey.
@@ -343,11 +346,11 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
 
    if (!itemHotkey->registerKeySequence())
    {
-      searchExpressionEdit_->addInidication(QStringLiteral("hotkeyError"), tr("The hotkey could not be registered"));
+      searchBarWidget_->addInidication(QStringLiteral("hotkeyError"), tr("The hotkey could not be registered"));
    }
 
    //
-   // Register the widget with the geomerty store.
+   // Update the widget geometry.
    //
 
    auto screenGeometry = QApplication::desktop()->screenGeometry();
@@ -361,12 +364,22 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    // Restore the font or use the default font is no font is stored.
    //
 
-   searchExpressionEdit_->setFont(application->setting<QFont>(this, QStringLiteral("font"), application->font()));
-   searchResultView_->setFont(application->setting<QFont>(this, QStringLiteral("font"), application->font()));
+   searchBarWidget_->setFont(application->setting<QFont>(this, QStringLiteral("font"), application->font()));
+   searchResultWidget_->setFont(application->setting<QFont>(this, QStringLiteral("font"), application->font()));
 }
 
 SearchWindow::~SearchWindow()
 {
+}
+
+bool SearchWindow::event(QEvent* event)
+{
+   if (/* auto layoutRequestEvent = */ Event::cast<QEvent>(event, QEvent::LayoutRequest))
+   {
+      resize(sizeHint());
+   }
+
+   return QWidget::event(event);
 }
 
 bool SearchWindow::eventFilter(QObject* object, QEvent* event)
@@ -404,6 +417,8 @@ bool SearchWindow::eventFilter(QObject* object, QEvent* event)
          windowModificationOperationActive_ = false;
          windowModificationOperation_ = WindowModificationOperation::None;
 
+         setMaximumHeight((QApplication::desktop()->screenGeometry().height() * 0.95) - pos().y());
+
          static_cast<QWidget*>(object)->unsetCursor();
       }
    }
@@ -430,6 +445,8 @@ bool SearchWindow::eventFilter(QObject* object, QEvent* event)
       if (windowModificationModifierActive_ )
       {
          windowModificationOperationActive_ = false;
+
+         setMaximumHeight((QApplication::desktop()->screenGeometry().height() * 0.95) - pos().y());
 
          consumeEvent = true;
       }
@@ -530,7 +547,7 @@ bool SearchWindow::openSource_(const QString& source, const ItemSourcePosition& 
    {
       itemSourceEditor->deleteLater();
 
-      searchExpressionEdit_->addInidication(QStringLiteral("openSourceError:").append(source), tr("Failed to open source ").append(source));
+      searchBarWidget_->addInidication(QStringLiteral("openSourceError:").append(source), tr("Failed to open source ").append(source));
    }
 
    return result;
@@ -551,7 +568,7 @@ bool SearchWindow::openUrl_(LinkItem* item, const QStringList& parameters)
       result = QDesktopServices::openUrl(url);
       if (!result)
       {
-         searchExpressionEdit_->addInidication(QStringLiteral("openUrlError:").append(url.toString()), tr("Failed to open URL ").append(url.toString()));
+         searchBarWidget_->addInidication(QStringLiteral("openUrlError:").append(url.toString()), tr("Failed to open URL ").append(url.toString()));
       }
 
       break;
@@ -560,7 +577,7 @@ bool SearchWindow::openUrl_(LinkItem* item, const QStringList& parameters)
    {
       qInfo() << "item failed to open due to insufficient parameters" << item->link() << parameters;
 
-      searchExpressionEdit_->addInidication(QStringLiteral("parameterError").append(item->link()), tr("Insufficient parameters provided"));
+      searchBarWidget_->addInidication(QStringLiteral("parameterError").append(item->link()), tr("Insufficient parameters provided"));
 
       break;
    }
@@ -568,7 +585,7 @@ bool SearchWindow::openUrl_(LinkItem* item, const QStringList& parameters)
    {
       qInfo() << "item failed to open due to excess parameters" << item->link() << parameters;
 
-      searchExpressionEdit_->addInidication(QStringLiteral("parameterError").append(item->link()), tr("Excess parameters provided"));
+      searchBarWidget_->addInidication(QStringLiteral("parameterError").append(item->link()), tr("Excess parameters provided"));
 
       break;
    }

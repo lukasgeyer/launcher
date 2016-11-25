@@ -28,7 +28,6 @@ DEFINES += ORGANIZATION_DOMAIN=\\\"\"$$QMAKE_TARGET_DOMAIN\\\"\"
 SOURCES += \
     src/main.cpp \
     src/itemdelegate.cpp \
-    src/itemedit.cpp \
     src/application.cpp \
     src/itemmodel.cpp \
     src/systemlock.cpp \
@@ -46,11 +45,11 @@ SOURCES += \
     src/searchitemfiltermodel.cpp \
     src/itemsourceeditor.cpp \
     src/itemsourcehighlighter.cpp \
-    src/itemsourceposition.cpp
+    src/itemsourceposition.cpp \
+    src/searchbarwidget.cpp
 
 HEADERS += \
     src/itemdelegate.h \
-    src/itemedit.h \
     src/event.h \
     src/application.h \
     src/itemmodel.h \
@@ -77,7 +76,9 @@ HEADERS += \
     src/itemsourceeditor.h \
     src/itemsourcehighlighter.h \
     src/itemsourceposition.h \
-    src/metatype.h
+    src/metatype.h \
+    src/searchbarwidget.h \
+    src/searchresultwidget.h
 
 RESOURCES += \
     resources/resources.qrc

@@ -16,11 +16,12 @@
 #include "itemmodel.h"
 #include "itemsourceposition.h"
 
-class ItemEdit;
 class LinkItem;
 class QTableView;
+class SearchBarWidget;
 class SearchItemFilterModel;
 class SearchItemProxyModel;
+class SearchResultWidget;
 
 /*!
  * \brief An item window, listing all items, filtered by name and tags.
@@ -82,11 +83,16 @@ private:
    /*!
     * The item edit used to enter a search expression.
     */
-   ItemEdit* searchExpressionEdit_ = nullptr;
+   SearchBarWidget* searchBarWidget_ = nullptr;
    /*!
     * The view used to display the search result.
     */
-   QTableView* searchResultView_ = nullptr;
+   SearchResultWidget* searchResultWidget_ = nullptr;
+
+   /*!
+    * \reimp
+    */
+   bool event(QEvent *event) override;
 
    /*!
     * \reimp
