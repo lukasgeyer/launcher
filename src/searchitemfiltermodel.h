@@ -26,6 +26,26 @@ class SearchItemFilterModel : public QSortFilterProxyModel
 
 public:
    /*!
+    * The sort algorithms.
+    */
+   enum SortAlgorithm
+   {
+      NameSortAlgorithm = 0, /* The items shall be sorted by name. */
+      TagSortAlgorithm = 1, /* The items shall be sorted by tag, then name. */
+   };
+   Q_ENUM(SortAlgorithm)
+
+   /*!
+    * The filters.
+    */
+   enum Filter
+   {
+      EmptySearchExpressionFilter = 0x01, /*< Filter all item is expression is empty. */
+      ParameterMismatchFilter = 0x02 /*< Filter all items where the parameter do not match. */
+   };
+   Q_FLAG(Filter)
+
+   /*!
     * Constructs an ItemFilterModel with the parent \a parent.
     */
    SearchItemFilterModel(QObject* parent = nullptr);
@@ -39,37 +59,18 @@ public:
    }
 
    /*!
-    * If \a filterEmptySearchExpression is \a true any item is filtered if the search expression
-    * is empty.
+    * Sets the filter to \a filter..
     */
-   void setFilterEmptySearchExpression(bool filterEmptySearchExpression)
+   void setFilter(Filter filter)
    {
-      filterEmptySearchExpression_ = filterEmptySearchExpression;
+      filter_ = filter;
    }
    /*!
-    * Returns \a true if any item is filtered if the search expression is empty; \a false
-    * otherwise.
+    * Returns the filter.
     */
-   bool filterEmptySearchExpression() const
+   Filter filter() const
    {
-      return filterEmptySearchExpression_;
-   }
-
-   /*!
-    * If \a filterParameterMismatch is \a true an item whose parameter do not match the search
-    * expression will be filtered out. The default value is \a false.
-    */
-   void setFilterParameterMismatch(bool filterParameterMismatch)
-   {
-      filterParameterMismatch_ = filterParameterMismatch;
-   }
-   /*!
-    * Returns \a true if items whose parameter do not match the search expression are
-    * filtered out; \a false otherwise.
-    */
-   bool filterParameterMismatch() const
-   {
-      return filterParameterMismatch_;
+      return filter_;
    }
 
    /*!
@@ -104,15 +105,12 @@ private:
    SearchExpression searchExpression_;
 
    /*!
-    * If \a filterEmptySearchExpression is \a true any item is filtered if the search expression
-    * is empty.
+    * The filters to be applied when \a filterAcceptsRow() is called.
     */
-   bool filterEmptySearchExpression_ = false;
-   /*!
-    * If set to \a true an item whose parameter do not match the search expression will be
-    * filtered out. The default value is \a false.
-    */
-   bool filterParameterMismatch_ = false;
+   Filter filter_ = static_cast<Filter>(EmptySearchExpressionFilter | ParameterMismatchFilter);
 };
+
+Q_DECLARE_METATYPE(SearchItemFilterModel::SortAlgorithm)
+Q_DECLARE_METATYPE(SearchItemFilterModel::Filter)
 
 #endif // SEARCHFILTERMODEL_H

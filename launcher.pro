@@ -76,7 +76,8 @@ HEADERS += \
     src/searchitemfiltermodel.h \
     src/itemsourceeditor.h \
     src/itemsourcehighlighter.h \
-    src/itemsourceposition.h
+    src/itemsourceposition.h \
+    src/metatype.h
 
 RESOURCES += \
     resources/resources.qrc

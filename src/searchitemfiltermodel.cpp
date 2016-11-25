@@ -39,7 +39,7 @@ bool SearchItemFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex& s
 {
    bool matches = false;
 
-   if (!searchExpression_.isEmpty() || !filterEmptySearchExpression_)
+   if (!searchExpression_.isEmpty() || !(filter_ & EmptySearchExpressionFilter))
    {
       const SearchItemProxyModel* itemModel = static_cast<const SearchItemProxyModel*>(sourceModel());
       if (itemModel != nullptr)
@@ -47,7 +47,7 @@ bool SearchItemFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex& s
          matches = searchExpression_.matches(itemModel->data(itemModel->index(sourceRow, 0, sourceParent), Qt::DisplayRole).toString(),
                                              itemModel->data(itemModel->index(sourceRow, 1, sourceParent), Qt::UserRole).toStringList());
 
-         if (matches && filterParameterMismatch_)
+         if (matches && (filter_ & ParameterMismatchFilter))
          {
             if (auto linkItem = Item::cast<LinkItem>(itemModel->item(itemModel->index(sourceRow, 0, sourceParent))))
             {
@@ -62,22 +62,63 @@ bool SearchItemFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex& s
 
 bool SearchItemFilterModel::lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const
 {
-   bool isLessThan = false;
+   bool isLessThan = true;
 
-   const SearchItemProxyModel* itemModel = static_cast<const SearchItemProxyModel*>(sourceModel());
+   SortAlgorithm sortAlgorithm = static_cast<SortAlgorithm>(sourceLeft.column());
 
-   const LinkItem* itemLeft = itemModel->item(sourceLeft);
-   const LinkItem* itemRight = itemModel->item(sourceRight);
-
-   if ((itemLeft != nullptr) && (itemRight != nullptr))
+   switch (sortAlgorithm)
    {
-      //
-      // A tagged item is sorted up, an non-tagged item is sorted down, if both are of the same
-      // type sort lexically.
-      //
-      isLessThan = ((!itemLeft->tags().isEmpty()) && ( itemRight->tags().isEmpty())) ? true  :
-                   (( itemLeft->tags().isEmpty()) && (!itemRight->tags().isEmpty())) ? false :
-                   (( itemLeft->name() < itemRight->name()));
+   case NameSortAlgorithm:
+   {
+      const auto& leftName = sourceModel()->data(sourceModel()->index(sourceLeft.row(), 0, sourceLeft.parent()), Qt::DisplayRole).toString();
+      const auto& rightName = sourceModel()->data(sourceModel()->index(sourceRight.row(), 0, sourceRight.parent()), Qt::DisplayRole).toString();
+
+      isLessThan = (QString::compare(leftName, rightName, Qt::CaseInsensitive) < 0);
+
+      break;
+   }
+   case TagSortAlgorithm:
+   {
+      const auto& leftName = sourceModel()->data(sourceModel()->index(sourceLeft.row(), 0, sourceLeft.parent()), Qt::DisplayRole).toString();
+      const auto& leftTags = sourceModel()->data(sourceModel()->index(sourceLeft.row(), 1, sourceLeft.parent()), Qt::UserRole).toStringList();
+
+      const auto& rightName = sourceModel()->data(sourceModel()->index(sourceRight.row(), 0, sourceRight.parent()), Qt::DisplayRole).toString();
+      const auto& rightTags = sourceModel()->data(sourceModel()->index(sourceRight.row(), 1, sourceRight.parent()), Qt::UserRole).toStringList();
+
+      for (auto leftTag = std::begin(leftTags), rightTag = std::begin(rightTags); ; ++leftTag, ++rightTag)
+      {
+         if (leftTag != std::end(leftTags) && rightTag != std::end(rightTags))
+         {
+            int comparisonResult = QString::compare(*leftTag, *rightTag, Qt::CaseInsensitive);
+            if (comparisonResult != 0)
+            {
+               isLessThan = (comparisonResult < 0);
+
+               break;
+            }
+         }
+         else if (leftTag == std::end(leftTags) && rightTag == std::end(rightTags))
+         {
+            isLessThan = (QString::compare(leftName, rightName, Qt::CaseInsensitive) < 0);
+
+            break;
+         }
+         else if (leftTag != std::end(leftTags) && rightTag == std::end(rightTags))
+         {
+            isLessThan = true;
+
+            break;
+         }
+         else if (leftTag == std::end(leftTags) && rightTag != std::end(rightTags))
+         {
+            isLessThan = false;
+
+            break;
+         }
+      }
+
+      break;
+   }
    }
 
    return isLessThan;

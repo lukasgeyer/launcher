@@ -10,6 +10,8 @@
 #include <limits>
 
 #include <QApplication>
+#include <QAction>
+#include <QActionGroup>
 #include <QDebug>
 #include <QDesktopServices>
 #include <QDesktopWidget>
@@ -27,9 +29,10 @@
 #include "application.h"
 #include "event.h"
 #include "itemedit.h"
-#include "searchitemfiltermodel.h"
 #include "itemmodel.h"
 #include "itemsourceeditor.h"
+#include "metatype.h"
+#include "searchitemfiltermodel.h"
 #include "searchitemproxymodel.h"
 #include "searchwindow.h"
 #include "systemhotkey.h"
@@ -43,6 +46,8 @@ namespace {
 const int RESIZE_AREA_SIZE_ = 16;
 
 } // namespace
+
+#include <QStandardItemModel>
 
 SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(parent, Qt::FramelessWindowHint | Qt::WindowSystemMenuHint), itemModel_(itemModel)
 {
@@ -67,13 +72,14 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    // Create UI.
    //
 
-   auto searchItemProxyModel = new SearchItemProxyModel(this);
-   searchItemProxyModel->setSourceModel(itemModel_);
+   searchItemProxyModel_ = new SearchItemProxyModel(this);
+   searchItemProxyModel_->setSourceModel(itemModel_);
 
-   auto searchItemFilterModel = new SearchItemFilterModel(this);
-   searchItemFilterModel->setFilterEmptySearchExpression(true);
-   searchItemFilterModel->setFilterParameterMismatch(true);
-   searchItemFilterModel->setSourceModel(searchItemProxyModel);
+   auto sortAlgorithm = application->setting<SearchItemFilterModel::SortAlgorithm>(this, "sortAlgorithm", SearchItemFilterModel::TagSortAlgorithm);
+
+   searchItemFilterModel_ = new SearchItemFilterModel(this);
+   searchItemFilterModel_->setSourceModel(searchItemProxyModel_);
+   searchItemFilterModel_->sort(sortAlgorithm);
 
    searchResultView_ = new QTableView(this);
    searchResultView_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -81,19 +87,19 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    searchResultView_->verticalHeader()->hide();
    searchResultView_->setContextMenuPolicy(Qt::CustomContextMenu);
    searchResultView_->setFocusPolicy(Qt::NoFocus);
-   searchResultView_->setModel(searchItemFilterModel);
+   searchResultView_->setModel(searchItemFilterModel_);
    searchResultView_->setSelectionBehavior(QAbstractItemView::SelectRows);
    searchResultView_->setShowGrid(false);
    searchResultView_->setStyleSheet(QStringLiteral("QTableView { background-color: transparent; border: none; margin-left: 2px; margin-right: 2px; } "
                                                    "QTableView::item { background-color: #ffffffff; padding: 4px; } "
                                                    "QTableView::item:selected { background-color: #ff5bc0de; padding: 4px; }"));
-   searchResultView_->connect(searchResultView_, &QTableView::customContextMenuRequested, [this, searchItemFilterModel](const QPoint& position)
+   searchResultView_->connect(searchResultView_, &QTableView::customContextMenuRequested, [this](const QPoint& position)
    {
       //
       // Show the item-specific context menu if a valid item has been selected.
       //
 
-      if (auto item = searchItemFilterModel->item(searchResultView_->indexAt(position)))
+      if (auto item = searchItemFilterModel_->item(searchResultView_->indexAt(position)))
       {
          if (auto itemSource = item->parent<ItemSource>())
          {
@@ -118,12 +124,12 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    searchExpressionEdit_->setFocusPolicy(Qt::StrongFocus);
    searchExpressionEdit_->setGraphicsEffect(searchExpressionEditShadowEffect);
    searchExpressionEdit_->setStyleSheet(QStringLiteral("QLineEdit { border: none; padding: 4px; }"));
-   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::textChanged, [this, searchItemFilterModel](const QString& text)
+   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::textChanged, [this](const QString& text)
    {
-      searchItemFilterModel->setSearchExpression(text);
+      searchItemFilterModel_->setSearchExpression(text);
       searchResultView_->resizeRowsToContents();
    });
-   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::returnPressed, [this, searchItemFilterModel](){
+   searchExpressionEdit_->connect(searchExpressionEdit_, &ItemEdit::returnPressed, [this](){
       const auto& currentIndex = searchResultView_->currentIndex();
       if (currentIndex.isValid())
       {
@@ -132,7 +138,7 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
          // could be opened. Remain shown otherwise so the error can be seen.
          //
 
-         if (openUrl_(searchItemFilterModel->item(currentIndex), searchItemFilterModel->searchExpression().parameters()))
+         if (openUrl_(searchItemFilterModel_->item(currentIndex), searchItemFilterModel_->searchExpression().parameters()))
          {
             searchExpressionEdit_->removeIndication(QStringLiteral("openUrlError:*"));
 
@@ -148,10 +154,10 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
 
          bool openUrlSucceeded = true;
 
-         for (int row = 0; row < searchItemFilterModel->rowCount(); ++row)
+         for (int row = 0; row < searchItemFilterModel_->rowCount(); ++row)
          {
-            openUrlSucceeded &= openUrl_(searchItemFilterModel->item(searchItemFilterModel->index(row, 0)),
-                                         searchItemFilterModel->searchExpression().parameters());
+            openUrlSucceeded &= openUrl_(searchItemFilterModel_->item(searchItemFilterModel_->index(row, 0)),
+                                         searchItemFilterModel_->searchExpression().parameters());
          }
 
          if (openUrlSucceeded == true)
@@ -199,18 +205,18 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    {
       searchExpressionEdit_->removeIndication(QStringLiteral("sourceError:").append(source));
    });
-   searchExpressionEdit_->connect(itemModel_, &ItemModel::modelReset, [this]()
+   searchExpressionEdit_->connect(itemModel_, &ItemModel::modelReset, [this, application]()
    {
       searchExpressionEdit_->removeIndication(QStringLiteral("sourceError:*"));
    });
 
-   searchResultView_->connect(searchResultView_, &QTableView::clicked, [this, searchItemFilterModel](const QModelIndex& index)
+   searchResultView_->connect(searchResultView_, &QTableView::clicked, [this](const QModelIndex& index)
    {
       //
       // If an item is clicked open the link and remain shown (so multiple items can be clicked).
       //
 
-      openUrl_(searchItemFilterModel->item(index), searchItemFilterModel->searchExpression().parameters());
+      openUrl_(searchItemFilterModel_->item(index), searchItemFilterModel_->searchExpression().parameters());
    });
 
    //
@@ -255,7 +261,34 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    {
       itemModel_->read(itemModel_->itemSourceIdentifier());
    });
+
    searchExpressionEditContextMenu->addSeparator();
+
+   auto sortAlgorithmMenu = searchExpressionEditContextMenu->addMenu(QIcon(QStringLiteral(":/images/order.png")), tr("Sort order"));
+   auto sortAlgorithmMenuNameAction = sortAlgorithmMenu->addAction(QIcon(QStringLiteral(":/images/name.png")), tr("Name"), [this, application]()
+   {
+      application->setSetting(this, "sortAlgorithm", Enum::toString(SearchItemFilterModel::NameSortAlgorithm));
+
+      searchItemFilterModel_->sort(SearchItemFilterModel::NameSortAlgorithm);
+   });
+   sortAlgorithmMenuNameAction->setCheckable(true);
+   sortAlgorithmMenuNameAction->setChecked(sortAlgorithm == SearchItemFilterModel::NameSortAlgorithm);
+   auto sortAlgorithmMenuTagAction = sortAlgorithmMenu->addAction(QIcon(QStringLiteral(":/images/tag.png")), tr("Tag"), [this, application]()
+   {
+      application->setSetting(this, "sortAlgorithm", Enum::toString(SearchItemFilterModel::TagSortAlgorithm));
+
+      searchItemFilterModel_->sort(SearchItemFilterModel::TagSortAlgorithm);
+   });
+   sortAlgorithmMenuTagAction->setCheckable(true);
+   sortAlgorithmMenuTagAction->setChecked(sortAlgorithm == SearchItemFilterModel::TagSortAlgorithm);
+
+   auto sortAlgorithmMenuActionGroup = new QActionGroup(sortAlgorithmMenu);
+   sortAlgorithmMenuActionGroup->setExclusive(true);
+   sortAlgorithmMenuActionGroup->addAction(sortAlgorithmMenuNameAction);
+   sortAlgorithmMenuActionGroup->addAction(sortAlgorithmMenuTagAction);
+
+   searchExpressionEditContextMenu->addSeparator();
+
    searchExpressionEditContextMenu->addAction(QIcon(QStringLiteral(":/images/font.png")), tr("Select font..."), [this, application]()
    {
       auto fontSelected = false;

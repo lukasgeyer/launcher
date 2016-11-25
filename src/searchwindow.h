@@ -19,6 +19,8 @@
 class ItemEdit;
 class LinkItem;
 class QTableView;
+class SearchItemFilterModel;
+class SearchItemProxyModel;
 
 /*!
  * \brief An item window, listing all items, filtered by name and tags.
@@ -68,6 +70,14 @@ private:
     * The item model.
     */
    ItemModel* itemModel_ = nullptr;
+   /*!
+    * The search item proxy model.
+    */
+   SearchItemProxyModel* searchItemProxyModel_ = nullptr;
+   /*!
+    * The search item filter model.
+    */
+   SearchItemFilterModel* searchItemFilterModel_ = nullptr;
 
    /*!
     * The item edit used to enter a search expression.

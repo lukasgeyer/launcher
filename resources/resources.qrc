@@ -8,5 +8,8 @@
         <file>images/remove.png</file>
         <file>images/edit.png</file>
         <file>images/reload.png</file>
+        <file>images/name.png</file>
+        <file>images/order.png</file>
+        <file>images/tag.png</file>
     </qresource>
 </RCC>

@@ -208,6 +208,7 @@ void SearchItemProxyModel::reset_()
             }
          }
 
+         cacheEntry.tagStringList.sort(Qt::CaseInsensitive);
          cacheEntry.tagString = cacheEntry.tagStringList.join(QStringLiteral(", "));
 
          cache_.append(cacheEntry);
