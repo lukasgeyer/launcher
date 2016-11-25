@@ -44,14 +44,14 @@ void SearchExpression::compile_(const QString& expression)
    // The type of the token currently being parsed.
    //
 
-   enum class TokenType { Operator, Name, Tag, Parameter } tokenType = TokenType::Name;
+   enum class TokenType { Operator, Name, Tag, Both, Parameter } tokenType = TokenType::Name;
 
    //
    // The term currently being parsed. Be aware that the first term is conjunct by default.
    //
 
    Term_ term;
-   term.type = Term_::Type::Name;
+   term.type = Term_::Type::Both;
    term.operation = Term_::Operation::Conjunct;
    term.negation = Term_::Negation::NotNegated;
 
@@ -89,10 +89,15 @@ void SearchExpression::compile_(const QString& expression)
          tokenType = TokenType::Tag;
          term.type = Term_::Type::Tag;
       }
-      else if (term.operation != Term_::Operation::None)
+      else if (token.startsWith(':'))
       {
          tokenType = TokenType::Name;
          term.type = Term_::Type::Name;
+      }
+      else if (term.operation != Term_::Operation::None)
+      {
+         tokenType = TokenType::Both;
+         term.type = Term_::Type::Both;
       }
       else
       {
@@ -110,20 +115,20 @@ void SearchExpression::compile_(const QString& expression)
          break;
       }
       case TokenType::Name:
+      case TokenType::Tag:
+      {
+         token.remove(0, 1);
+
+         //
+         // Fall Through
+         //
+      }
+      case TokenType::Both:
       {
          token.prepend('^');
 
-         // Fall Through
-      }
-      case TokenType::Tag:
-      {
          if (token.length() >= 2)
          {
-            if (term.type == Term_::Type::Tag)
-            {
-               token.replace(0, 1, '^');
-            }
-
             token.replace("?", ".");
             token.replace("*", ".*");
 
@@ -164,11 +169,11 @@ bool SearchExpression::matches_(const QString& name, const QStringList& tags) co
    {
       bool isTermMatch = false;
 
-      if (term.type == Term_::Type::Name)
+      if ((term.type == Term_::Type::Name) || (term.type == Term_::Type::Both))
       {
          isTermMatch = (term.expression.match(name).hasMatch() ^ (term.negation == Term_::Negation::Negated));
       }
-      else if (term.type == Term_::Type::Tag)
+      if ((term.type == Term_::Type::Tag) || (term.type == Term_::Type::Both))
       {
          for (auto tag = std::begin(tags); ((tag != std::end(tags)) && (!isTermMatch)); ++tag)
          {

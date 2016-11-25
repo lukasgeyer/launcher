@@ -81,7 +81,8 @@ private:
       enum class Type
       {
          Name,
-         Tag
+         Tag,
+         Both
       } type = Type::Name;
 
       enum class Operation

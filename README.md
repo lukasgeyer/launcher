@@ -62,19 +62,20 @@ The following options can be supplied on the command line:
 | `--source <file>` | Use `<file>` as configuration file (instead of `launcher.xml`) |
 
 ## Searching
-The key sequence `STRG + SHIFT + Space` will bring up the search bar, which allows for entering a series of space-separated words used to define the (case-insensitive) filter expression. The first word is always treated as the name of an item, that should be displayed. Any subsequent word will be treated as parameter to that item. If a word starts with `@` it is interpreted as tag (instead of the name). The words `and`, `or` and `not` can be used to formulate a kind-of boolean expression (to satisfy the developer in all of us `&&`, `||` and `!` can be used alternatively).
+The key sequence `STRG + SHIFT + Space` will bring up the search bar, which allows for entering a series of space-separated words used to define the (case-insensitive) filter expression. The first word is always treated as the name or the tag of an item that should be displayed. Any subsequent word will be treated as parameter to that item. If a word starts with `:` it is in any case interpreted as name, if it starts with `@` as a tag. The words `and`, `or` and `not` can be used to formulate a kind-of boolean expression (to satisfy the developer in all of us `&&`, `||` and `!` can be used alternatively). If no operator is supplied `and` will be assumed. Any word following those words will be also interpreted as name or the tag of an item, not a parameter.
 
-Within a word the wildcards `?` and `*` can be used to match a single or any character.
+A name or tag is treated as a regular expression. For convenience, the wildcards `?` and `*` can also be used to match a single or any character.
 
 If the search expression yields at least one result a click on the item will open the related URL. Alternatively the up/down as well as the page-up/-down key can be used to navigate through the result list and the enter key can be used to open the related URL. If no item is selected in the list the enter key will open any URL in the list.
 
 ### Example
-| Expression            | Description                                                                    |
-|-----------------------|--------------------------------------------------------------------------------|
-| `GitHub`              | Matches any item with a name starting with 'GitHub'                            |
-| `Code @Launcher`      | Matches any item with a name starting with 'Code' and the tag 'Launcher'       |
-| `GitHub or @Launcher` | Matches any item with a name starting with 'GitHub' or the tag 'Launcher'      |
-| `Issues 12`           | Matches any item with a name starting with 'Issues' which has one parameter    |
+| Expression            | Description                                                                                      |
+|-----------------------|--------------------------------------------------------------------------------------------------|
+| `GitHub`              | Matches any item with the name or a tag starting with 'GitHub'                                   |
+| `Code @Launcher`      | Matches any item with the name or a tag starting with 'Code' and a tag starting with 'Launcher'  |
+| `:Code @Launcher`     | Matches any item with the name starting with 'Code' and a tag starting with 'Launcher'           |
+| `GitHub or @Launcher` | Matches any item with the name or a tag starting with 'GitHub' or a tag starting with 'Launcher' |
+| `Issues 12`           | Matches any item with the name or a tag starting with 'Issues' which has one parameter           |
 
 ## Contributing
 ### Prerequisites
