@@ -10,6 +10,7 @@
 #include <QApplication>
 #include <QAction>
 #include <QActionGroup>
+#include <QClipboard>
 #include <QDebug>
 #include <QDesktopServices>
 #include <QDesktopWidget>
@@ -112,6 +113,10 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
             searchResultViewContextMenu.addAction(QIcon(QStringLiteral(":/images/edit.png")), tr("Edit item..."), [this, item, itemSource]()
             {
                openSource_(itemSource->identifier(), item->linkPosition());
+            });
+            searchResultViewContextMenu.addAction(QIcon(QStringLiteral(":/images/order.png")), tr("Copy URL to clipboard..."), [this, item, itemSource]()
+            {
+               QApplication::clipboard()->setText(item->link(searchItemFilterModel_->searchExpression().parameters()));
             });
             searchResultViewContextMenu.exec(searchResultWidget_->mapToGlobal(position));
          }
