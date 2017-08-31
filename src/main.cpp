@@ -7,6 +7,7 @@
  *          published by the Free Software Foundation.
  */
 
+#include <QCheckBox>
 #include <QCommandLineParser>
 #include <QDateTime>
 #include <QDebug>
@@ -124,6 +125,29 @@ int main(int argc, char *argv[])
 
             itemModel.read(commandLineParser.value(sourceCommandLineOption));
 
+            //
+            // If not explicitly disabled, show a message box warning about malicious sources.
+            //
+
+            auto showSourceWarning = application.setting<bool>("showExternalSourceWarning", true);
+            if (showSourceWarning)
+            {
+                auto checkBox = new QCheckBox(QObject::tr("Do not show this warning again"));
+                checkBox->connect(checkBox, &QCheckBox::stateChanged, [&application](int state)
+                {
+                    application.setSetting("showExternalSourceWarning", static_cast<Qt::CheckState>(state) == Qt::Unchecked);
+                });
+
+                QMessageBox messageBox;
+                messageBox.setCheckBox(checkBox);
+                messageBox.setIcon(QMessageBox::Warning);
+                messageBox.setStandardButtons(QMessageBox::Ok);
+                messageBox.setWindowTitle(QObject::tr("Usage of external sources"));
+                messageBox.setText(QObject::tr("Make sure to only use trustworthy and approved external sources, "
+                                               "as they may include fraudulent or malicious items and may change "
+                                               "without notice."));
+                messageBox.exec();
+            }
 
             //
             // Execute the application.
