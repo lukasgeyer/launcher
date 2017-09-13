@@ -133,9 +133,7 @@ void SearchExpression::compile_(const QString& expression)
       }
       case TokenType::Both:
       {
-         token.prepend('^');
-
-         if (token.length() >= 2)
+         if (!token.isEmpty())
          {
             token.replace("?", ".");
             token.replace("*", ".*");
