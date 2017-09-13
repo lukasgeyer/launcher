@@ -80,6 +80,8 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    searchItemFilterModel_->setSourceModel(searchItemProxyModel_);
    searchItemFilterModel_->sort(sortAlgorithm);
 
+   searchItemFilterModelImplicitMatch_ = application->setting<SearchExpression::ImplicitMatch>(this, "implicitMatch", SearchExpression::ParameterImplicitMatch);
+
    auto searchResultWidgetShadowEffect = new QGraphicsDropShadowEffect;
    searchResultWidgetShadowEffect->setColor(QColor(QStringLiteral("#1f3242")));
    searchResultWidgetShadowEffect->setBlurRadius(16.0);
@@ -136,7 +138,7 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    searchBarWidget_->setStyleSheet(QStringLiteral("QLineEdit { border: none; padding: 4px; }"));
    searchBarWidget_->connect(searchBarWidget_, &SearchBarWidget::textChanged, [this](const QString& text)
    {
-      searchItemFilterModel_->setSearchExpression(text);
+      searchItemFilterModel_->setSearchExpression(text, searchItemFilterModelImplicitMatch_);
    });
    searchBarWidget_->connect(searchBarWidget_, &SearchBarWidget::returnPressed, [this](){
       const auto& currentIndex = searchResultWidget_->currentIndex();
@@ -295,6 +297,33 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    sortAlgorithmMenuActionGroup->setExclusive(true);
    sortAlgorithmMenuActionGroup->addAction(sortAlgorithmMenuNameAction);
    sortAlgorithmMenuActionGroup->addAction(sortAlgorithmMenuTagAction);
+
+   searchExpressionEditContextMenu->addSeparator();
+
+   auto implicitMatchMenu = searchExpressionEditContextMenu->addMenu(QIcon(QStringLiteral(":/images/expression.png")), tr("Match additional word as..."));
+   auto implicitMatchMenuNameAction = implicitMatchMenu->addAction(QIcon(QStringLiteral(":/images/name.png")), tr("Term"), [this, application]()
+   {
+      application->setSetting(this, "implicitMatch", Enum::toString(SearchExpression::TermImplicitMatch));
+
+      searchItemFilterModelImplicitMatch_ = SearchExpression::TermImplicitMatch;
+      searchItemFilterModel_->setSearchExpression(searchBarWidget_->text(), searchItemFilterModelImplicitMatch_);
+   });
+   implicitMatchMenuNameAction->setCheckable(true);
+   implicitMatchMenuNameAction->setChecked(searchItemFilterModelImplicitMatch_ == SearchExpression::TermImplicitMatch);
+   auto implicitMatchMenuParameterAction = implicitMatchMenu->addAction(QIcon(QStringLiteral(":/images/parameter.png")), tr("Parameter"), [this, application]()
+   {
+      application->setSetting(this, "implicitMatch", Enum::toString(SearchExpression::ParameterImplicitMatch));
+
+      searchItemFilterModelImplicitMatch_ = SearchExpression::ParameterImplicitMatch;
+      searchItemFilterModel_->setSearchExpression(searchBarWidget_->text(), searchItemFilterModelImplicitMatch_);
+   });
+   implicitMatchMenuParameterAction->setCheckable(true);
+   implicitMatchMenuParameterAction->setChecked(searchItemFilterModelImplicitMatch_ == SearchExpression::ParameterImplicitMatch);
+
+   auto implicitMatchMenuActionGroup = new QActionGroup(implicitMatchMenu);
+   implicitMatchMenuActionGroup->setExclusive(true);
+   implicitMatchMenuActionGroup->addAction(implicitMatchMenuNameAction);
+   implicitMatchMenuActionGroup->addAction(implicitMatchMenuParameterAction);
 
    searchExpressionEditContextMenu->addSeparator();
 

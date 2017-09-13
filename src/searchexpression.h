@@ -32,7 +32,20 @@
  */
 class SearchExpression
 {
+   Q_GADGET
+
 public:
+   /*!
+    * The implicit matching strategy defines how non-prefixed terms are interpreted.
+    */
+   enum ImplicitMatch
+   {
+       NoImplicitMatch, /*< A non-prefixed term is ignored. */
+       TermImplicitMatch, /*< A non-prefixed term is treated as search term. */
+       ParameterImplicitMatch /*< A non-prefixed term is treated as parameter. */
+   };
+   Q_ENUM(ImplicitMatch)
+
    /*!
     * Constructs a search expression.
     */
@@ -40,12 +53,12 @@ public:
    /*!
     * Constructs a search expression from the string \a expression.
     */
-   explicit SearchExpression(const QString& expression);
+   explicit SearchExpression(const QString& expression, ImplicitMatch implicitMatch);
 
    /*!
     * Sets the search expression to \a expression.
     */
-   void setExpression(const QString& expression);
+   void setExpression(const QString& expression, ImplicitMatch implicitMatch);
 
    /*!
     * Returns \a true if the expression is \a empty; \a false otherwise.
@@ -116,7 +129,7 @@ private:
    /*!
     * Compiles the search expression \a expression.
     */
-   void compile_(const QString &expression);
+   void compile_(const QString &expression, ImplicitMatch implicitMatch);
 
    /*!
     * Returns \a true if the name \a name and the tags \a tags match any name search terms.

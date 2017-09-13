@@ -11,5 +11,7 @@
         <file>images/name.png</file>
         <file>images/order.png</file>
         <file>images/tag.png</file>
+        <file>images/parameter.png</file>
+        <file>images/expression.png</file>
     </qresource>
 </RCC>

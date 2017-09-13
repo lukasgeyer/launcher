@@ -17,14 +17,14 @@ SearchExpression::SearchExpression()
    tokenizeExpression_.optimize();
 }
 
-SearchExpression::SearchExpression(const QString& expression) : SearchExpression()
+SearchExpression::SearchExpression(const QString& expression, ImplicitMatch implicitMatch) : SearchExpression()
 {
-   compile_(expression);
+   compile_(expression, implicitMatch);
 }
 
-void SearchExpression::setExpression(const QString& expression)
+void SearchExpression::setExpression(const QString& expression, ImplicitMatch implicitMatch)
 {
-   compile_(expression);
+   compile_(expression, implicitMatch);
 }
 
 bool SearchExpression::matches(const QString& name, const QStringList& tags) const
@@ -32,7 +32,7 @@ bool SearchExpression::matches(const QString& name, const QStringList& tags) con
    return (terms_.isEmpty() || matches_(name, tags));
 }
 
-void SearchExpression::compile_(const QString& expression)
+void SearchExpression::compile_(const QString& expression, ImplicitMatch implicitMatch)
 {
    //
    // The predicates used to match an operation or negation.
@@ -102,12 +102,16 @@ void SearchExpression::compile_(const QString& expression)
          tokenType = TokenType::Name;
          term.type = Term_::Type::Name;
       }
-      else if (term.operation != Term_::Operation::None)
+      else if (token.startsWith('$'))
+      {
+          tokenType = TokenType::Parameter;
+      }
+      else if ((term.operation != Term_::Operation::None) || (implicitMatch == ImplicitMatch::TermImplicitMatch))
       {
          tokenType = TokenType::Both;
          term.type = Term_::Type::Both;
       }
-      else
+      else if (implicitMatch == ImplicitMatch::ParameterImplicitMatch)
       {
          tokenType = TokenType::Parameter;
       }

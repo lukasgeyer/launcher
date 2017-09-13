@@ -86,7 +86,7 @@ public slots:
    /*!
     * Sets the regular pattern filter to \a regularExpressionPattern.
     */
-   void setSearchExpression(const QString& expression);
+   void setSearchExpression(const QString& expression, SearchExpression::ImplicitMatch implicitMatch);
 
 protected:
    /*!

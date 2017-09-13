@@ -15,6 +15,7 @@
 
 #include "itemmodel.h"
 #include "itemsourceposition.h"
+#include "searchexpression.h"
 
 class LinkItem;
 class QTableView;
@@ -79,6 +80,10 @@ private:
     * The search item filter model.
     */
    SearchItemFilterModel* searchItemFilterModel_ = nullptr;
+   /*!
+    * The implicit matching strategy for the search item filter model.
+    */
+   SearchExpression::ImplicitMatch searchItemFilterModelImplicitMatch_ = SearchExpression::ParameterImplicitMatch;
 
    /*!
     * The item edit used to enter a search expression.

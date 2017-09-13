@@ -28,9 +28,9 @@ const LinkItem* SearchItemFilterModel::item(const QModelIndex& proxyIndex) const
    return const_cast<const LinkItem*>(const_cast<SearchItemFilterModel*>(this)->item(proxyIndex));
 }
 
-void SearchItemFilterModel::setSearchExpression(const QString& expression)
+void SearchItemFilterModel::setSearchExpression(const QString& expression, SearchExpression::ImplicitMatch implicitMatch)
 {
-   searchExpression_.setExpression(expression);
+   searchExpression_.setExpression(expression, implicitMatch);
 
    invalidateFilter();
 }
