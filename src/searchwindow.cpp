@@ -116,7 +116,7 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
             {
                openSource_(itemSource->identifier(), item->linkPosition());
             });
-            searchResultViewContextMenu.addAction(QIcon(QStringLiteral(":/images/order.png")), tr("Copy URL to clipboard..."), [this, item, itemSource]()
+            searchResultViewContextMenu.addAction(QIcon(QStringLiteral(":/images/clipboard.png")), tr("Copy URL to clipboard..."), [this, item, itemSource]()
             {
                QApplication::clipboard()->setText(item->link(searchItemFilterModel_->searchExpression().parameters()));
             });
