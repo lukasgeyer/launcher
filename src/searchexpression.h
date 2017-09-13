@@ -100,6 +100,11 @@ private:
    };
 
    /*!
+    * The regular expression used to tokenize the search expression.
+    */
+   QRegularExpression tokenizeExpression_;
+
+   /*!
     * A list of search terms to be applied.
     */
    QVector<Term_> terms_;

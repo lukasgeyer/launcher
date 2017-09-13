@@ -13,9 +13,11 @@
 
 SearchExpression::SearchExpression()
 {
+   tokenizeExpression_.setPattern("[^\\s\"']+|\"([^\"]*)\"|'([^']*)'");
+   tokenizeExpression_.optimize();
 }
 
-SearchExpression::SearchExpression(const QString& expression)
+SearchExpression::SearchExpression(const QString& expression) : SearchExpression()
 {
    compile_(expression);
 }
@@ -62,9 +64,15 @@ void SearchExpression::compile_(const QString& expression)
    terms_.clear();
    parameters_.clear();
 
-   auto tokens = expression.split(' ', QString::SkipEmptyParts);
-   for (auto token : tokens)
+   auto tokens = tokenizeExpression_.globalMatch(expression);
+   while (tokens.hasNext())
    {
+      enum { NotQuotedToken, DoubleQuotedToken, SingleQuotedToken };
+      auto tokenizeExpressionMatch = tokens.next();
+      auto token = (tokenizeExpressionMatch.capturedLength(SingleQuotedToken) != 0) ? tokenizeExpressionMatch.captured(SingleQuotedToken) :
+                   (tokenizeExpressionMatch.capturedLength(DoubleQuotedToken) != 0) ? tokenizeExpressionMatch.captured(DoubleQuotedToken) :
+                   (tokenizeExpressionMatch.capturedLength(NotQuotedToken) != 0) ? tokenizeExpressionMatch.captured(NotQuotedToken) : QString();
+
       //
       // Determine token type.
       //
