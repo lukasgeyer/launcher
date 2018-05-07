@@ -156,7 +156,8 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
             hide();
          }
       }
-      else if (QGuiApplication::queryKeyboardModifiers() & Qt::ShiftModifier)
+      else if ((searchItemFilterModel_->rowCount() == 1) ||
+               (QGuiApplication::queryKeyboardModifiers() & Qt::ShiftModifier))
       {
          //
          // If SHIFT + enter is pressed and no item is selected open all items and hide if at
