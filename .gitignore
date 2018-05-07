@@ -1,5 +1,6 @@
 debug
 release
+build
 *.autosave
 *.obj
 *.user
