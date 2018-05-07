@@ -156,11 +156,11 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
             hide();
          }
       }
-      else
+      else if (QGuiApplication::queryKeyboardModifiers() & Qt::ShiftModifier)
       {
          //
-         // If enter is pressed and no item is selected open all items and hide if at least
-         // on link could be opened. Remain shown otherwise so the error can be seen.
+         // If SHIFT + enter is pressed and no item is selected open all items and hide if at
+         // least on link could be opened. Remain shown otherwise so the error can be seen.
          //
 
          bool openUrlSucceeded = true;

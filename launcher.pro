@@ -12,7 +12,7 @@ QT += core gui widgets
 TARGET = launcher
 TEMPLATE = app
 
-VERSION = 1.2.0
+VERSION = 1.3.0
 QMAKE_TARGET_PRODUCT = "Launcher"
 QMAKE_TARGET_COMPANY = "Lukas Geyer"
 QMAKE_TARGET_COPYRIGHT = "Copyright (C) 2016 Lukas Geyer. All rights reserved."
@@ -92,3 +92,5 @@ win32 {
    LIBS += user32.lib
    RC_ICONS  = resources/images/logo.ico
 }
+
+DISTFILES +=

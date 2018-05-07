@@ -66,7 +66,7 @@ The key sequence `STRG + SHIFT + Space` will bring up the search bar, which allo
 
 A name or tag is treated as a regular expression. For convenience, the wildcards `?` and `*` can also be used to match a single or any character.
 
-If the search expression yields at least one result a click on the item will open the related URL. Alternatively the up/down as well as the page-up/-down key can be used to navigate through the result list and the enter key can be used to open the related URL. If no item is selected in the list the enter key will open any URL in the list.
+If the search expression yields at least one result a click on the item will open the related URL. Alternatively the up/down as well as the page-up/-down key can be used to navigate through the result list and the `Enter` can be used to open the related URL. If no item is selected in the list `SHIFT+Enter` will open any URL in the list.
 
 ### Example
 | Expression            | Description                                                                                      |
