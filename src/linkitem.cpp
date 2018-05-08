@@ -29,11 +29,11 @@ void LinkItem::setLink(const QString& link)
 {
    static thread_local QRegularExpression placeholderExpression(QStringLiteral("{([0-9]+|\\*)}"));
 
-   link_ = link;
+   link_ = applyProcessEnvironment(link);
    linkParameterCount_ = 0;
    linkParameterWildcard_ = false;
 
-   auto placeholderMatches = placeholderExpression.globalMatch(link);
+   auto placeholderMatches = placeholderExpression.globalMatch(link_);
    while (placeholderMatches.hasNext())
    {
       const auto& placeholderString = placeholderMatches.next().captured(1);

@@ -13,6 +13,7 @@
 #include <type_traits>
 
 #include <QHash>
+#include <QProcessEnvironment>
 
 /*!
  * \brief An item.
@@ -137,6 +138,14 @@ protected:
    Item(Type type, Access access = Access::ReadWrite) : type_(type), access_(access)
    {
    }
+
+   /*!
+    * Applies the process environment \a processEnvironment to the string \a string and returns
+    * a string that has all enironment variables which are found in the process environment
+    * replaced with their actual value. A variable is defined as _{name}_. If a variable is defined
+    * in the string but not in the process environment it remains in the string.
+    */
+   QString applyProcessEnvironment(const QString& string, const QProcessEnvironment& processEnvironment = QProcessEnvironment::systemEnvironment());
 
 private:
    /*!
