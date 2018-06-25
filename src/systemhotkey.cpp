@@ -9,6 +9,7 @@
 
 #include <QAbstractEventDispatcher>
 #include <QDebug>
+#include <QHash>
 
 #if defined(Q_OS_LINUX)
    #include <QX11Info>
@@ -28,17 +29,22 @@ SystemHotkey::~SystemHotkey()
    unregisterKeySequence();
 }
 
-bool SystemHotkey::registerKeySequence()
+bool SystemHotkey::registerKeySequence(const QKeySequence &keySequence)
 {
    bool keySequenceRegistered = false;
 
+   nativeKeySequence_ = toNativeKeySequence_(keySequence);
+
+   qDebug() << "register hotkey:" << keySequence << "native key:" << nativeKeySequence_.key << "native modifier:" << nativeKeySequence_.modifier;
+
 #if defined(Q_OS_LINUX)
-   auto result = xcb_request_check(QX11Info::connection(), xcb_grab_key_checked(QX11Info::connection(), false, QX11Info::appRootWindow(),
+   auto result = xcb_request_check(QX11Info::connection(), xcb_grab_key_checked(QX11Info::connection(), false,
+                                                                                QX11Info::appRootWindow(),
                                                                                 XCB_MOD_MASK_CONTROL | XCB_MOD_MASK_SHIFT, 65 /* Space */,
                                                                                 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC));
 
    keySequenceRegistered = ((result == nullptr) || (result->error_code == 0));
-   if (keySequenceRegistered )
+   if (keySequenceRegistered)
    {
       QAbstractEventDispatcher::instance()->installNativeEventFilter(this);
    }
@@ -48,8 +54,8 @@ bool SystemHotkey::registerKeySequence()
    }
 
 #elif defined(Q_OS_WIN)
-   keySequenceRegistered = (RegisterHotKey(NULL, 0, MOD_CONTROL | MOD_SHIFT, VK_SPACE));
-   if (keySequenceRegistered )
+   keySequenceRegistered = (RegisterHotKey(NULL, 0, nativeKeySequence_.modifier, nativeKeySequence_.key));
+   if (keySequenceRegistered)
    {
       QAbstractEventDispatcher::instance()->installNativeEventFilter(this);
    }
@@ -77,7 +83,7 @@ void SystemHotkey::unregisterKeySequence()
 
 #if defined(Q_OS_LINUX)
    xcb_ungrab_key(QX11Info::connection(), 65, QX11Info::appRootWindow(),
-                  XCB_MOD_MASK_CONTROL | XCB_MOD_MASK_SHIFT);
+                    XCB_MOD_MASK_CONTROL | XCB_MOD_MASK_SHIFT);
 #elif defined(Q_OS_WIN)
    UnregisterHotKey(NULL, 0);
 #endif // defined(Q_OS_LINUX)
@@ -101,7 +107,7 @@ bool SystemHotkey::nativeEventFilter(const QByteArray& /* eventType */, void *me
    auto eventMessage = static_cast<MSG*>(message);
    if (eventMessage->message == WM_HOTKEY)
    {
-      if ((LOWORD(eventMessage->lParam) == (MOD_CONTROL | MOD_SHIFT)) && (HIWORD(eventMessage->lParam) == VK_SPACE))
+      if ((LOWORD(eventMessage->lParam) == nativeKeySequence_.modifier) && (HIWORD(eventMessage->lParam) == nativeKeySequence_.key))
       {
          emit hotkeyPressed();
       }
@@ -109,4 +115,70 @@ bool SystemHotkey::nativeEventFilter(const QByteArray& /* eventType */, void *me
 #endif // defined(Q_OS_LINUX)
 
    return false;
+}
+
+SystemHotkey::NativeKeySequence_ SystemHotkey::toNativeKeySequence_(const QKeySequence& keySequence)
+{
+   SystemHotkey::NativeKeySequence_ nativeKeySequence;
+
+   if (!keySequence.isEmpty())
+   {
+      auto key = keySequence[0] & ~Qt::KeyboardModifierMask;
+
+#if defined(Q_OS_LINUX)
+      Q_UNUSED(key);
+#elif defined(Q_OS_WIN)
+      static QHash<int, int> nativeKeyMapping
+      {
+         { Qt::Key_Escape, VK_ESCAPE },              { Qt::Key_Tab, VK_TAB },                         { Qt::Key_Backtab, VK_TAB },
+         { Qt::Key_Backspace, VK_BACK },             { Qt::Key_Return, VK_RETURN },                   { Qt::Key_Enter, VK_RETURN },
+         { Qt::Key_Insert, VK_INSERT },              { Qt::Key_Delete, VK_DELETE },                   { Qt::Key_Pause, VK_PAUSE },
+         { Qt::Key_Print, VK_PRINT },                { Qt::Key_Clear, VK_CLEAR },                     { Qt::Key_Home, VK_HOME },
+         { Qt::Key_End, VK_END },                    { Qt::Key_Left, VK_LEFT },                       { Qt::Key_Up, VK_UP },
+         { Qt::Key_Right, VK_RIGHT },                { Qt::Key_Down, VK_DOWN },                       { Qt::Key_PageUp, VK_PRIOR },
+         { Qt::Key_PageDown, VK_NEXT },              { Qt::Key_CapsLock, VK_CAPITAL },                { Qt::Key_NumLock, VK_NUMLOCK },
+         { Qt::Key_ScrollLock, VK_SCROLL },          { Qt::Key_F1, VK_F1 },                           { Qt::Key_F2, VK_F2 },
+         { Qt::Key_F3, VK_F3 },                      { Qt::Key_F4, VK_F4 },                           { Qt::Key_F5, VK_F5 },
+         { Qt::Key_F6, VK_F6 },                      { Qt::Key_F7, VK_F7 },                           { Qt::Key_F8, VK_F8 },
+         { Qt::Key_F9, VK_F9 },                      { Qt::Key_F10, VK_F10 },                         { Qt::Key_F11, VK_F11 },
+         { Qt::Key_F12, VK_F12 },                    { Qt::Key_F13, VK_F13 },                         { Qt::Key_F14, VK_F14 },
+         { Qt::Key_F15, VK_F15 },                    { Qt::Key_F16, VK_F16 },                         { Qt::Key_F17, VK_F17 },
+         { Qt::Key_F18, VK_F18 },                    { Qt::Key_F19, VK_F19 },                         { Qt::Key_F20, VK_F20 },
+         { Qt::Key_F21, VK_F21 },                    { Qt::Key_F22, VK_F22 },                         { Qt::Key_F23, VK_F23 },
+         { Qt::Key_F24, VK_F24 },                    { Qt::Key_Menu, VK_APPS },                       { Qt::Key_Help, VK_HELP },
+         { Qt::Key_MediaNext, VK_MEDIA_NEXT_TRACK }, { Qt::Key_MediaPrevious, VK_MEDIA_PREV_TRACK },  { Qt::Key_MediaPlay, VK_MEDIA_PLAY_PAUSE },
+         { Qt::Key_MediaStop, VK_MEDIA_STOP },       { Qt::Key_VolumeDown, VK_VOLUME_DOWN },          { Qt::Key_VolumeUp, VK_VOLUME_UP },
+         { Qt::Key_VolumeMute, VK_VOLUME_MUTE },     { Qt::Key_Mode_switch, VK_MODECHANGE },          { Qt::Key_Select, VK_SELECT },
+         { Qt::Key_Printer, VK_PRINT },              { Qt::Key_Execute, VK_EXECUTE },                 { Qt::Key_Sleep, VK_SLEEP },
+         { Qt::Key_Period, VK_DECIMAL },             { Qt::Key_Play, VK_PLAY },                       { Qt::Key_Cancel, VK_CANCEL },
+         { Qt::Key_Forward, VK_BROWSER_FORWARD },    { Qt::Key_Refresh, VK_BROWSER_REFRESH },         { Qt::Key_Stop, VK_BROWSER_STOP },
+         { Qt::Key_Search, VK_BROWSER_SEARCH },      { Qt::Key_Favorites, VK_BROWSER_FAVORITES },     { Qt::Key_HomePage, VK_BROWSER_HOME },
+         { Qt::Key_LaunchMail, VK_LAUNCH_MAIL },     { Qt::Key_LaunchMedia, VK_LAUNCH_MEDIA_SELECT }, { Qt::Key_Launch0, VK_LAUNCH_APP1 },
+         { Qt::Key_Launch1, VK_LAUNCH_APP2 }
+      };
+
+      nativeKeySequence.key = nativeKeyMapping.value(key, ~0);
+      if ((nativeKeySequence.key == ~0) && (key < 0xffff))
+      {
+          nativeKeySequence.key = static_cast<decltype(nativeKeySequence.key)>(key);
+      }
+#endif // defined(Q_OS_LINUX)
+
+      auto modifiers = keySequence[0] & Qt::KeyboardModifierMask;
+
+#if defined(Q_OS_LINUX)
+      Q_UNUSED(modifiers);
+#elif defined(Q_OS_WIN)
+      if (modifiers & Qt::ShiftModifier)
+          nativeKeySequence.modifier |= MOD_SHIFT;
+      if (modifiers & Qt::ControlModifier)
+          nativeKeySequence.modifier |= MOD_CONTROL;
+      if (modifiers & Qt::AltModifier)
+          nativeKeySequence.modifier |= MOD_ALT;
+      if (modifiers & Qt::MetaModifier)
+          nativeKeySequence.modifier |= MOD_WIN;
+#endif // defined(Q_OS_LINUX)
+   }
+
+   return nativeKeySequence;
 }

@@ -19,12 +19,14 @@
 #include <QHeaderView>
 #include <QIcon>
 #include <QKeyEvent>
+#include <QKeySequenceEdit>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QTableView>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <QWidgetAction>
 
 #include "application.h"
 #include "event.h"
@@ -39,6 +41,11 @@
 #include "systemhotkey.h"
 
 namespace {
+
+/*!
+ * The default hotkey key sequence.
+ */
+const QKeySequence DEFAULT_HOTKEY_KEYSEQUENCE_ = QStringLiteral("Ctrl+Shift+Space");
 
 /*!
  * The size of the resize area (if the cursor is not within this area the window will be moved
@@ -341,6 +348,49 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
       }
    });
 
+
+   //
+   // Add option to alter hotkey to the search widget.
+   //
+
+   auto itemHotkey = new SystemHotkey(this);
+   itemHotkey->connect(itemHotkey, &SystemHotkey::hotkeyPressed, [this](){
+      showNormal();
+   });
+
+   auto hotkeySelectionEdit = new QKeySequenceEdit;
+   hotkeySelectionEdit->connect(hotkeySelectionEdit, &QKeySequenceEdit::editingFinished, [this, application, itemHotkey, hotkeySelectionEdit]()
+   {
+      qDebug() << "hotkey changed:" << hotkeySelectionEdit->keySequence();
+
+      if (!hotkeySelectionEdit->keySequence().isEmpty())
+      {
+          application->setSetting(this, QStringLiteral("hotkey"), hotkeySelectionEdit->keySequence());
+
+          itemHotkey->unregisterKeySequence();
+          if (!itemHotkey->registerKeySequence(hotkeySelectionEdit->keySequence()))
+          {
+             searchBarWidget_->addInidication(QStringLiteral("hotkeyError"), tr("The hotkey could not be registered"));
+          }
+      }
+
+      hotkeySelectionEdit->clearFocus();
+   });
+
+   hotkeySelectionEdit->setKeySequence(application->setting<QKeySequence>(this, QStringLiteral("hotkey"), DEFAULT_HOTKEY_KEYSEQUENCE_));
+   hotkeySelectionEdit->editingFinished();
+
+   auto hotkeySelectionAction = new QWidgetAction(searchExpressionEditContextMenu);
+   hotkeySelectionAction->setDefaultWidget(hotkeySelectionEdit);
+
+   auto hotkeySelectionMenu = searchExpressionEditContextMenu->addMenu(QIcon(QStringLiteral(":/images/logo.png")), tr("Select hotkey"));
+   hotkeySelectionMenu->addAction(hotkeySelectionAction);
+   hotkeySelectionMenu->connect(hotkeySelectionMenu, &QMenu::aboutToShow, [hotkeySelectionEdit]
+   {
+       hotkeySelectionEdit->clear();
+       hotkeySelectionEdit->setFocus(Qt::OtherFocusReason);
+   });
+
    //
    // Show the decorated context menu instead of the standard context menu.
    //
@@ -361,28 +411,6 @@ SearchWindow::SearchWindow(ItemModel* itemModel, QWidget *parent) : QWidget(pare
    layout->setSpacing(0);
 
    setLayout(layout);
-
-   //
-   // Create the hotkey.
-   //
-
-   auto itemHotkey = new SystemHotkey(this);
-   itemHotkey->connect(itemHotkey, &SystemHotkey::hotkeyPressed, [this](){
-      //
-      // Show the window.
-      //
-
-      showNormal();
-   });
-
-   //
-   // Register the hotkey sequence.
-   //
-
-   if (!itemHotkey->registerKeySequence())
-   {
-      searchBarWidget_->addInidication(QStringLiteral("hotkeyError"), tr("The hotkey could not be registered"));
-   }
 
    //
    // Update the widget geometry.

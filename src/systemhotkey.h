@@ -11,6 +11,7 @@
 #define SYSTEMHOTKEY_H
 
 #include <QAbstractNativeEventFilter>
+#include <QKeySequence>
 #include <QObject>
 
 /*!
@@ -31,11 +32,11 @@ public:
    ~SystemHotkey();
 
    /*!
-    * Registers the predefined key sequence.
+    * Registers the key sequence \a keySequence.
     */
-   bool registerKeySequence();
+   bool registerKeySequence(const QKeySequence& keySequence);
    /*!
-    * Unregisters the predefined key sequence.
+    * Unregisters the currently registered key sequence.
     */
    void unregisterKeySequence();
 
@@ -49,6 +50,25 @@ signals:
     * Is emitted when the hotkey has been pressed.
     */
    void hotkeyPressed();
+
+private:
+   /*!
+    * A native key sequence.
+    */
+   struct NativeKeySequence_
+   {
+      std::uint32_t key = ~0;
+      std::uint32_t modifier = 0;
+   };
+   /*!
+    * The native key sequence.
+    */
+   NativeKeySequence_ nativeKeySequence_;
+
+   /*!
+    * Returns the native representation of the key of the key sequence \a keySequence.
+    */
+   static NativeKeySequence_ toNativeKeySequence_(const QKeySequence& keySequence);
 };
 
 #endif // SYSTEMHOTKEY_H
